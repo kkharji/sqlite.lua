@@ -1,14 +1,12 @@
--- Note right now i am testing this with :luafile %
-
 local ffi = require'ffi'
 local bit = require'bit'
 
-local m = {}
+local M = {}
 
 local clib = ffi.load('/usr/lib/libsqlite3.so')
 
 -- Constants
-m.flags = {
+M.flags = {
   -- Result codes
   ['OK']         = 0,
   ['ERROR']      = 1,
@@ -44,467 +42,467 @@ m.flags = {
 }
 
 -- Extended Result Codes
-m.flags['ERROR_MISSING_COLLSEQ']   = bit.bor(m.flags.ERROR, bit.lshift(1, 8))
-m.flags['ERROR_RETRY']             = bit.bor(m.flags.ERROR, bit.lshift(2, 8))
-m.flags['ERROR_SNAPSHOT']          = bit.bor(m.flags.ERROR, bit.lshift(3, 8))
-m.flags['IOERR_READ']              = bit.bor(m.flags.IOERR, bit.lshift(1, 8))
-m.flags['IOERR_SHORT_READ']        = bit.bor(m.flags.IOERR, bit.lshift(2, 8))
-m.flags['IOERR_WRITE']             = bit.bor(m.flags.IOERR, bit.lshift(3, 8))
-m.flags['IOERR_FSYNC']             = bit.bor(m.flags.IOERR, bit.lshift(4, 8))
-m.flags['IOERR_DIR_FSYNC']         = bit.bor(m.flags.IOERR, bit.lshift(5, 8))
-m.flags['IOERR_TRUNCATE']          = bit.bor(m.flags.IOERR, bit.lshift(6, 8))
-m.flags['IOERR_FSTAT']             = bit.bor(m.flags.IOERR, bit.lshift(7, 8))
-m.flags['IOERR_UNLOCK']            = bit.bor(m.flags.IOERR, bit.lshift(8, 8))
-m.flags['IOERR_RDLOCK']            = bit.bor(m.flags.IOERR, bit.lshift(9, 8))
-m.flags['IOERR_DELETE']            = bit.bor(m.flags.IOERR, bit.lshift(10, 8))
-m.flags['IOERR_BLOCKED']           = bit.bor(m.flags.IOERR, bit.lshift(11, 8))
-m.flags['IOERR_NOMEM']             = bit.bor(m.flags.IOERR, bit.lshift(12, 8))
-m.flags['IOERR_ACCESS']            = bit.bor(m.flags.IOERR, bit.lshift(13, 8))
-m.flags['IOERR_CHECKRESERVEDLOCK'] = bit.bor(m.flags.IOERR, bit.lshift(14, 8))
-m.flags['IOERR_LOCK']              = bit.bor(m.flags.IOERR, bit.lshift(15, 8))
-m.flags['IOERR_CLOSE']             = bit.bor(m.flags.IOERR, bit.lshift(16, 8))
-m.flags['IOERR_DIR_CLOSE']         = bit.bor(m.flags.IOERR, bit.lshift(17, 8))
-m.flags['IOERR_SHMOPEN']           = bit.bor(m.flags.IOERR, bit.lshift(18, 8))
-m.flags['IOERR_SHMSIZE']           = bit.bor(m.flags.IOERR, bit.lshift(19, 8))
-m.flags['IOERR_SHMLOCK']           = bit.bor(m.flags.IOERR, bit.lshift(20, 8))
-m.flags['IOERR_SHMMAP']            = bit.bor(m.flags.IOERR, bit.lshift(21, 8))
-m.flags['IOERR_SEEK']              = bit.bor(m.flags.IOERR, bit.lshift(22, 8))
-m.flags['IOERR_DELETE_NOENT']      = bit.bor(m.flags.IOERR, bit.lshift(23, 8))
-m.flags['IOERR_MMAP']              = bit.bor(m.flags.IOERR, bit.lshift(24, 8))
-m.flags['IOERR_GETTEMPPATH']       = bit.bor(m.flags.IOERR, bit.lshift(25, 8))
-m.flags['IOERR_CONVPATH']          = bit.bor(m.flags.IOERR, bit.lshift(26, 8))
-m.flags['IOERR_VNODE']             = bit.bor(m.flags.IOERR, bit.lshift(27, 8))
-m.flags['IOERR_AUTH']              = bit.bor(m.flags.IOERR, bit.lshift(28, 8))
-m.flags['IOERR_BEGIN_ATOMIC']      = bit.bor(m.flags.IOERR, bit.lshift(29, 8))
-m.flags['IOERR_COMMIT_ATOMIC']     = bit.bor(m.flags.IOERR, bit.lshift(30, 8))
-m.flags['IOERR_ROLLBACK_ATOMIC']   = bit.bor(m.flags.IOERR, bit.lshift(31, 8))
-m.flags['IOERR_DATA']              = bit.bor(m.flags.IOERR, bit.lshift(32, 8))
-m.flags['IOERR_CORRUPTFS']         = bit.bor(m.flags.IOERR, bit.lshift(33, 8))
-m.flags['LOCKED_SHAREDCACHE']      = bit.bor(m.flags.LOCKED, bit.lshift(1, 8))
-m.flags['LOCKED_VTAB']             = bit.bor(m.flags.LOCKED, bit.lshift(2, 8))
-m.flags['BUSY_RECOVERY']           = bit.bor(m.flags.BUSY, bit.lshift(1, 8))
-m.flags['BUSY_SNAPSHOT']           = bit.bor(m.flags.BUSY, bit.lshift(2, 8))
-m.flags['BUSY_TIMEOUT']            = bit.bor(m.flags.BUSY, bit.lshift(3, 8))
-m.flags['CANTOPEN_NOTEMPDIR']      = bit.bor(m.flags.CANTOPEN, bit.lshift(1, 8))
-m.flags['CANTOPEN_ISDIR']          = bit.bor(m.flags.CANTOPEN, bit.lshift(2, 8))
-m.flags['CANTOPEN_FULLPATH']       = bit.bor(m.flags.CANTOPEN, bit.lshift(3, 8))
-m.flags['CANTOPEN_CONVPATH']       = bit.bor(m.flags.CANTOPEN, bit.lshift(4, 8))
-m.flags['CANTOPEN_DIRTYWAL']       = bit.bor(m.flags.CANTOPEN, bit.lshift(5, 8))
-m.flags['CANTOPEN_SYMLINK']        = bit.bor(m.flags.CANTOPEN, bit.lshift(6, 8))
-m.flags['CORRUPT_VTAB']            = bit.bor(m.flags.CORRUPT, bit.lshift(1, 8))
-m.flags['CORRUPT_SEQUENCE']        = bit.bor(m.flags.CORRUPT, bit.lshift(2, 8))
-m.flags['CORRUPT_INDEX']           = bit.bor(m.flags.CORRUPT, bit.lshift(3, 8))
-m.flags['READONLY_RECOVERY']       = bit.bor(m.flags.READONLY, bit.lshift(1, 8))
-m.flags['READONLY_CANTLOCK']       = bit.bor(m.flags.READONLY, bit.lshift(2, 8))
-m.flags['READONLY_ROLLBACK']       = bit.bor(m.flags.READONLY, bit.lshift(3, 8))
-m.flags['READONLY_DBMOVED']        = bit.bor(m.flags.READONLY, bit.lshift(4, 8))
-m.flags['READONLY_CANTINIT']       = bit.bor(m.flags.READONLY, bit.lshift(5, 8))
-m.flags['READONLY_DIRECTORY']      = bit.bor(m.flags.READONLY, bit.lshift(6, 8))
-m.flags['ABORT_ROLLBACK']          = bit.bor(m.flags.ABORT, bit.lshift(2, 8))
-m.flags['CONSTRAINT_CHECK']        = bit.bor(m.flags.CONSTRAINT, bit.lshift(1, 8))
-m.flags['CONSTRAINT_COMMITHOOK']   = bit.bor(m.flags.CONSTRAINT, bit.lshift(2, 8))
-m.flags['CONSTRAINT_FOREIGNKEY']   = bit.bor(m.flags.CONSTRAINT, bit.lshift(3, 8))
-m.flags['CONSTRAINT_FUNCTION']     = bit.bor(m.flags.CONSTRAINT, bit.lshift(4, 8))
-m.flags['CONSTRAINT_NOTNULL']      = bit.bor(m.flags.CONSTRAINT, bit.lshift(5, 8))
-m.flags['CONSTRAINT_PRIMARYKEY']   = bit.bor(m.flags.CONSTRAINT, bit.lshift(6, 8))
-m.flags['CONSTRAINT_TRIGGER']      = bit.bor(m.flags.CONSTRAINT, bit.lshift(7, 8))
-m.flags['CONSTRAINT_UNIQUE']       = bit.bor(m.flags.CONSTRAINT, bit.lshift(8, 8))
-m.flags['CONSTRAINT_VTAB']         = bit.bor(m.flags.CONSTRAINT, bit.lshift(9, 8))
-m.flags['CONSTRAINT_ROWID']        = bit.bor(m.flags.CONSTRAINT, bit.lshift(10, 8))
-m.flags['CONSTRAINT_PINNED']       = bit.bor(m.flags.CONSTRAINT, bit.lshift(11, 8))
-m.flags['NOTICE_RECOVER_WAL']      = bit.bor(m.flags.NOTICE, bit.lshift(1, 8))
-m.flags['NOTICE_RECOVER_ROLLBACK'] = bit.bor(m.flags.NOTICE, bit.lshift(2, 8))
-m.flags['WARNING_AUTOINDEX']       = bit.bor(m.flags.WARNING, bit.lshift(1, 8))
-m.flags['AUTH_USER']               = bit.bor(m.flags.AUTH, bit.lshift(1, 8))
-m.flags['OK_LOAD_PERMANENTLY']     = bit.bor(m.flags.OK, bit.lshift(1, 8))
-m.flags['OK_SYMLINK']              = bit.bor(m.flags.OK, bit.lshift(2, 8))
+M.flags['ERROR_MISSING_COLLSEQ']   = bit.bor(M.flags.ERROR, bit.lshift(1, 8))
+M.flags['ERROR_RETRY']             = bit.bor(M.flags.ERROR, bit.lshift(2, 8))
+M.flags['ERROR_SNAPSHOT']          = bit.bor(M.flags.ERROR, bit.lshift(3, 8))
+M.flags['IOERR_READ']              = bit.bor(M.flags.IOERR, bit.lshift(1, 8))
+M.flags['IOERR_SHORT_READ']        = bit.bor(M.flags.IOERR, bit.lshift(2, 8))
+M.flags['IOERR_WRITE']             = bit.bor(M.flags.IOERR, bit.lshift(3, 8))
+M.flags['IOERR_FSYNC']             = bit.bor(M.flags.IOERR, bit.lshift(4, 8))
+M.flags['IOERR_DIR_FSYNC']         = bit.bor(M.flags.IOERR, bit.lshift(5, 8))
+M.flags['IOERR_TRUNCATE']          = bit.bor(M.flags.IOERR, bit.lshift(6, 8))
+M.flags['IOERR_FSTAT']             = bit.bor(M.flags.IOERR, bit.lshift(7, 8))
+M.flags['IOERR_UNLOCK']            = bit.bor(M.flags.IOERR, bit.lshift(8, 8))
+M.flags['IOERR_RDLOCK']            = bit.bor(M.flags.IOERR, bit.lshift(9, 8))
+M.flags['IOERR_DELETE']            = bit.bor(M.flags.IOERR, bit.lshift(10, 8))
+M.flags['IOERR_BLOCKED']           = bit.bor(M.flags.IOERR, bit.lshift(11, 8))
+M.flags['IOERR_NOMEM']             = bit.bor(M.flags.IOERR, bit.lshift(12, 8))
+M.flags['IOERR_ACCESS']            = bit.bor(M.flags.IOERR, bit.lshift(13, 8))
+M.flags['IOERR_CHECKRESERVEDLOCK'] = bit.bor(M.flags.IOERR, bit.lshift(14, 8))
+M.flags['IOERR_LOCK']              = bit.bor(M.flags.IOERR, bit.lshift(15, 8))
+M.flags['IOERR_CLOSE']             = bit.bor(M.flags.IOERR, bit.lshift(16, 8))
+M.flags['IOERR_DIR_CLOSE']         = bit.bor(M.flags.IOERR, bit.lshift(17, 8))
+M.flags['IOERR_SHMOPEN']           = bit.bor(M.flags.IOERR, bit.lshift(18, 8))
+M.flags['IOERR_SHMSIZE']           = bit.bor(M.flags.IOERR, bit.lshift(19, 8))
+M.flags['IOERR_SHMLOCK']           = bit.bor(M.flags.IOERR, bit.lshift(20, 8))
+M.flags['IOERR_SHMMAP']            = bit.bor(M.flags.IOERR, bit.lshift(21, 8))
+M.flags['IOERR_SEEK']              = bit.bor(M.flags.IOERR, bit.lshift(22, 8))
+M.flags['IOERR_DELETE_NOENT']      = bit.bor(M.flags.IOERR, bit.lshift(23, 8))
+M.flags['IOERR_MMAP']              = bit.bor(M.flags.IOERR, bit.lshift(24, 8))
+M.flags['IOERR_GETTEMPPATH']       = bit.bor(M.flags.IOERR, bit.lshift(25, 8))
+M.flags['IOERR_CONVPATH']          = bit.bor(M.flags.IOERR, bit.lshift(26, 8))
+M.flags['IOERR_VNODE']             = bit.bor(M.flags.IOERR, bit.lshift(27, 8))
+M.flags['IOERR_AUTH']              = bit.bor(M.flags.IOERR, bit.lshift(28, 8))
+M.flags['IOERR_BEGIN_ATOMIC']      = bit.bor(M.flags.IOERR, bit.lshift(29, 8))
+M.flags['IOERR_COMMIT_ATOMIC']     = bit.bor(M.flags.IOERR, bit.lshift(30, 8))
+M.flags['IOERR_ROLLBACK_ATOMIC']   = bit.bor(M.flags.IOERR, bit.lshift(31, 8))
+M.flags['IOERR_DATA']              = bit.bor(M.flags.IOERR, bit.lshift(32, 8))
+M.flags['IOERR_CORRUPTFS']         = bit.bor(M.flags.IOERR, bit.lshift(33, 8))
+M.flags['LOCKED_SHAREDCACHE']      = bit.bor(M.flags.LOCKED, bit.lshift(1, 8))
+M.flags['LOCKED_VTAB']             = bit.bor(M.flags.LOCKED, bit.lshift(2, 8))
+M.flags['BUSY_RECOVERY']           = bit.bor(M.flags.BUSY, bit.lshift(1, 8))
+M.flags['BUSY_SNAPSHOT']           = bit.bor(M.flags.BUSY, bit.lshift(2, 8))
+M.flags['BUSY_TIMEOUT']            = bit.bor(M.flags.BUSY, bit.lshift(3, 8))
+M.flags['CANTOPEN_NOTEMPDIR']      = bit.bor(M.flags.CANTOPEN, bit.lshift(1, 8))
+M.flags['CANTOPEN_ISDIR']          = bit.bor(M.flags.CANTOPEN, bit.lshift(2, 8))
+M.flags['CANTOPEN_FULLPATH']       = bit.bor(M.flags.CANTOPEN, bit.lshift(3, 8))
+M.flags['CANTOPEN_CONVPATH']       = bit.bor(M.flags.CANTOPEN, bit.lshift(4, 8))
+M.flags['CANTOPEN_DIRTYWAL']       = bit.bor(M.flags.CANTOPEN, bit.lshift(5, 8))
+M.flags['CANTOPEN_SYMLINK']        = bit.bor(M.flags.CANTOPEN, bit.lshift(6, 8))
+M.flags['CORRUPT_VTAB']            = bit.bor(M.flags.CORRUPT, bit.lshift(1, 8))
+M.flags['CORRUPT_SEQUENCE']        = bit.bor(M.flags.CORRUPT, bit.lshift(2, 8))
+M.flags['CORRUPT_INDEX']           = bit.bor(M.flags.CORRUPT, bit.lshift(3, 8))
+M.flags['READONLY_RECOVERY']       = bit.bor(M.flags.READONLY, bit.lshift(1, 8))
+M.flags['READONLY_CANTLOCK']       = bit.bor(M.flags.READONLY, bit.lshift(2, 8))
+M.flags['READONLY_ROLLBACK']       = bit.bor(M.flags.READONLY, bit.lshift(3, 8))
+M.flags['READONLY_DBMOVED']        = bit.bor(M.flags.READONLY, bit.lshift(4, 8))
+M.flags['READONLY_CANTINIT']       = bit.bor(M.flags.READONLY, bit.lshift(5, 8))
+M.flags['READONLY_DIRECTORY']      = bit.bor(M.flags.READONLY, bit.lshift(6, 8))
+M.flags['ABORT_ROLLBACK']          = bit.bor(M.flags.ABORT, bit.lshift(2, 8))
+M.flags['CONSTRAINT_CHECK']        = bit.bor(M.flags.CONSTRAINT, bit.lshift(1, 8))
+M.flags['CONSTRAINT_COMMITHOOK']   = bit.bor(M.flags.CONSTRAINT, bit.lshift(2, 8))
+M.flags['CONSTRAINT_FOREIGNKEY']   = bit.bor(M.flags.CONSTRAINT, bit.lshift(3, 8))
+M.flags['CONSTRAINT_FUNCTION']     = bit.bor(M.flags.CONSTRAINT, bit.lshift(4, 8))
+M.flags['CONSTRAINT_NOTNULL']      = bit.bor(M.flags.CONSTRAINT, bit.lshift(5, 8))
+M.flags['CONSTRAINT_PRIMARYKEY']   = bit.bor(M.flags.CONSTRAINT, bit.lshift(6, 8))
+M.flags['CONSTRAINT_TRIGGER']      = bit.bor(M.flags.CONSTRAINT, bit.lshift(7, 8))
+M.flags['CONSTRAINT_UNIQUE']       = bit.bor(M.flags.CONSTRAINT, bit.lshift(8, 8))
+M.flags['CONSTRAINT_VTAB']         = bit.bor(M.flags.CONSTRAINT, bit.lshift(9, 8))
+M.flags['CONSTRAINT_ROWID']        = bit.bor(M.flags.CONSTRAINT, bit.lshift(10, 8))
+M.flags['CONSTRAINT_PINNED']       = bit.bor(M.flags.CONSTRAINT, bit.lshift(11, 8))
+M.flags['NOTICE_RECOVER_WAL']      = bit.bor(M.flags.NOTICE, bit.lshift(1, 8))
+M.flags['NOTICE_RECOVER_ROLLBACK'] = bit.bor(M.flags.NOTICE, bit.lshift(2, 8))
+M.flags['WARNING_AUTOINDEX']       = bit.bor(M.flags.WARNING, bit.lshift(1, 8))
+M.flags['AUTH_USER']               = bit.bor(M.flags.AUTH, bit.lshift(1, 8))
+M.flags['OK_LOAD_PERMANENTLY']     = bit.bor(M.flags.OK, bit.lshift(1, 8))
+M.flags['OK_SYMLINK']              = bit.bor(M.flags.OK, bit.lshift(2, 8))
 
 -- Flags for file open operations.
-m.flags['OPEN_READONLY']      = 0x00000001
-m.flags['OPEN_READWRITE']     = 0x00000002
-m.flags['OPEN_CREATE']        = 0x00000004
-m.flags['OPEN_DELETEONCLOSE'] = 0x00000008
-m.flags['OPEN_EXCLUSIVE']     = 0x00000010
-m.flags['OPEN_AUTOPROXY']     = 0x00000020
-m.flags['OPEN_URI']           = 0x00000040
-m.flags['OPEN_MEMORY']        = 0x00000080
-m.flags['OPEN_MAIN_DB']       = 0x00000100
-m.flags['OPEN_TEMP_DB']       = 0x00000200
-m.flags['OPEN_TRANSIENT_DB']  = 0x00000400
-m.flags['OPEN_MAIN_JOURNAL']  = 0x00000800
-m.flags['OPEN_TEMP_JOURNAL']  = 0x00001000
-m.flags['OPEN_SUBJOURNAL']    = 0x00002000
-m.flags['OPEN_SUPER_JOURNAL'] = 0x00004000
-m.flags['OPEN_NOMUTEX']       = 0x00008000
-m.flags['OPEN_FULLMUTEX']     = 0x00010000
-m.flags['OPEN_SHAREDCACHE']   = 0x00020000
-m.flags['OPEN_PRIVATECACHE']  = 0x00040000
-m.flags['OPEN_WAL']           = 0x00080000
-m.flags['OPEN_NOFOLLOW']      = 0x01000000
+M.flags['OPEN_READONLY']      = 0x00000001
+M.flags['OPEN_READWRITE']     = 0x00000002
+M.flags['OPEN_CREATE']        = 0x00000004
+M.flags['OPEN_DELETEONCLOSE'] = 0x00000008
+M.flags['OPEN_EXCLUSIVE']     = 0x00000010
+M.flags['OPEN_AUTOPROXY']     = 0x00000020
+M.flags['OPEN_URI']           = 0x00000040
+M.flags['OPEN_MEMORY']        = 0x00000080
+M.flags['OPEN_MAIN_DB']       = 0x00000100
+M.flags['OPEN_TEMP_DB']       = 0x00000200
+M.flags['OPEN_TRANSIENT_DB']  = 0x00000400
+M.flags['OPEN_MAIN_JOURNAL']  = 0x00000800
+M.flags['OPEN_TEMP_JOURNAL']  = 0x00001000
+M.flags['OPEN_SUBJOURNAL']    = 0x00002000
+M.flags['OPEN_SUPER_JOURNAL'] = 0x00004000
+M.flags['OPEN_NOMUTEX']       = 0x00008000
+M.flags['OPEN_FULLMUTEX']     = 0x00010000
+M.flags['OPEN_SHAREDCACHE']   = 0x00020000
+M.flags['OPEN_PRIVATECACHE']  = 0x00040000
+M.flags['OPEN_WAL']           = 0x00080000
+M.flags['OPEN_NOFOLLOW']      = 0x01000000
 
 -- Device Characteristics
-m.flags['IOCAP_ATOMIC']                = 0x00000001
-m.flags['IOCAP_ATOMIC512']             = 0x00000002
-m.flags['IOCAP_ATOMIC1K']              = 0x00000004
-m.flags['IOCAP_ATOMIC2K']              = 0x00000008
-m.flags['IOCAP_ATOMIC4K']              = 0x00000010
-m.flags['IOCAP_ATOMIC8K']              = 0x00000020
-m.flags['IOCAP_ATOMIC16K']             = 0x00000040
-m.flags['IOCAP_ATOMIC32K']             = 0x00000080
-m.flags['IOCAP_ATOMIC64K']             = 0x00000100
-m.flags['IOCAP_SAFE_APPEND']           = 0x00000200
-m.flags['IOCAP_SEQUENTIAL']            = 0x00000400
-m.flags['IOCAP_UNDELETABLE_WHEN_OPEN'] = 0x00000800
-m.flags['IOCAP_POWERSAFE_OVERWRITE']   = 0x00001000
-m.flags['IOCAP_IMMUTABLE']             = 0x00002000
-m.flags['IOCAP_BATCH_ATOMIC']          = 0x00004000
+M.flags['IOCAP_ATOMIC']                = 0x00000001
+M.flags['IOCAP_ATOMIC512']             = 0x00000002
+M.flags['IOCAP_ATOMIC1K']              = 0x00000004
+M.flags['IOCAP_ATOMIC2K']              = 0x00000008
+M.flags['IOCAP_ATOMIC4K']              = 0x00000010
+M.flags['IOCAP_ATOMIC8K']              = 0x00000020
+M.flags['IOCAP_ATOMIC16K']             = 0x00000040
+M.flags['IOCAP_ATOMIC32K']             = 0x00000080
+M.flags['IOCAP_ATOMIC64K']             = 0x00000100
+M.flags['IOCAP_SAFE_APPEND']           = 0x00000200
+M.flags['IOCAP_SEQUENTIAL']            = 0x00000400
+M.flags['IOCAP_UNDELETABLE_WHEN_OPEN'] = 0x00000800
+M.flags['IOCAP_POWERSAFE_OVERWRITE']   = 0x00001000
+M.flags['IOCAP_IMMUTABLE']             = 0x00002000
+M.flags['IOCAP_BATCH_ATOMIC']          = 0x00004000
 
 -- File Locking levels
-m.flags['LOCK_NONE']      = 0
-m.flags['LOCK_SHARED']    = 1
-m.flags['LOCK_RESERVED']  = 2
-m.flags['LOCK_PENDING']   = 3
-m.flags['LOCK_EXCLUSIVE'] = 4
+M.flags['LOCK_NONE']      = 0
+M.flags['LOCK_SHARED']    = 1
+M.flags['LOCK_RESERVED']  = 2
+M.flags['LOCK_PENDING']   = 3
+M.flags['LOCK_EXCLUSIVE'] = 4
 
 -- Synchronization Type Flags
-m.flags['SYNC_NORMAL']   = 0x00002
-m.flags['SYNC_FULL']     = 0x00003
-m.flags['SYNC_DATAONLY'] = 0x00010
+M.flags['SYNC_NORMAL']   = 0x00002
+M.flags['SYNC_FULL']     = 0x00003
+M.flags['SYNC_DATAONLY'] = 0x00010
 
 -- Standard File Control Opcodes
-m.flags['FCNTL_LOCKSTATE']             = 1
-m.flags['FCNTL_GET_LOCKPROXYFILE']     = 2
-m.flags['FCNTL_SET_LOCKPROXYFILE']     = 3
-m.flags['FCNTL_LAST_ERRNO']            = 4
-m.flags['FCNTL_SIZE_HINT']             = 5
-m.flags['FCNTL_CHUNK_SIZE']            = 6
-m.flags['FCNTL_FILE_POINTER']          = 7
-m.flags['FCNTL_SYNC_OMITTED']          = 8
-m.flags['FCNTL_WIN32_AV_RETRY']        = 9
-m.flags['FCNTL_PERSIST_WAL']           = 10
-m.flags['FCNTL_OVERWRITE']             = 11
-m.flags['FCNTL_VFSNAME']               = 12
-m.flags['FCNTL_POWERSAFE_OVERWRITE']   = 13
-m.flags['FCNTL_PRAGMA']                = 14
-m.flags['FCNTL_BUSYHANDLER']           = 15
-m.flags['FCNTL_TEMPFILENAME']          = 16
-m.flags['FCNTL_MMAP_SIZE']             = 18
-m.flags['FCNTL_TRACE']                 = 19
-m.flags['FCNTL_HAS_MOVED']             = 20
-m.flags['FCNTL_SYNC']                  = 21
-m.flags['FCNTL_COMMIT_PHASETWO']       = 22
-m.flags['FCNTL_WIN32_SET_HANDLE']      = 23
-m.flags['FCNTL_WAL_BLOCK']             = 24
-m.flags['FCNTL_ZIPVFS']                = 25
-m.flags['FCNTL_RBU']                   = 26
-m.flags['FCNTL_VFS_POINTER']           = 27
-m.flags['FCNTL_JOURNAL_POINTER']       = 28
-m.flags['FCNTL_WIN32_GET_HANDLE']      = 29
-m.flags['FCNTL_PDB']                   = 30
-m.flags['FCNTL_BEGIN_ATOMIC_WRITE']    = 31
-m.flags['FCNTL_COMMIT_ATOMIC_WRITE']   = 32
-m.flags['FCNTL_ROLLBACK_ATOMIC_WRITE'] = 33
-m.flags['FCNTL_LOCK_TIMEOUT']          = 34
-m.flags['FCNTL_DATA_VERSION']          = 35
-m.flags['FCNTL_SIZE_LIMIT']            = 36
-m.flags['FCNTL_CKPT_DONE']             = 37
-m.flags['FCNTL_RESERVE_BYTES']         = 38
-m.flags['FCNTL_CKPT_START']            = 39
+M.flags['FCNTL_LOCKSTATE']             = 1
+M.flags['FCNTL_GET_LOCKPROXYFILE']     = 2
+M.flags['FCNTL_SET_LOCKPROXYFILE']     = 3
+M.flags['FCNTL_LAST_ERRNO']            = 4
+M.flags['FCNTL_SIZE_HINT']             = 5
+M.flags['FCNTL_CHUNK_SIZE']            = 6
+M.flags['FCNTL_FILE_POINTER']          = 7
+M.flags['FCNTL_SYNC_OMITTED']          = 8
+M.flags['FCNTL_WIN32_AV_RETRY']        = 9
+M.flags['FCNTL_PERSIST_WAL']           = 10
+M.flags['FCNTL_OVERWRITE']             = 11
+M.flags['FCNTL_VFSNAME']               = 12
+M.flags['FCNTL_POWERSAFE_OVERWRITE']   = 13
+M.flags['FCNTL_PRAGMA']                = 14
+M.flags['FCNTL_BUSYHANDLER']           = 15
+M.flags['FCNTL_TEMPFILENAME']          = 16
+M.flags['FCNTL_MMAP_SIZE']             = 18
+M.flags['FCNTL_TRACE']                 = 19
+M.flags['FCNTL_HAS_MOVED']             = 20
+M.flags['FCNTL_SYNC']                  = 21
+M.flags['FCNTL_COMMIT_PHASETWO']       = 22
+M.flags['FCNTL_WIN32_SET_HANDLE']      = 23
+M.flags['FCNTL_WAL_BLOCK']             = 24
+M.flags['FCNTL_ZIPVFS']                = 25
+M.flags['FCNTL_RBU']                   = 26
+M.flags['FCNTL_VFS_POINTER']           = 27
+M.flags['FCNTL_JOURNAL_POINTER']       = 28
+M.flags['FCNTL_WIN32_GET_HANDLE']      = 29
+M.flags['FCNTL_PDB']                   = 30
+M.flags['FCNTL_BEGIN_ATOMIC_WRITE']    = 31
+M.flags['FCNTL_COMMIT_ATOMIC_WRITE']   = 32
+M.flags['FCNTL_ROLLBACK_ATOMIC_WRITE'] = 33
+M.flags['FCNTL_LOCK_TIMEOUT']          = 34
+M.flags['FCNTL_DATA_VERSION']          = 35
+M.flags['FCNTL_SIZE_LIMIT']            = 36
+M.flags['FCNTL_CKPT_DONE']             = 37
+M.flags['FCNTL_RESERVE_BYTES']         = 38
+M.flags['FCNTL_CKPT_START']            = 39
 
 -- Flags for the xAccess VFS method
-m.flags['ACCESS_EXISTS']    = 0
-m.flags['ACCESS_READWRITE'] = 1
-m.flags['ACCESS_READ']      = 2
+M.flags['ACCESS_EXISTS']    = 0
+M.flags['ACCESS_READWRITE'] = 1
+M.flags['ACCESS_READ']      = 2
 
 -- Flags for the xShmLick VFS method
-m.flags['SHM_UNLOCK']    = 1
-m.flags['SHM_LOCK']      = 2
-m.flags['SHM_SHARED']    = 4
-m.flags['SHM_EXCLUSIVE'] = 8
+M.flags['SHM_UNLOCK']    = 1
+M.flags['SHM_LOCK']      = 2
+M.flags['SHM_SHARED']    = 4
+M.flags['SHM_EXCLUSIVE'] = 8
 
 -- Maximum xShmLock index
-m.flags['SHM_NLOCK'] = 8
+M.flags['SHM_NLOCK'] = 8
 
 -- Configuration Options
-m.flags['CONFIG_SINGLETHREAD']        = 1
-m.flags['CONFIG_MULTITHREAD']         = 2
-m.flags['CONFIG_SERIALIZED']          = 3
-m.flags['CONFIG_MALLOC']              = 4
-m.flags['CONFIG_GETMALLOC']           = 5
-m.flags['CONFIG_SCRATCH']             = 6
-m.flags['CONFIG_PAGECACHE']           = 7
-m.flags['CONFIG_HEAP']                = 8
-m.flags['CONFIG_MEMSTATUS']           = 9
-m.flags['CONFIG_MUTEX']               = 10
-m.flags['CONFIG_GETMUTEX']            = 11
-m.flags['CONFIG_LOOKASIDE']           = 13
-m.flags['CONFIG_PCACHE']              = 14
-m.flags['CONFIG_GETPCACHE']           = 15
-m.flags['CONFIG_LOG']                 = 16
-m.flags['CONFIG_URI']                 = 17
-m.flags['CONFIG_PCACHE2']             = 18
-m.flags['CONFIG_GETPCACHE2']          = 19
-m.flags['CONFIG_COVERING_INDEX_SCAN'] = 20
-m.flags['CONFIG_SQLLOG']              = 21
-m.flags['CONFIG_MMAP_SIZE']           = 22
-m.flags['CONFIG_WIN32_HEAPSIZE']      = 23
-m.flags['CONFIG_PCACHE_HDRSZ']        = 24
-m.flags['CONFIG_PMASZ']               = 25
-m.flags['CONFIG_STMTJRNL_SPILL']      = 26
-m.flags['CONFIG_SMALL_MALLOC']        = 27
-m.flags['CONFIG_SORTERREF_SIZE']      = 28
-m.flags['CONFIG_MEMDB_MAXSIZE']       = 29
+M.flags['CONFIG_SINGLETHREAD']        = 1
+M.flags['CONFIG_MULTITHREAD']         = 2
+M.flags['CONFIG_SERIALIZED']          = 3
+M.flags['CONFIG_MALLOC']              = 4
+M.flags['CONFIG_GETMALLOC']           = 5
+M.flags['CONFIG_SCRATCH']             = 6
+M.flags['CONFIG_PAGECACHE']           = 7
+M.flags['CONFIG_HEAP']                = 8
+M.flags['CONFIG_MEMSTATUS']           = 9
+M.flags['CONFIG_MUTEX']               = 10
+M.flags['CONFIG_GETMUTEX']            = 11
+M.flags['CONFIG_LOOKASIDE']           = 13
+M.flags['CONFIG_PCACHE']              = 14
+M.flags['CONFIG_GETPCACHE']           = 15
+M.flags['CONFIG_LOG']                 = 16
+M.flags['CONFIG_URI']                 = 17
+M.flags['CONFIG_PCACHE2']             = 18
+M.flags['CONFIG_GETPCACHE2']          = 19
+M.flags['CONFIG_COVERING_INDEX_SCAN'] = 20
+M.flags['CONFIG_SQLLOG']              = 21
+M.flags['CONFIG_MMAP_SIZE']           = 22
+M.flags['CONFIG_WIN32_HEAPSIZE']      = 23
+M.flags['CONFIG_PCACHE_HDRSZ']        = 24
+M.flags['CONFIG_PMASZ']               = 25
+M.flags['CONFIG_STMTJRNL_SPILL']      = 26
+M.flags['CONFIG_SMALL_MALLOC']        = 27
+M.flags['CONFIG_SORTERREF_SIZE']      = 28
+M.flags['CONFIG_MEMDB_MAXSIZE']       = 29
 
 -- Database Connection Configuration Options
-m.flags['DBCONFIG_MAINDBNAME']            = 1000
-m.flags['DBCONFIG_LOOKASIDE']             = 1001
-m.flags['DBCONFIG_ENABLE_FKEY']           = 1002
-m.flags['DBCONFIG_ENABLE_TRIGGER']        = 1003
-m.flags['DBCONFIG_ENABLE_FTS3_TOKENIZER'] = 1004
-m.flags['DBCONFIG_ENABLE_LOAD_EXTENSION'] = 1005
-m.flags['DBCONFIG_NO_CKPT_ON_CLOSE']      = 1006
-m.flags['DBCONFIG_ENABLE_QPSG']           = 1007
-m.flags['DBCONFIG_TRIGGER_EQP']           = 1008
-m.flags['DBCONFIG_RESET_DATABASE']        = 1009
-m.flags['DBCONFIG_DEFENSIVE']             = 1010
-m.flags['DBCONFIG_WRITABLE_SCHEMA']       = 1011
-m.flags['DBCONFIG_LEGACY_ALTER_TABLE']    = 1012
-m.flags['DBCONFIG_DQS_DML']               = 1013
-m.flags['DBCONFIG_DQS_DDL']               = 1014
-m.flags['DBCONFIG_ENABLE_VIEW']           = 1015
-m.flags['DBCONFIG_LEGACY_FILE_FORMAT']    = 1016
-m.flags['DBCONFIG_TRUSTED_SCHEMA']        = 1017
-m.flags['DBCONFIG_MAX']                   = 1017
+M.flags['DBCONFIG_MAINDBNAME']            = 1000
+M.flags['DBCONFIG_LOOKASIDE']             = 1001
+M.flags['DBCONFIG_ENABLE_FKEY']           = 1002
+M.flags['DBCONFIG_ENABLE_TRIGGER']        = 1003
+M.flags['DBCONFIG_ENABLE_FTS3_TOKENIZER'] = 1004
+M.flags['DBCONFIG_ENABLE_LOAD_EXTENSION'] = 1005
+M.flags['DBCONFIG_NO_CKPT_ON_CLOSE']      = 1006
+M.flags['DBCONFIG_ENABLE_QPSG']           = 1007
+M.flags['DBCONFIG_TRIGGER_EQP']           = 1008
+M.flags['DBCONFIG_RESET_DATABASE']        = 1009
+M.flags['DBCONFIG_DEFENSIVE']             = 1010
+M.flags['DBCONFIG_WRITABLE_SCHEMA']       = 1011
+M.flags['DBCONFIG_LEGACY_ALTER_TABLE']    = 1012
+M.flags['DBCONFIG_DQS_DML']               = 1013
+M.flags['DBCONFIG_DQS_DDL']               = 1014
+M.flags['DBCONFIG_ENABLE_VIEW']           = 1015
+M.flags['DBCONFIG_LEGACY_FILE_FORMAT']    = 1016
+M.flags['DBCONFIG_TRUSTED_SCHEMA']        = 1017
+M.flags['DBCONFIG_MAX']                   = 1017
 
 -- Authorizer Return Codes
-m.flags['DENY']   = 1
-m.flags['IGNORE'] = 2
+M.flags['DENY']   = 1
+M.flags['IGNORE'] = 2
 
 -- Authorizer Action Codes
-m.flags['CREATE_INDEX']        = 1
-m.flags['CREATE_TABLE']        = 2
-m.flags['CREATE_TEMP_INDEX']   = 3
-m.flags['CREATE_TEMP_TABLE']   = 4
-m.flags['CREATE_TEMP_TRIGGER'] = 5
-m.flags['CREATE_TEMP_VIEW']    = 6
-m.flags['CREATE_TRIGGER']      = 7
-m.flags['CREATE_VIEW']         = 8
-m.flags['DELETE']              = 9
-m.flags['DROP_INDEX']          = 10
-m.flags['DROP_TABLE']          = 11
-m.flags['DROP_TEMP_INDEX']     = 12
-m.flags['DROP_TEMP_TABLE']     = 13
-m.flags['DROP_TEMP_TRIGGER']   = 14
-m.flags['DROP_TEMP_VIEW']      = 15
-m.flags['DROP_TRIGGER']        = 16
-m.flags['DROP_VIEW']           = 17
-m.flags['INSERT']              = 18
-m.flags['PRAGMA']              = 19
-m.flags['READ']                = 20
-m.flags['SELECT']              = 21
-m.flags['TRANSACTION']         = 22
-m.flags['UPDATE']              = 23
-m.flags['ATTACH']              = 24
-m.flags['DETACH']              = 25
-m.flags['ALTER_TABLE']         = 26
-m.flags['REINDEX']             = 27
-m.flags['ANALYZE']             = 28
-m.flags['CREATE_VTABLE']       = 29
-m.flags['DROP_VTABLE']         = 30
-m.flags['FUNCTION']            = 31
-m.flags['SAVEPOINT']           = 32
-m.flags['COPY']                = 0
-m.flags['RECURSIVE']           = 33
+M.flags['CREATE_INDEX']        = 1
+M.flags['CREATE_TABLE']        = 2
+M.flags['CREATE_TEMP_INDEX']   = 3
+M.flags['CREATE_TEMP_TABLE']   = 4
+M.flags['CREATE_TEMP_TRIGGER'] = 5
+M.flags['CREATE_TEMP_VIEW']    = 6
+M.flags['CREATE_TRIGGER']      = 7
+M.flags['CREATE_VIEW']         = 8
+M.flags['DELETE']              = 9
+M.flags['DROP_INDEX']          = 10
+M.flags['DROP_TABLE']          = 11
+M.flags['DROP_TEMP_INDEX']     = 12
+M.flags['DROP_TEMP_TABLE']     = 13
+M.flags['DROP_TEMP_TRIGGER']   = 14
+M.flags['DROP_TEMP_VIEW']      = 15
+M.flags['DROP_TRIGGER']        = 16
+M.flags['DROP_VIEW']           = 17
+M.flags['INSERT']              = 18
+M.flags['PRAGMA']              = 19
+M.flags['READ']                = 20
+M.flags['SELECT']              = 21
+M.flags['TRANSACTION']         = 22
+M.flags['UPDATE']              = 23
+M.flags['ATTACH']              = 24
+M.flags['DETACH']              = 25
+M.flags['ALTER_TABLE']         = 26
+M.flags['REINDEX']             = 27
+M.flags['ANALYZE']             = 28
+M.flags['CREATE_VTABLE']       = 29
+M.flags['DROP_VTABLE']         = 30
+M.flags['FUNCTION']            = 31
+M.flags['SAVEPOINT']           = 32
+M.flags['COPY']                = 0
+M.flags['RECURSIVE']           = 33
 
 -- TODO(conni2461): SQL Trace Event Codes
-m.flags['TRACE_STMT']    = 0x01
-m.flags['TRACE_PROFILE'] = 0x02
-m.flags['TRACE_ROW']     = 0x04
-m.flags['TRACE_CLOSE']   = 0x08
+M.flags['TRACE_STMT']    = 0x01
+M.flags['TRACE_PROFILE'] = 0x02
+M.flags['TRACE_ROW']     = 0x04
+M.flags['TRACE_CLOSE']   = 0x08
 
 -- TODO(conni2461): Run-Time Limit Categories
-m.flags['LIMIT_LENGTH']              = 0
-m.flags['LIMIT_SQL_LENGTH']          = 1
-m.flags['LIMIT_COLUMN']              = 2
-m.flags['LIMIT_EXPR_DEPTH']          = 3
-m.flags['LIMIT_COMPOUND_SELECT']     = 4
-m.flags['LIMIT_VDBE_OP']             = 5
-m.flags['LIMIT_FUNCTION_ARG']        = 6
-m.flags['LIMIT_ATTACHED']            = 7
-m.flags['LIMIT_LIKE_PATTERN_LENGTH'] = 8
-m.flags['LIMIT_VARIABLE_NUMBER']     = 9
-m.flags['LIMIT_TRIGGER_DEPTH']       = 10
-m.flags['LIMIT_WORKER_THREADS']      = 11
+M.flags['LIMIT_LENGTH']              = 0
+M.flags['LIMIT_SQL_LENGTH']          = 1
+M.flags['LIMIT_COLUMN']              = 2
+M.flags['LIMIT_EXPR_DEPTH']          = 3
+M.flags['LIMIT_COMPOUND_SELECT']     = 4
+M.flags['LIMIT_VDBE_OP']             = 5
+M.flags['LIMIT_FUNCTION_ARG']        = 6
+M.flags['LIMIT_ATTACHED']            = 7
+M.flags['LIMIT_LIKE_PATTERN_LENGTH'] = 8
+M.flags['LIMIT_VARIABLE_NUMBER']     = 9
+M.flags['LIMIT_TRIGGER_DEPTH']       = 10
+M.flags['LIMIT_WORKER_THREADS']      = 11
 
 -- Prepare Flags
-m.flags['PREPARE_PERSISTENT'] = 0x01
-m.flags['PREPARE_NORMALIZE']  = 0x02
-m.flags['PREPARE_NO_VTAB']    = 0x04
+M.flags['PREPARE_PERSISTENT'] = 0x01
+M.flags['PREPARE_NORMALIZE']  = 0x02
+M.flags['PREPARE_NO_VTAB']    = 0x04
 
 -- Fundamental Datatypes
-m.flags['INTEGER'] = 1
-m.flags['FLOAT']   = 2
-m.flags['TEXT']    = 3
-m.flags['BLOB']    = 4
-m.flags['NULL']    = 5
+M.flags['INTEGER'] = 1
+M.flags['FLOAT']   = 2
+M.flags['TEXT']    = 3
+M.flags['BLOB']    = 4
+M.flags['NULL']    = 5
 
 -- Text Encodings
-m.flags['UTF8']          = 1
-m.flags['UTF16LE']       = 2
-m.flags['UTF16BE']       = 3
-m.flags['UTF16']         = 4
-m.flags['ANY']           = 5
-m.flags['UTF16_ALIGNED'] = 8
+M.flags['UTF8']          = 1
+M.flags['UTF16LE']       = 2
+M.flags['UTF16BE']       = 3
+M.flags['UTF16']         = 4
+M.flags['ANY']           = 5
+M.flags['UTF16_ALIGNED'] = 8
 
 -- Function Flags
-m.flags['DETERMINISTIC'] =    0x000000800
-m.flags['DIRECTONLY'] =       0x000080000
-m.flags['SUBTYPE'] =          0x000100000
-m.flags['INNOCUOUS'] =        0x000200000
+M.flags['DETERMINISTIC'] =    0x000000800
+M.flags['DIRECTONLY'] =       0x000080000
+M.flags['SUBTYPE'] =          0x000100000
+M.flags['INNOCUOUS'] =        0x000200000
 
 -- Allowed return values from sqlite3_txn_state
-m.flags['TXN_NONE'] =  0
-m.flags['TXN_READ'] =  1
-m.flags['TXN_WRITE'] = 2
+M.flags['TXN_NONE'] =  0
+M.flags['TXN_READ'] =  1
+M.flags['TXN_WRITE'] = 2
 
 -- Virtual Table Scan Flags
-m.flags['INDEX_SCAN_UNIQUE'] =      1
+M.flags['INDEX_SCAN_UNIQUE'] =      1
 
 -- Virtual Table Constraint Operator Codes
-m.flags['INDEX_CONSTRAINT_EQ']        = 2
-m.flags['INDEX_CONSTRAINT_GT']        = 4
-m.flags['INDEX_CONSTRAINT_LE']        = 8
-m.flags['INDEX_CONSTRAINT_LT']        = 16
-m.flags['INDEX_CONSTRAINT_GE']        = 32
-m.flags['INDEX_CONSTRAINT_MATCH']     = 64
-m.flags['INDEX_CONSTRAINT_LIKE']      = 65
-m.flags['INDEX_CONSTRAINT_GLOB']      = 66
-m.flags['INDEX_CONSTRAINT_REGEXP']    = 67
-m.flags['INDEX_CONSTRAINT_NE']        = 68
-m.flags['INDEX_CONSTRAINT_ISNOT']     = 69
-m.flags['INDEX_CONSTRAINT_ISNOTNULL'] = 70
-m.flags['INDEX_CONSTRAINT_ISNULL']    = 71
-m.flags['INDEX_CONSTRAINT_IS']        = 72
-m.flags['INDEX_CONSTRAINT_FUNCTION']  = 150
+M.flags['INDEX_CONSTRAINT_EQ']        = 2
+M.flags['INDEX_CONSTRAINT_GT']        = 4
+M.flags['INDEX_CONSTRAINT_LE']        = 8
+M.flags['INDEX_CONSTRAINT_LT']        = 16
+M.flags['INDEX_CONSTRAINT_GE']        = 32
+M.flags['INDEX_CONSTRAINT_MATCH']     = 64
+M.flags['INDEX_CONSTRAINT_LIKE']      = 65
+M.flags['INDEX_CONSTRAINT_GLOB']      = 66
+M.flags['INDEX_CONSTRAINT_REGEXP']    = 67
+M.flags['INDEX_CONSTRAINT_NE']        = 68
+M.flags['INDEX_CONSTRAINT_ISNOT']     = 69
+M.flags['INDEX_CONSTRAINT_ISNOTNULL'] = 70
+M.flags['INDEX_CONSTRAINT_ISNULL']    = 71
+M.flags['INDEX_CONSTRAINT_IS']        = 72
+M.flags['INDEX_CONSTRAINT_FUNCTION']  = 150
 
 -- Mutex Types
-m.flags['MUTEX_FAST']        = 0
-m.flags['MUTEX_RECURSIVE']   = 1
-m.flags['MUTEX_STATIC_MAIN'] = 2
-m.flags['MUTEX_STATIC_MEM']  = 3
-m.flags['MUTEX_STATIC_MEM2'] = 4
-m.flags['MUTEX_STATIC_OPEN'] = 4
-m.flags['MUTEX_STATIC_PRNG'] = 5
-m.flags['MUTEX_STATIC_LRU']  = 6
-m.flags['MUTEX_STATIC_LRU2'] = 7
-m.flags['MUTEX_STATIC_PMEM'] = 7
-m.flags['MUTEX_STATIC_APP1'] = 8
-m.flags['MUTEX_STATIC_APP2'] = 9
-m.flags['MUTEX_STATIC_APP3'] = 10
-m.flags['MUTEX_STATIC_VFS1'] = 11
-m.flags['MUTEX_STATIC_VFS2'] = 12
-m.flags['MUTEX_STATIC_VFS3'] = 13
+M.flags['MUTEX_FAST']        = 0
+M.flags['MUTEX_RECURSIVE']   = 1
+M.flags['MUTEX_STATIC_MAIN'] = 2
+M.flags['MUTEX_STATIC_MEM']  = 3
+M.flags['MUTEX_STATIC_MEM2'] = 4
+M.flags['MUTEX_STATIC_OPEN'] = 4
+M.flags['MUTEX_STATIC_PRNG'] = 5
+M.flags['MUTEX_STATIC_LRU']  = 6
+M.flags['MUTEX_STATIC_LRU2'] = 7
+M.flags['MUTEX_STATIC_PMEM'] = 7
+M.flags['MUTEX_STATIC_APP1'] = 8
+M.flags['MUTEX_STATIC_APP2'] = 9
+M.flags['MUTEX_STATIC_APP3'] = 10
+M.flags['MUTEX_STATIC_VFS1'] = 11
+M.flags['MUTEX_STATIC_VFS2'] = 12
+M.flags['MUTEX_STATIC_VFS3'] = 13
 
 -- Testing interface control codes
-m.flags['TESTCTRL_FIRST']                = 5
-m.flags['TESTCTRL_PRNG_SAVE']            = 5
-m.flags['TESTCTRL_PRNG_RESTORE']         = 6
-m.flags['TESTCTRL_PRNG_RESET']           = 7
-m.flags['TESTCTRL_BITVEC_TEST']          = 8
-m.flags['TESTCTRL_FAULT_INSTALL']        = 9
-m.flags['TESTCTRL_BENIGN_MALLOC_HOOKS']  = 10
-m.flags['TESTCTRL_PENDING_BYTE']         = 11
-m.flags['TESTCTRL_ASSERT']               = 12
-m.flags['TESTCTRL_ALWAYS']               = 13
-m.flags['TESTCTRL_RESERVE']              = 14
-m.flags['TESTCTRL_OPTIMIZATIONS']        = 15
-m.flags['TESTCTRL_ISKEYWORD']            = 16
-m.flags['TESTCTRL_SCRATCHMALLOC']        = 17
-m.flags['TESTCTRL_INTERNAL_FUNCTIONS']   = 17
-m.flags['TESTCTRL_LOCALTIME_FAULT']      = 18
-m.flags['TESTCTRL_EXPLAIN_STMT']         = 19
-m.flags['TESTCTRL_ONCE_RESET_THRESHOLD'] = 19
-m.flags['TESTCTRL_NEVER_CORRUPT']        = 20
-m.flags['TESTCTRL_VDBE_COVERAGE']        = 21
-m.flags['TESTCTRL_BYTEORDER']            = 22
-m.flags['TESTCTRL_ISINIT']               = 23
-m.flags['TESTCTRL_SORTER_MMAP']          = 24
-m.flags['TESTCTRL_IMPOSTER']             = 25
-m.flags['TESTCTRL_PARSER_COVERAGE']      = 26
-m.flags['TESTCTRL_RESULT_INTREAL']       = 27
-m.flags['TESTCTRL_PRNG_SEED']            = 28
-m.flags['TESTCTRL_EXTRA_SCHEMA_CHECKS']  = 29
-m.flags['TESTCTRL_SEEK_COUNT']           = 30
-m.flags['TESTCTRL_LAST']                 = 30
+M.flags['TESTCTRL_FIRST']                = 5
+M.flags['TESTCTRL_PRNG_SAVE']            = 5
+M.flags['TESTCTRL_PRNG_RESTORE']         = 6
+M.flags['TESTCTRL_PRNG_RESET']           = 7
+M.flags['TESTCTRL_BITVEC_TEST']          = 8
+M.flags['TESTCTRL_FAULT_INSTALL']        = 9
+M.flags['TESTCTRL_BENIGN_MALLOC_HOOKS']  = 10
+M.flags['TESTCTRL_PENDING_BYTE']         = 11
+M.flags['TESTCTRL_ASSERT']               = 12
+M.flags['TESTCTRL_ALWAYS']               = 13
+M.flags['TESTCTRL_RESERVE']              = 14
+M.flags['TESTCTRL_OPTIMIZATIONS']        = 15
+M.flags['TESTCTRL_ISKEYWORD']            = 16
+M.flags['TESTCTRL_SCRATCHMALLOC']        = 17
+M.flags['TESTCTRL_INTERNAL_FUNCTIONS']   = 17
+M.flags['TESTCTRL_LOCALTIME_FAULT']      = 18
+M.flags['TESTCTRL_EXPLAIN_STMT']         = 19
+M.flags['TESTCTRL_ONCE_RESET_THRESHOLD'] = 19
+M.flags['TESTCTRL_NEVER_CORRUPT']        = 20
+M.flags['TESTCTRL_VDBE_COVERAGE']        = 21
+M.flags['TESTCTRL_BYTEORDER']            = 22
+M.flags['TESTCTRL_ISINIT']               = 23
+M.flags['TESTCTRL_SORTER_MMAP']          = 24
+M.flags['TESTCTRL_IMPOSTER']             = 25
+M.flags['TESTCTRL_PARSER_COVERAGE']      = 26
+M.flags['TESTCTRL_RESULT_INTREAL']       = 27
+M.flags['TESTCTRL_PRNG_SEED']            = 28
+M.flags['TESTCTRL_EXTRA_SCHEMA_CHECKS']  = 29
+M.flags['TESTCTRL_SEEK_COUNT']           = 30
+M.flags['TESTCTRL_LAST']                 = 30
 
 -- Status Parameters
-m.flags['STATUS_MEMORY_USED']        = 0
-m.flags['STATUS_PAGECACHE_USED']     = 1
-m.flags['STATUS_PAGECACHE_OVERFLOW'] = 2
-m.flags['STATUS_SCRATCH_USED']       = 3
-m.flags['STATUS_SCRATCH_OVERFLOW']   = 4
-m.flags['STATUS_MALLOC_SIZE']        = 5
-m.flags['STATUS_PARSER_STACK']       = 6
-m.flags['STATUS_PAGECACHE_SIZE']     = 7
-m.flags['STATUS_SCRATCH_SIZE']       = 8
-m.flags['STATUS_MALLOC_COUNT']       = 9
+M.flags['STATUS_MEMORY_USED']        = 0
+M.flags['STATUS_PAGECACHE_USED']     = 1
+M.flags['STATUS_PAGECACHE_OVERFLOW'] = 2
+M.flags['STATUS_SCRATCH_USED']       = 3
+M.flags['STATUS_SCRATCH_OVERFLOW']   = 4
+M.flags['STATUS_MALLOC_SIZE']        = 5
+M.flags['STATUS_PARSER_STACK']       = 6
+M.flags['STATUS_PAGECACHE_SIZE']     = 7
+M.flags['STATUS_SCRATCH_SIZE']       = 8
+M.flags['STATUS_MALLOC_COUNT']       = 9
 
 -- Status Parameters for database connections
-m.flags['DBSTATUS_LOOKASIDE_USED']      = 0
-m.flags['DBSTATUS_CACHE_USED']          = 1
-m.flags['DBSTATUS_SCHEMA_USED']         = 2
-m.flags['DBSTATUS_STMT_USED']           = 3
-m.flags['DBSTATUS_LOOKASIDE_HIT']       = 4
-m.flags['DBSTATUS_LOOKASIDE_MISS_SIZE'] = 5
-m.flags['DBSTATUS_LOOKASIDE_MISS_FULL'] = 6
-m.flags['DBSTATUS_CACHE_HIT']           = 7
-m.flags['DBSTATUS_CACHE_MISS']          = 8
-m.flags['DBSTATUS_CACHE_WRITE']         = 9
-m.flags['DBSTATUS_DEFERRED_FKS']        = 10
-m.flags['DBSTATUS_CACHE_USED_SHARED']   = 11
-m.flags['DBSTATUS_CACHE_SPILL']         = 12
-m.flags['DBSTATUS_MAX']                 = 12
+M.flags['DBSTATUS_LOOKASIDE_USED']      = 0
+M.flags['DBSTATUS_CACHE_USED']          = 1
+M.flags['DBSTATUS_SCHEMA_USED']         = 2
+M.flags['DBSTATUS_STMT_USED']           = 3
+M.flags['DBSTATUS_LOOKASIDE_HIT']       = 4
+M.flags['DBSTATUS_LOOKASIDE_MISS_SIZE'] = 5
+M.flags['DBSTATUS_LOOKASIDE_MISS_FULL'] = 6
+M.flags['DBSTATUS_CACHE_HIT']           = 7
+M.flags['DBSTATUS_CACHE_MISS']          = 8
+M.flags['DBSTATUS_CACHE_WRITE']         = 9
+M.flags['DBSTATUS_DEFERRED_FKS']        = 10
+M.flags['DBSTATUS_CACHE_USED_SHARED']   = 11
+M.flags['DBSTATUS_CACHE_SPILL']         = 12
+M.flags['DBSTATUS_MAX']                 = 12
 
 -- Status Parameters for prepared statements
-m.flags['STMTSTATUS_FULLSCAN_STEP'] = 1
-m.flags['STMTSTATUS_SORT']          = 2
-m.flags['STMTSTATUS_AUTOINDEX']     = 3
-m.flags['STMTSTATUS_VM_STEP']       = 4
-m.flags['STMTSTATUS_REPREPARE']     = 5
-m.flags['STMTSTATUS_RUN']           = 6
-m.flags['STMTSTATUS_MEMUSED']       = 99
+M.flags['STMTSTATUS_FULLSCAN_STEP'] = 1
+M.flags['STMTSTATUS_SORT']          = 2
+M.flags['STMTSTATUS_AUTOINDEX']     = 3
+M.flags['STMTSTATUS_VM_STEP']       = 4
+M.flags['STMTSTATUS_REPREPARE']     = 5
+M.flags['STMTSTATUS_RUN']           = 6
+M.flags['STMTSTATUS_MEMUSED']       = 99
 
 -- Checkpoint Mode Values
-m.flags['CHECKPOINT_PASSIVE']  = 0
-m.flags['CHECKPOINT_FULL']     = 1
-m.flags['CHECKPOINT_RESTART']  = 2
-m.flags['CHECKPOINT_TRUNCATE'] = 3
+M.flags['CHECKPOINT_PASSIVE']  = 0
+M.flags['CHECKPOINT_FULL']     = 1
+M.flags['CHECKPOINT_RESTART']  = 2
+M.flags['CHECKPOINT_TRUNCATE'] = 3
 
 -- Virtual Table Configuration Options
-m.flags['VTAB_CONSTRAINT_SUPPORT'] = 1
-m.flags['VTAB_INNOCUOUS']          = 2
-m.flags['VTAB_DIRECTONLY']         = 3
+M.flags['VTAB_CONSTRAINT_SUPPORT'] = 1
+M.flags['VTAB_INNOCUOUS']          = 2
+M.flags['VTAB_DIRECTONLY']         = 3
 
 -- Conflict resolution modes
-m.flags['ROLLBACK'] = 1
-m.flags['FAIL']     = 3
-m.flags['REPLACE']  = 5
+M.flags['ROLLBACK'] = 1
+M.flags['FAIL']     = 3
+M.flags['REPLACE']  = 5
 
 -- Prepared Statement Scan Status Opcodes
-m.flags['SCANSTAT_NLOOP']    = 0
-m.flags['SCANSTAT_NVISIT']   = 1
-m.flags['SCANSTAT_EST']      = 2
-m.flags['SCANSTAT_NAME']     = 3
-m.flags['SCANSTAT_EXPLAIN']  = 4
-m.flags['SCANSTAT_SELECTID'] = 5
+M.flags['SCANSTAT_NLOOP']    = 0
+M.flags['SCANSTAT_NVISIT']   = 1
+M.flags['SCANSTAT_EST']      = 2
+M.flags['SCANSTAT_NAME']     = 3
+M.flags['SCANSTAT_EXPLAIN']  = 4
+M.flags['SCANSTAT_SELECTID'] = 5
 
 -- Flags for sqlite3_serialize
-m.flags['SERIALIZE_NOCOPY'] = 0x001
+M.flags['SERIALIZE_NOCOPY'] = 0x001
 
 -- Flags for sqlite3_deserialize
-m.flags['DESERIALIZE_FREEONCLOSE'] = 1
-m.flags['DESERIALIZE_RESIZEABLE']  = 2
-m.flags['DESERIALIZE_READONLY']    = 4
+M.flags['DESERIALIZE_FREEONCLOSE'] = 1
+M.flags['DESERIALIZE_RESIZEABLE']  = 2
+M.flags['DESERIALIZE_READONLY']    = 4
 
 -- Types
 ffi.cdef[[
@@ -1151,15 +1149,10 @@ ffi.cdef[[
 
 ]]
 
-m = setmetatable(m, {
+M = setmetatable(M, {
   __index = function(_, k)
     return clib['sqlite3_' .. k]
   end
 })
 
-print(m.flags.INTERNAL)
-print(ffi.string(m.libversion()))
-print(m.threadsafe())
-print(m.memory_used())
-
-return m
+return M
