@@ -3,7 +3,20 @@ local bit = require'bit'
 
 local M = {}
 
-local clib = ffi.load('/usr/lib/libsqlite3.so')
+local clib_path = vim.g.sql_clib_path or (function()
+  local file_exists = function(path)
+    return vim.loop.fs_stat(path) ~= nil
+  end
+
+  if file_exists("/usr/lib/libsqlite3.so") then
+    return "/usr/lib/libsqlite3.so"
+  elseif file_exists("usr/lib64/libsqlite3.so") then
+    return "/usr/lib64/libsqlite3.so"
+  end
+  return nil
+end)()
+
+local clib = ffi.load(clib_path)
 
 -- Constants
 M.flags = {
