@@ -7,40 +7,42 @@ local m = {}
 local clib = ffi.load('/usr/lib/libsqlite3.so')
 
 -- Constants
--- TODO(conni2461): use needs them so we need to find a way to make them accessable
+m.constants = {
+  ['OK'] = 0,
+  ['ERROR'] =        1,
+  ['INTERNAL'] =     2,
+  ['PERM'] =         3,
+  ['ABORT'] =        4,
+  ['BUSY'] =         5,
+  ['LOCKED'] =       6,
+  ['NOMEM'] =        7,
+  ['READONLY'] =     8,
+  ['INTERRUPT'] =    9,
+  ['IOERR'] =       10,
+  ['CORRUPT'] =     11,
+  ['NOTFOUND'] =    12,
+  ['FULL'] =        13,
+  ['CANTOPEN'] =    14,
+  ['PROTOCOL'] =    15,
+  ['EMPTY'] =       16,
+  ['SCHEMA'] =      17,
+  ['TOOBIG'] =      18,
+  ['CONSTRAINT'] =  19,
+  ['MISMATCH'] =    20,
+  ['MISUSE'] =      21,
+  ['NOLFS'] =       22,
+  ['AUTH'] =        23,
+  ['FORMAT'] =      24,
+  ['RANGE'] =       25,
+  ['NOTADB'] =      26,
+  ['NOTICE'] =      27,
+  ['WARNING'] =     28,
+  ['ROW'] =         100,
+  ['DONE'] =        101,
+
+}
+
 --[[
-#define SQLITE_OK           0   /* Successful result */
-/* beginning-of-error-codes */
-#define SQLITE_ERROR        1   /* Generic error */
-#define SQLITE_INTERNAL     2   /* Internal logic error in SQLite */
-#define SQLITE_PERM         3   /* Access permission denied */
-#define SQLITE_ABORT        4   /* Callback routine requested an abort */
-#define SQLITE_BUSY         5   /* The database file is locked */
-#define SQLITE_LOCKED       6   /* A table in the database is locked */
-#define SQLITE_NOMEM        7   /* A malloc() failed */
-#define SQLITE_READONLY     8   /* Attempt to write a readonly database */
-#define SQLITE_INTERRUPT    9   /* Operation terminated by sqlite3_interrupt()*/
-#define SQLITE_IOERR       10   /* Some kind of disk I/O error occurred */
-#define SQLITE_CORRUPT     11   /* The database disk image is malformed */
-#define SQLITE_NOTFOUND    12   /* Unknown opcode in sqlite3_file_control() */
-#define SQLITE_FULL        13   /* Insertion failed because database is full */
-#define SQLITE_CANTOPEN    14   /* Unable to open the database file */
-#define SQLITE_PROTOCOL    15   /* Database lock protocol error */
-#define SQLITE_EMPTY       16   /* Internal use only */
-#define SQLITE_SCHEMA      17   /* The database schema changed */
-#define SQLITE_TOOBIG      18   /* String or BLOB exceeds size limit */
-#define SQLITE_CONSTRAINT  19   /* Abort due to constraint violation */
-#define SQLITE_MISMATCH    20   /* Data type mismatch */
-#define SQLITE_MISUSE      21   /* Library used incorrectly */
-#define SQLITE_NOLFS       22   /* Uses OS features not supported on host */
-#define SQLITE_AUTH        23   /* Authorization denied */
-#define SQLITE_FORMAT      24   /* Not used */
-#define SQLITE_RANGE       25   /* 2nd parameter to sqlite3_bind out of range */
-#define SQLITE_NOTADB      26   /* File opened that is not a database file */
-#define SQLITE_NOTICE      27   /* Notifications from sqlite3_log() */
-#define SQLITE_WARNING     28   /* Warnings from sqlite3_log() */
-#define SQLITE_ROW         100  /* sqlite3_step() has another row ready */
-#define SQLITE_DONE        101  /* sqlite3_step() has finished executing */
 
 -- TODO(conni2461): And theses are even harder because we need to shift
 #define SQLITE_ERROR_MISSING_COLLSEQ   (SQLITE_ERROR | (1<<8))
@@ -1154,8 +1156,14 @@ ffi.cdef[[
 
 ]]
 
-print(ffi.string(clib.sqlite3_libversion()))
-print(clib.sqlite3_threadsafe())
-print(clib.sqlite3_memory_used())
+m = setmetatable(m, {
+  __index = function(_, k)
+    return clib['sqlite3_' .. k]
+  end
+})
+
+print(ffi.string(m.libversion()))
+print(m.threadsafe())
+print(m.memory_used())
 
 return m
