@@ -1,11 +1,4 @@
 local sql = {}
-local clib_path = vim.g.sql and vim.g.sql.clib_path or (function ()
-  -- better to check the common places where libsqlite3 might stored
-  -- then return the first valid one
-  if vim.fn.filereadable("/etc/arch-release") then
-    return "/usr/lib/libsqlite3.so"
-  end
-end)()
 
 sql.errmsg = function(conn)
 --- sql.errmsg
