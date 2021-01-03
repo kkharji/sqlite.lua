@@ -1,6 +1,5 @@
 local ffi = require'ffi'
 local sqlite = require'sql.defs'
-local uv = vim.loop
 local flags = sqlite.flags
 
 local M = {}
@@ -11,49 +10,57 @@ local tostr = function(ptr, len)
   return ffi.string(ptr, len)
 end
 
-local eval = function(conn, stmt, callback, arg1, errmsg)
-  return sqlite.exec(conn, stmt, callback, arg1, errmsg)
-end
-
---- M.parse
+--- M:parse
 -- Compile sql statement into an internal rep
--- @returns collection of methods to be applicable to the parsed statement..
+-- @returns collection of methods, applicable to the parsed statement..
 function M:parse(conn, stmt)
-  local obj = {}
-  obj.str = stmt
-  obj.conn = conn
-  obj.pstmt = (function()
-    local pstmt = ffi.new('sqlite3_stmt*[1]')
-    local code  = sqlite.prepare_v2(obj.conn, obj.str, #obj.str, pstmt, nil);
-    if code ~= flags.ok then return code end
-    return pstmt[0]
-  end)()
-  obj.finalized = false
-  setmetatable(obj, self)
-  return obj
+  local o = {
+    str = stmt,
+    conn = conn,
+    finalized = false,
+  }
+  setmetatable(o, self)
+  o:__parse()
+  return o
 end
 
----  M.reset
--- resets the parsed statement so that it is ready to be re-executed. Any
--- statement variables that had values bound to them using the stmt:bind
--- functions retain their values.
+--- M:__parse
+-- Compile sql statement into an internal rep.
+-- Required to reparse the sql statement after finalized.
+-- @returns parsed sql statement
+-- @raise error if the statement couldn't be parsed
+-- TODO: make it set self.pstmt when called
+function M:__parse()
+  local pstmt = ffi.new('sqlite3_stmt*[1]')
+  local code  = sqlite.prepare_v2(self.conn, self.str, #self.str, pstmt, nil);
+  if code ~= flags.ok then
+    return error(string.format(
+      "sql.nvim: couldn't parse sql statement, ERRMSG: ",
+    tostr(sqlite.errmsg(self.conn))))
+  end
+  self.pstmt = pstmt[0]
+end
+
+--- M:reset
+-- resets the parsed statement.
+-- This is required so that we can re-executed the parse statement.
+-- NOTE: Any statement variables that had values bound to them using the
+-- stmt:bind functions retain their values.
 function M:reset()
   return sqlite.reset(self.pstmt)
 end
 
---- M.finalize
+--- M:finalize
 -- Frees the prepared statement
 -- @return sqlite code, ok if successful
--- @raise error if code ~= sqlite.ok
 function M:finalize()
   self.errcode = sqlite.finalize(self.pstmt)
   self.finalized = self.errcode == flags.ok
   return self.errcode
 end
 
---- M.step
--- A function that must be called to evaluate the (next iteration) of the
--- prepared statement
+--- M:step
+-- Called before evaluating the (next iteration) of the prepared statement.
 -- @return sqlite code:
 -- flags.busy: unable to acquite the locks needs
 -- flags.done: finished executing.
@@ -64,10 +71,131 @@ function M:step()
   return sqlite.step(self.pstmt)
 end
 
---- M.next
+--- M:nkeys
+-- @return number: column count in the results
+function M:nkeys()
+  return sqlite.column_count(self.pstmt)
+end
+
+--- M:nrows
+-- @return number: rows count in the results.
+-- TODO(tami)
+function M:nrows()
+
+end
+
+--- M:keys
+-- if idx then return the keyname of that idx, else return an array of keys
+-- names i.e. column names.
+-- @param @optional index (0-index)
+-- @return if idx string, else array
+function M:key(idx)
+  if self.finalized then self:__parse() end
+  return tostr(sqlite.column_name(self.pstmt, idx))
+end
+
+--- M:keys
+-- if idx then return the keyname of that idx, else return an array of keys
+-- names i.e. column names.
+-- @param @optional index (0-index)
+-- @return if idx string, else array
+function M:keys()
+  local keys = {}
+  for i = 0, self:nkeys() - 1 do
+    table.insert(keys, i + 1, self:key(i))
+  end
+  return keys
+end
+
+local sqlite_datatypes = {
+  [1] = 'int', -- bind_double
+  [2] = 'float',   -- bind_text
+  [3] = 'text',      -- bind_null
+  [4] = 'blob',      -- bind_null
+  [5] = 'null',      -- bind_null
+}
+
+--- M:type
+-- sqlite key/column datatype at`idx`
+-- @param index: (0-index)
+-- @return string
+function M:type(idx)
+  local convert_dt = {
+    ['integer'] = "number",
+    ['float'] = "number",
+    ['double'] = "number",
+    ['text'] = "string",
+    ['blob'] = "binary",
+    ['null'] = nil
+  }
+  if self.finalized then self:__parse() end
+  return convert_dt[tostr(sqlite.column_decltype(self.pstmt, idx))]
+end
+
+--- M:types
+-- Return all the keys/columns types visible in current result
+-- @return  array of types in ordered by key location.
+function M:types()
+  local types = {}
+  for i = 0, self:nkeys() - 1 do
+    table.insert(types, i + 1, self:type(i))
+  end
+  return types
+end
+
+function M:val(idx)
+-- TODO: transform booleans 0/1 to false/true, but how??
+  if self.finalized then -- TODO: create M:__check_parsed()
+    self:__parse()
+  end
+  local ktype = sqlite.column_type(self.pstmt, idx)
+  if ktype == 5 then return end
+  local val = sqlite["column_" .. sqlite_datatypes[ktype]](self.pstmt, idx)
+  return ktype == 3 and tostr(val) or val
+end
+
+--- M:vals
+-- ordered list of current query reslut values.
+-- @return list of values
+function M:vals()
+  local vals = {}
+  for i = 0, self:nkeys() - 1 do
+    table.insert(vals, i + 1, self:val(i))
+  end
+  return vals
+end
+
+--- M:kv
+-- return key value pairs of results
+-- @return table of key value pair of a row.
+-- TODO: is it important to get idx based key value pair?
+-- TODO: It should get all the key value pairs of each return row
+--      It currently works with loop/each function only.
+function M:kv()
+  local ret = {}
+  -- if self.finalized then self.pstmt = self:__parse() end
+  for i = 0, self:nkeys() - 1 do
+    ret[self:key(i)] = self:val(i)
+  end
+  return ret
+end
+
+--- M:kt
+-- @return key/value pairs of the keys and their type
+-- TODO: is it important to get idx based key value pair?
+function M:kt()
+  if self.finalized then self:__parse() end
+  local ret = {}
+  for i = 0, self:nkeys() - 1 do
+    ret[self:key(i)] = self:type(i)
+  end
+  return ret
+end
+
+--- M:next
 -- If code == flags.row it returns
 -- if code == flags.done it reset the parsed statement
--- else
+-- TODO(conni): should this be removed?
 function M:next()
   local code = self:step()
   if code == flags.row then
@@ -83,27 +211,60 @@ function M:iter()
   return self:next(), self.pstmt
 end
 
---- M.loop
+--- M:each
 -- loops through the parsed statement until there is no row left from the
 -- parsed statement.
-function M:loop(func)
+function M:each(callback)
   while self:step() == flags.row do
-    func(self.conn, self.pstmt)
+    callback(self)
   end
-  return self:finalize()
 end
 
-local conn = (function(uri)
-  local conn = ffi.new('sqlite3*[1]')
-  local code = sqlite.open(uri, conn)
-  if code == flags.ok then
-    return conn[0]
-  else
-    error(string.format(
-    "sql.nvim: couldn't connect to sql database, ERR:",
-    code))
+--- M:kvrows
+-- loops through the parsed statement and return callback(row) or a nested
+-- table of kv pairs.
+-- @return if not callback table: key-value pairs of all the rows.
+-- @return if callback, call with a key-value pair of a row
+function M:kvrows(callback)
+  local kv = {}
+  self:each(function()
+    local row = self:kv()
+    if callback then
+      return callback(row)
+    else
+      table.insert(kv, row)
+    end
+  end)
+  if not callback then
+    -- self:finalize()
+    -- @conni does this make sense to have? or do we require
+    -- it to be called explicitly?
+    return kv
   end
-end)(":memory:")
+end
+
+--- M:kvrows
+-- loops through the parsed statement and return callback(row) or a nested
+-- table of row values
+-- @return if not callback table: nested list of all rows values.
+-- @return if callback, call with a row values
+function M:vrows(callback)
+  local vals = {}
+  self:each(function(s)
+    local row = s:vals()
+    if callback then
+      return callback(row)
+    else
+      table.insert(vals, row)
+    end
+  end)
+  if not callback then
+    -- self:finalize()
+    -- @conni does this make sense to have? or do we require
+    -- it to be called explicitly?
+    return vals
+  end
+end
 
 local bind_type_to_func = {
   ['number'] = 'double', -- bind_double
@@ -114,68 +275,68 @@ local bind_type_to_func = {
 --- M:bind
 -- binds values to indices. Type will be determined. For number is will bind
 -- with double, for string it will bind with text and for nil it will bind_null
--- @param index: index starting at 1
+-- @param idx: index starting at 1
 -- @param value: value to bind
 -- @return sqlite code
-function M:bind(index, value)
+function M:bind(idx, value)
   local func = bind_type_to_func[type(value)]
   local len = func == 'text' and #value or nil
   if not func then return flags.error end
 
   if len then
-    return sqlite['bind_' .. func](self.pstmt, index, value, len, nil)
+    return sqlite['bind_' .. func](self.pstmt, idx, value, len, nil)
   else
     if value then
-      return sqlite['bind_' .. func](self.pstmt, index, value)
+      return sqlite['bind_' .. func](self.pstmt, idx, value)
     else
-      return sqlite['bind_' .. func](self.pstmt, index)
+      return sqlite['bind_' .. func](self.pstmt, idx)
     end
   end
 end
 
 --- M:bind_blob
 -- Will bind a blob at index with size
--- @param index: index starting at 1
+-- @param idx: index starting at 1
 -- @param pointer: blob to bind
 -- @param size: pointer size
 -- @return sqlite code
-function M:bind_blob(index, pointer, size)
-  return sqlite.bind_blob64(self.pstmt, index, pointer, size, nil) -- Always 64? or two functions
+function M:bind_blob(idx, pointer, size)
+  return sqlite.bind_blob64(self.pstmt, idx, pointer, size, nil) -- Always 64? or two functions
 end
 
 --- M:bind_value
 -- Will bind a value with type `sqlite.flags.`
--- @param index: index starting at 1
+-- @param idx: index starting at 1
 -- @param pointer: value to bind
 -- @param type: type of value `sqlite.flags.` { integer, float, text, blob, null }
 -- @return sqlite code
-function M:bind_value(index, value, type)
-  return sqlite.bind_value(self.pstmt, index, value, type)
+function M:bind_value(idx, value, type)
+  return sqlite.bind_value(self.pstmt, idx, value, type)
 end
 
 --- M:bind_pointer
 -- Will bind a pointer with type at the index
--- @param index: index starting at 1
+-- @param idx: index starting at 1
 -- @param pointer: pointer of type
 -- @param type: type of value `sqlite.flags.` { integer, float, text, blob, null }
 -- @return sqlite code
-function M:bind_pointer(index, pointer, type)
-  return sqlite.bind_pointer(self.pstmt, index, pointer, type)
+function M:bind_pointer(idx, pointer, type)
+  return sqlite.bind_pointer(self.pstmt, idx, pointer, type)
 end
 
 --- M:bind_zeroblob
 -- Will bind zeroblob at index with size
--- @param index: index starting at 1
+-- @param idx: index starting at 1
 -- @param size: zeroblob size
 -- @return sqlite code
-function M:bind_zeroblob(index, size)
-  return sqlite.bind_zeroblob64(self.pstmt, index, size) -- Should we always use 64 here?
+function M:bind_zeroblob(idx, size)
+  return sqlite.bind_zeroblob64(self.pstmt, idx, size) -- Should we always use 64 here?
 end
 
---- M:param_size
+--- M:nparam
 -- Will return the parameter count
 -- @return count
-function M:param_size()
+function M:nparam()
   if not self.parm_count then
     self.parm_count = sqlite.bind_parameter_count(self.pstmt)
   end
@@ -185,15 +346,17 @@ end
 
 --- M:param_name
 -- Will return the parameter name at index
--- @param index: index starting at 1. If nil return all param_names
+-- @param idx: index starting at 1. If nil return all param_names
 -- @return string or table
-function M:param_name(index)
-  if index then
-    return tostr(sqlite.bind_parameter_name(self.pstmt, index))
+function M:param_name(idx)
+  if self.finalized then self:__parse() end
+
+  if idx then
+    return tostr(sqlite.bind_parameter_name(self.pstmt, idx))
   end
 
   local res = {}
-  for i = 1, self:param_size() do
+  for i = 1, self:nparam() do
     table.insert(res, (self:param_name(i) or '?'))
   end
   return res
@@ -252,27 +415,4 @@ function M:bind_next_value(value)
   return flags.error
 end
 
-print(vim.inspect(eval(conn, "create table people(id integer primary key, name text, age integer);")))
-local S = M:parse(conn, "insert into people (name, age) values (?, :age)")
--- local S = M:parse(conn, "insert into people (name, age) values (:name, ?)")
--- local person = { ['age'] = 100, 'tami' }
--- local person = { ['name'] = 'conni', 22 }
--- S:bind_names(person)
-print(S:bind_next_value('tami'))
-print(S:bind_next_value(100))
-print(S:bind_next_value('conni'))
-S:clear_bindings()
-print(S:bind_next_value('conni'))
-print(S:bind_next_value(22))
-
--- local tst = stmt.new(test.conn, "select * from people;")
--- print(vim.inspect(tst))
-S:loop(function(_,s)
-  print(tostr(sqlite.column_text(s, 1)))
-  print(tostr(sqlite.column_text(s, 2)))
-end)
-
-print(vim.inspect(S))
-
--- print(vim.inspect(misc.stmt_iter(stmt.new(test.conn, ).pstmt)))
--- return M
+return M
