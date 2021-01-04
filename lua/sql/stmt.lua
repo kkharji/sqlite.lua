@@ -1,14 +1,8 @@
-local ffi = require'ffi'
 local sqlite = require'sql.defs'
 local flags = sqlite.flags
 
 local M = {}
 M.__index = M
-
-local tostr = function(ptr, len)
-  if ptr == nil then return end
-  return ffi.string(ptr, len)
-end
 
 --- M:parse
 -- Compile sql statement into an internal rep
@@ -29,14 +23,13 @@ end
 -- Required to reparse the sql statement after finalized.
 -- @returns parsed sql statement
 -- @raise error if the statement couldn't be parsed
--- TODO: make it set self.pstmt when called
 function M:__parse()
-  local pstmt = ffi.new('sqlite3_stmt*[1]')
+  local pstmt = sqlite.get_new_stmt_ptr()
   local code  = sqlite.prepare_v2(self.conn, self.str, #self.str, pstmt, nil);
   if code ~= flags.ok then
     return error(string.format(
       "sql.nvim: couldn't parse sql statement, ERRMSG: ",
-    tostr(sqlite.errmsg(self.conn))))
+    sqlite.to_str(sqlite.errmsg(self.conn))))
   end
   self.pstmt = pstmt[0]
 end
@@ -79,9 +72,12 @@ end
 
 --- M:nrows
 -- @return number: rows count in the results.
--- TODO(tami)
 function M:nrows()
-
+  local count = 0
+  self:each(function()
+    count = count + 1
+  end)
+  return count
 end
 
 --- M:keys
@@ -91,7 +87,7 @@ end
 -- @return if idx string, else array
 function M:key(idx)
   if self.finalized then self:__parse() end
-  return tostr(sqlite.column_name(self.pstmt, idx))
+  return sqlite.to_str(sqlite.column_name(self.pstmt, idx))
 end
 
 --- M:keys
@@ -129,7 +125,7 @@ function M:type(idx)
     ['null'] = nil
   }
   if self.finalized then self:__parse() end
-  return convert_dt[tostr(sqlite.column_decltype(self.pstmt, idx))]
+  return convert_dt[sqlite.to_str(sqlite.column_decltype(self.pstmt, idx))]
 end
 
 --- M:types
@@ -144,14 +140,13 @@ function M:types()
 end
 
 function M:val(idx)
--- TODO: transform booleans 0/1 to false/true, but how??
-  if self.finalized then -- TODO: create M:__check_parsed()
+  if self.finalized then
     self:__parse()
   end
   local ktype = sqlite.column_type(self.pstmt, idx)
   if ktype == 5 then return end
   local val = sqlite["column_" .. sqlite_datatypes[ktype]](self.pstmt, idx)
-  return ktype == 3 and tostr(val) or val
+  return ktype == 3 and sqlite.to_str(val) or val
 end
 
 --- M:vals
@@ -168,9 +163,6 @@ end
 --- M:kv
 -- return key value pairs of results
 -- @return table of key value pair of a row.
--- TODO: is it important to get idx based key value pair?
--- TODO: It should get all the key value pairs of each return row
---      It currently works with loop/each function only.
 function M:kv()
   local ret = {}
   -- if self.finalized then self.pstmt = self:__parse() end
@@ -182,7 +174,6 @@ end
 
 --- M:kt
 -- @return key/value pairs of the keys and their type
--- TODO: is it important to get idx based key value pair?
 function M:kt()
   if self.finalized then self:__parse() end
   local ret = {}
@@ -195,7 +186,6 @@ end
 --- M:next
 -- If code == flags.row it returns
 -- if code == flags.done it reset the parsed statement
--- TODO(conni): should this be removed?
 function M:next()
   local code = self:step()
   if code == flags.row then
@@ -272,13 +262,13 @@ local bind_type_to_func = {
   ['nil'] = 'null',      -- bind_null
 }
 
---- M:bind
+--- M:bind_index
 -- binds values to indices. Type will be determined. For number is will bind
 -- with double, for string it will bind with text and for nil it will bind_null
 -- @param idx: index starting at 1
 -- @param value: value to bind
 -- @return sqlite code
-function M:bind(idx, value)
+function M:bind_index(idx, value)
   local func = bind_type_to_func[type(value)]
   local len = func == 'text' and #value or nil
   if not func then return flags.error end
@@ -294,43 +284,23 @@ function M:bind(idx, value)
   end
 end
 
---- M:bind_blob
+--- M:bind_index_blob
 -- Will bind a blob at index with size
 -- @param idx: index starting at 1
 -- @param pointer: blob to bind
 -- @param size: pointer size
 -- @return sqlite code
-function M:bind_blob(idx, pointer, size)
+function M:bind_index_blob(idx, pointer, size)
   return sqlite.bind_blob64(self.pstmt, idx, pointer, size, nil) -- Always 64? or two functions
 end
 
---- M:bind_value
--- Will bind a value with type `sqlite.flags.`
--- @param idx: index starting at 1
--- @param pointer: value to bind
--- @param type: type of value `sqlite.flags.` { integer, float, text, blob, null }
--- @return sqlite code
-function M:bind_value(idx, value, type)
-  return sqlite.bind_value(self.pstmt, idx, value, type)
-end
-
---- M:bind_pointer
--- Will bind a pointer with type at the index
--- @param idx: index starting at 1
--- @param pointer: pointer of type
--- @param type: type of value `sqlite.flags.` { integer, float, text, blob, null }
--- @return sqlite code
-function M:bind_pointer(idx, pointer, type)
-  return sqlite.bind_pointer(self.pstmt, idx, pointer, type)
-end
-
---- M:bind_zeroblob
+--- M:bind_index_zeroblob
 -- Will bind zeroblob at index with size
 -- @param idx: index starting at 1
 -- @param size: zeroblob size
 -- @return sqlite code
-function M:bind_zeroblob(idx, size)
-  return sqlite.bind_zeroblob64(self.pstmt, idx, size) -- Should we always use 64 here?
+function M:bind_index_zeroblob(idx, size)
+  return sqlite.bind_zeroblob64(self.pstmt, idx, size)
 end
 
 --- M:nparam
@@ -352,7 +322,7 @@ function M:param_name(idx)
   if self.finalized then self:__parse() end
 
   if idx then
-    return tostr(sqlite.bind_parameter_name(self.pstmt, idx))
+    return sqlite.to_str(sqlite.bind_parameter_name(self.pstmt, idx)) or '?'
   end
 
   local res = {}
@@ -380,9 +350,9 @@ end
 function M:bind_names(names)
   local parameter_index_cache = {}
   local anon_indices = {}
-  for i = 1, self:param_size() do
+  for i = 1, self:nparam() do
     local name = self:param_name(i)
-    if name == nil then
+    if name == '?' then
       table.insert(anon_indices, i)
     else
       parameter_index_cache[name:sub(2, -1)] = i
@@ -391,7 +361,7 @@ function M:bind_names(names)
 
   for k, v in pairs(names) do
     local index = parameter_index_cache[k] or table.remove(anon_indices, 1)
-    local ret = self:bind(index, v)
+    local ret = self:bind_index(index, v)
     if ret ~= flags.ok then return ret end
   end
   return flags.ok
@@ -407,12 +377,20 @@ function M:bind_next_value(value)
     self.current_bind_index = 1
   end
 
-  if self.current_bind_index <= self:param_size() then
-    local ret = self:bind(self.current_bind_index, value)
+  if self.current_bind_index <= self:nparam() then
+    local ret = self:bind_index(self.current_bind_index, value)
     self.current_bind_index = self.current_bind_index + 1
     return ret
   end
   return flags.error
+end
+
+--- M:expand
+-- Will expand the statement.
+-- Useful for debugging when you want to take a look at the resulting
+-- statement after you bound some values.
+function M:expand()
+  return sqlite.to_str(sqlite.expanded_sql(self.pstmt))
 end
 
 return M

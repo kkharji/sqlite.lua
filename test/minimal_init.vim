@@ -1,2 +1,4 @@
 set rtp+=.
-nn m<space> :PlenaryBustedDirectory test/auto { minimal_init = 'test/minimal_init.vim' }<cr>
+set rtp+=../plenary.nvim/
+
+runtime! plugin/plenary.vim
