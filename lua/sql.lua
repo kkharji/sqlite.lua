@@ -21,7 +21,7 @@ local sql = {}
 sql.__index = sql
 
 ---@TODO: decide whether using os.time and epoch time would be better.
----@return string|osdate
+---@return string osdate
 local created = function()
   return os.date "%Y-%m-%d %H:%M:%S"
 end
@@ -33,7 +33,7 @@ end
 ---@usage `sql.new("./path/to/sql.sqlite")`
 ---@usage `sql:new("$ENV_VARABLE")`
 ---@return table: sql.nvim object
----@see |sql.open|
+---@see sql.open
 function sql.new(uri, opts)
   return sql:open(uri, opts, true)
 end
@@ -93,7 +93,7 @@ end
 ---@usage `sql.open_with("$ENV_VARABLE/path", function(db) db:eval("...") end)`
 ---@usage `db:with_open(function() db:insert{...} end)`
 ---@return table: sql.nvim object
----@see sql:open()
+---@see sql:open
 function sql:with_open(...)
   local args = { ... }
   if type(self) == "string" or not self then
