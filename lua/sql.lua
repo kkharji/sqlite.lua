@@ -1,57 +1,62 @@
-local ffi = require'ffi'
-local sqlite = require'sql.defs'
-local F = require'sql.func'
-local uv = vim.loop
-local flags = sqlite.flags
-local sql, misc = {}, {}
+local clib = require'sql.defs'
+local stmt = require'sql.stmt'
+local utils = {}
+local flags = clib.flags
+local sql = {}
 
-------------------------------------------------------------
--- C interop -- properly to be moved to sql.defs
-------------------------------------------------------------
--- returns lua string from the data pointed to by ptr.
-misc.tostr = function(ptr, len)
-  if ptr == nil then return end
-  return ffi.string(ptr, len)
+---@todo move to sql/util.lua
+utils.expand = function(path)
+  local expanded
+  if string.find(path, "~") then
+    expanded = string.gsub(path, "^~", os.getenv("HOME"))
+  elseif string.find(path, "^%.") then
+    expanded = vim.loop.fs_realpath(path)
+    if expanded == nil then
+     expanded = vim.fn.fnamemodify(path, ":p")
+   end
+  elseif string.find(path, "%$") then
+    local rep = string.match(path, "([^%$][^/]*)")
+    local val = os.getenv(string.upper(rep))
+    if val then
+      expanded = string.gsub(string.gsub(path, rep, val), "%$", "")
+    else
+      expanded = nil
+    end
+  else
+    expanded = path
+  end
+
+  return expanded and expanded or error("Path not valid")
 end
 
--- Returns errmsg associated with the most recent failed call.
-misc.last_errmsg = function(conn) -- returns string
-  return misc.tostr(sqlite.errmsg(conn))
+utils.all = function(fn, iterable)
+  for k, v in pairs(iterable) do
+    if not fn(k, v) then
+      return false
+    end
+  end
+
+  return true
 end
 
--- Returns error code associated with the most recent failed call.
-misc.last_errcode = function(conn) -- returns number
-  return sqlite.errcode(conn)
-end
-
-------------------------------------------------------------
--- SQL Database interaction functions
-------------------------------------------------------------
 sql.__index = sql
 
--- Creates a new sql.nvim sql object.
---- sql.open
--- Establishes connection to `url` and return sql.nvim object.
---   If no url is given then it should default to ":memory:".
--- @param url string optional
--- @usage `sql.open()`
--- @usage `sql.open("./path/to/sql.sqlite")`
--- @usage `sql.open("$ENV_VARABLE")`
--- @return sql.nvim object
-sql.open = function(...) -- returns obj
-  local args = {...}
+-- Creates a new sql.nvim object. if {uri} then connect to {uri}, else :memory:.
+---@param uri string optional
+---@usage `sql.open()`
+---@usage `sql.open("./path/to/sql.sqlite")`
+---@usage `sql.open("$ENV_VARABLE")`
+---@return table: sql.nvim object
+---@todo: It should accept self when trying to reopen
+---@todo: decide whether to add active_since.
+---@todo: decide whether using os.time and epoch time would be better.
+sql.open = function(uri)
   local o = {
-    -- TODO: what if the users passes an already created object?
-    uri = args[1] == "string" and args[1] or ":memory:",
+    uri = uri == "string" and utils.expand(uri) or ":memory:",
     -- checks if conn isopen
     created = os.date('%Y-%m-%d %H:%M:%S'),
-    -- better if we use os.time instead?
     closed = false,
-    -- check if conn isclosed
-    isopen = function(self) return not self.closed end,
-    isclose = function(self) return self.closed end,
   }
-
   -- in case we want support open_v2, to provide control over how
   -- the database file is opened.
   --[[
@@ -59,75 +64,138 @@ sql.open = function(...) -- returns obj
   obj.vfs = args[3], -- VFS (Virtual File System) module to use
   -- ]]
 
-  o.conn = (function(uri)
-    -- TODO: support reconnecting
-    -- If the sql is already opened then return it??
-    -- if the sql is dead and uri not :memory:, then reopen it??
-    local conn = ffi.new('sqlite3*[1]')
-    local code = sqlite.open(uri, conn)
+  o.conn = (function()
+    local conn = clib.get_new_db_ptr()
+    local code = clib.open(o.uri, conn)
     if code == flags.ok then
       return conn[0]
     else
-      -- throw err?, use nvim api?
       error(string.format(
         "sql.nvim: couldn't connect to sql database, ERR:",
       code))
       o.closed = true
-      -- or charge obj.closed to true?
     end
-  end)(o.uri)
+  end)()
 
   setmetatable(o, sql)
   return o
 end
 
--- Returns current connection status
-sql.status = function(self) -- returns string
-  local conn = self.conn or self
+--- Get last error msg
+---@return string: sqlite error msg
+function sql:__last_errmsg() return clib.to_str(clib.errmsg(self.conn)) end
+
+--- Get last error code
+---@return number: sqlite error number
+function sql:__last_errcode() return clib.errcode(self.conn) end
+
+--- predict returning ture if db connection is active.
+---@return boolean: true if db is opened, otherwise false.
+function sql:isopen() return not self.closed end
+
+--- predict returning ture if db connection is active.
+---@return boolean: true if db is close, otherwise false.
+function sql:isclose() return self.closed end
+
+--- wrapper around stmt module for convenience.
+---@param statement string: statement to be parsed.
+---@return table: stmt object
+function sql:__parse(statement) return stmt:parse(self.conn, statement) end
+
+--- Returns current connection status
+--- Get last error code
+---@todo: decide whether to keep this function
+---@return table: msg,code,closed
+function sql:status()
   return {
     -- perhaps we should process those and return eg. error = false
-    msg = misc.last_errmsg(conn),
-    code = misc.last_errcode(conn),
+    msg = self:__last_errmsg(),
+    code = self:__last_errcode(),
     closed = self.closed,
+    create = self.created
   }
 end
 
---- sql.close
--- closes sql db connection
--- @param conn the database connection
--- @usage `db:close()`
--- @return boolean
-sql.close = function(self)
-  -- TODO: check conn status before closing
-  -- like is it busy? .. misc.check_conn
-  self.closed = sqlite.close(self.conn) == 0
+--- closes sqlite db connection.
+---@usage `db:close()`
+---@return boolean: true if closed, error otherwise.
+---@todo: add checks for db connection status and statement status before closing.
+function sql:close()
+  self.closed = clib.close(self.conn) == 0
+  assert(self.closed, string.format(
+    "sql.nvim: database connection didn't get closed, ERRMSG: %s",
+    self:__last_errmsg()
+  ))
   return self.closed
 end
 
---- sql.eval
--- evaluates sql statement and returns true if successful else error-out
---  It should append `;` to `statm`
--- @param conn the database connection
--- @param statm (string/array)
--- @usage `db:exec("drop table if exists todos")`
--- @usage `db:exec("create table todos")`
--- @return boolean
--- @raise error with sqlite3 msg
-sql.eval = function(self, stmt, callback)
-  local cstr,code,lstr,arg1
-  -- cstr = ffi.new('char*[1]')
-  code = sqlite.exec(self.conn, stmt, callback, arg1, cstr)
-  -- lstr = misc.tostr(cstr[0])
-  -- sqlite.free(cstr)
-  if code == flags.ok then
-    return true
+--- Evaluate {statement} and returns true if successful else error-out
+---@param statement string or table: statements to be executed.
+---@param params table: params to be bind to {statement}
+---@param callback function: function to be callback with output.
+---@usage db:eval("drop table if exists todos")
+---@usage db:eval("select * from todos where id = ?", 1)
+---@usage db:eval("create table todos")
+---@return boolean
+---@todo: support bolb binding.
+---@todo: support varags for unamed params
+function sql:eval(statement, params, callback)
+  if type(statement) == "table" then
+    return utils.all(function(_, v)
+      return self:eval(v)
+    end, statement)
+  end
+
+  local s, res = self:__parse(statement), {}
+
+  if params == nil then
+    s:each(function(stm)
+      table.insert(res, stm:kv())
+    end)
+    s:reset()
+
+  elseif params and type(params) ~= "table" and statement:match('%?') then
+    local value = params
+    if type(value) == "boolean" then
+      value = (value == true) and 1 or 0
+    end
+    s:bind({value})
+    s:each(function(stm)
+      table.insert(res, stm:kv())
+    end)
+    s:reset()
+    s:bind_clear()
+
+  elseif params and type(params) == "table" then
+    params = type(params[1]) == "table" and params or {params}
+    for _, v in ipairs(params) do
+      s:bind(v)
+      s:each(function(stm)
+        table.insert(res, stm:kv())
+      end)
+      s:reset()
+      s:bind_clear()
+    end
+  end
+
+  s:finalize()
+
+  local ret = rawequal(next(res), nil) and self:__last_errcode() == flags.ok or res
+  if type(ret) == "table" and ret[2] == nil then ret = ret[1] end
+
+  assert(self:__last_errcode() == flags.ok , string.format(
+  "sql.nvim: database connection didn't get closed, ERRMSG: %s",
+  self:__last_errmsg()))
+
+  if callback then
+    return callback(ret)
   else
-    return false
+    return ret
   end
 end
 
 ------------------------------------------------------------
--- Sugur over exec function.
+-- Sugur over eval function.
 ------------------------------------------------------------
 
 --- sql.query
@@ -139,7 +207,7 @@ end
 -- @usage `db:query("select * from post where body = :body", {body = "body 2"})`
 -- @usage `db:query("select * from todos where id = :id" {id = 1})`
 -- @return table
-sql.query = function(self) end
+function sql:query() end
 
 --- sql.insert
 -- Inserts data to a sql_table..
@@ -155,7 +223,7 @@ sql.query = function(self) end
 --     created = os.time()
 -- })
 -- @return the primary_key/true? or error.
-sql.insert = function(self) end
+function sql:insert() end
 
 --- sql.update
 -- same as insert but, mutates the sql_table with the new changes
@@ -171,7 +239,7 @@ sql.insert = function(self) end
 --   desc = "neovim users can be build upon new interesting utils.",
 -- }) --> true or error.
 -- @return the primary_key/true? or error.
-sql.update = function(self) end
+function sql:update() end
 
 --- sql.delete
 -- same as insert but, mutates the sql_table with the new changes
@@ -181,7 +249,7 @@ sql.update = function(self) end
 -- @param `id` sqlite row id
 -- @usage `db:delete("todos", 1)`
 -- @return true or error.
-sql.delete = function(self) end
+function sql:delete() end
 
 --- sql.find
 -- If a number (primary_key) is passed then returns the row that match that
@@ -198,6 +266,12 @@ sql.delete = function(self) end
 -- @usage `db:find("project", {order "id"})`
 -- @return lua array
 -- @see sql.query
-sql.find = function(self, params, opts) end
+function sql:find(params, opts) end
+
+--- Check if a table with {name} exists in sqlite db
+function sql:exists(name)
+  local q = self:eval("select name from sqlite_master where name= ?", name)
+  return type(q) == "table" and true or false
+end
 
 return sql

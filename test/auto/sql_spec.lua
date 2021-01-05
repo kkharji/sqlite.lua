@@ -2,10 +2,9 @@ local P = require'plenary.path'
 local eq = assert.are.same
 local sql = require'sql'
 
-describe("sql.lua", function()
+describe("sql", function()
 
-  describe("`open/close`", function() -- todo(tami5): change to open instead of connect.
-
+  describe(":open/:close", function() -- todo(tami5): change to open instead of connect.
     it('creates in memory database.', function()
       local db = sql.open()
       eq("table", type(db), "returns new main interface object.")
@@ -40,13 +39,9 @@ describe("sql.lua", function()
       eq(os.date('%Y-%m-%d %H:%M:%S'), db.created)
       db:close()
     end)
-
-    -- it("It should panic when error", function() -- TODO
-    --   assert(false)
-    -- end)
   end)
 
-  describe('`isopen/isclose`', function()
+  describe(':isopen/isclose', function()
     local db = sql.open()
     it('returns true if the db connection is open', function()
       assert(db:isopen())
@@ -57,7 +52,7 @@ describe("sql.lua", function()
     end)
   end)
 
-  describe('`status`', function()
+  describe(':status', function()
     local db = sql.open()
     local status = db:status()
     it('returns status code of the last filed call', function()
@@ -75,36 +70,34 @@ describe("sql.lua", function()
     end)
   end)
 
-
-  describe("eval", function()
+  describe(":eval", function()
     local db = sql.open()
     it('It evaluate should basic sqlite statement', function()
       eq(true, db:eval("create table people(id integer primary key, name text, age  integer)"))
     end)
-    db:close()
-  end)
-
- --[[ TODO: sql.eval
     it('execute multiple statements', function()
       eq(true, db:eval({
-        "create todo table(title text, desc text, created init)",
-        "drop todo table",
-        "create project table(name text)",
-        "drop project table"
+        "create table todos(id integer primary key, title text, desc text, created int);",
+        "create table projects(id integer primary key, name text);",
       }))
+
+      eq(true, db:exists("todos"), "it should exists")
+      eq(true, db:exists("projects"), "it should exists")
     end)
 
     it('returns true if the operation is successful', function()
-      eq(true, db:eval("create todo table(title text, desc text, created int)"))
+      eq(true, db:eval("create table if not exists todos(title text, desc text, created int)"))
     end)
 
     local row = {
       {
+        id = 1,
         title = "Create something",
         desc = "Don't you dare to tell conni",
         created = os.time()
       },
       {
+        id = 2,
         title = "Don't work on something else",
         desc = "keep conni close by :P",
         created = os.time()
@@ -112,48 +105,45 @@ describe("sql.lua", function()
     }
 
     it('inserts lua table.', function()
-      eq(true, conn:eval("insert into todo values(:title :desc, :created)", row[1]))
+      eq(true, db:eval("insert into todos(id, title,desc,created) values(:id, :title, :desc, :created)",
+      row[1]))
     end)
 
-    it('selects everything from table and return lua array.', function()
-      eq({row[1]}, conn:eval("select * from todo"))
+    it('selects everything from table and return lua table if only one row.', function()
+      eq(row[1], db:eval("select * from todos"))
     end)
 
     it('deletes from sql tables', function()
-      eq(conn:eval("delete from todo") "It should delete table content")
+      eq(true, db:eval("delete from todos"), "It should delete table content")
     end)
 
     it('inserts nested lua table.', function()
-      eq(true, conn:eval("insert into todo values(:title :desc, :created)", row))
-      eq(row, conn:eval("selete * from todo", row))
+      eq(true, db:eval("insert into todos(id,title,desc,created) values(:id, :title, :desc, :created)", row))
+      eq(row, db:eval("select * from todos"), row)
     end)
 
     it('return a lua table by id', function()
-      eq(row[1], conn:eval("select * from todo where id = ?", { id = 1 }))
+      eq(row[1], db:eval("select * from todos where id = :id", { id = 1 }), "with named params")
+      eq(row[1], db:eval("select * from todos where id = ?", { 1 }), "with unamed params")
+      eq(row[1], db:eval("select * from todos where id = ?",  1), "with single value")
     end)
 
     it('update by id', function()
-      eq(true, conn:eval("update todo set desc = ?, where id = ?", {
-        id = 1, desc = "..."
-      }))
+      eq(true, db:eval("update todos set desc = :desc where id = :id", {
+        id = 1,
+        desc = "..."
+      }), "it works with named params")
+      eq(true, db:eval("update todos set desc = ? where id = ?", {
+        2,
+        "..."
+      }), "it works with unnamed params")
     end)
 
     it('delete by id', function()
-      eq(true, conn:eval("delete from todo where id = ?", { id = 1 }))
+      eq(true, db:eval("delete from todos where id = :id", { id = 2 }))
+      eq(true, db:eval("delete from todos where id = :id", { id = 1 }))
+    eq(true, db:eval("select * from todos"), "It should be empty by now.")
     end)
-
-    it('inserts nested lua table.', function()
-      eq(true, conn:eval("insert into todo values(:title :desc, :created)", row))
-      eq(row, conn:eval("selete * from todo", row))
-    end)
-
-    it('delete by range', function()
-      eq(true, conn:eval("delete from todo where id between 1 and 2"))
-    end)
-
-    it('lists db tables', function()
-      eq({"todo", "project"}, conn:eval(".tables"))
-    end)
---]]
-
+    db:close()
+  end)
 end)
