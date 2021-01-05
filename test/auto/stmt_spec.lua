@@ -22,7 +22,7 @@ describe('stmt', function()
   local eq = assert.are.same
   local kill = function(s,db)
     if not s.finalized then
-      eq(0, s:finalize())
+      eq(true, s:finalize())
     end
     eq(0, sqlite.close(db))
   end

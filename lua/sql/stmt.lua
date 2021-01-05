@@ -8,6 +8,8 @@ M.__index = M
 -- Compile sql statement into an internal rep
 -- @returns collection of methods, applicable to the parsed statement..
 function M:parse(conn, stmt)
+  assert(type(conn) == "cdata", "Invalid connection passed to stmt:parse")
+  assert(type(stmt) == "string", "Invalid second argument passed to stmt:parse")
   local o = {
     str = stmt,
     conn = conn,
@@ -26,11 +28,10 @@ end
 function M:__parse()
   local pstmt = sqlite.get_new_stmt_ptr()
   local code  = sqlite.prepare_v2(self.conn, self.str, #self.str, pstmt, nil);
-  if code ~= flags.ok then
-    return error(string.format(
-      "sql.nvim: couldn't parse sql statement, ERRMSG: ",
-    sqlite.to_str(sqlite.errmsg(self.conn))))
-  end
+  assert(code == flags.ok, string.format(
+    "sql.nvim: couldn't parse sql statement, ERRMSG: %s",
+    sqlite.to_str(sqlite.errmsg(self.conn))
+  ))
   self.pstmt = pstmt[0]
 end
 
@@ -49,7 +50,11 @@ end
 function M:finalize()
   self.errcode = sqlite.finalize(self.pstmt)
   self.finalized = self.errcode == flags.ok
-  return self.errcode
+  assert(self.finalized, string.format(
+    "sql.nvim: couldn't finalize statement, ERRMSG: %s",
+    sqlite.to_str(sqlite.errmsg(self.conn))
+  ))
+  return self.finalized
 end
 
 --- M:step
@@ -61,7 +66,12 @@ end
 -- flags.error: runtime error
 -- flags.misuse: the statement may have been already finalized.
 function M:step()
-  return sqlite.step(self.pstmt)
+  local step_code = sqlite.step(self.pstmt)
+  assert(step_code ~= flags.error or step_code ~= flags.misuse, string.format(
+    "sql.nvim: error in step(), ERRMSG: %s. Please report issue.",
+    sqlite.to_str(sqlite.errmsg(self.conn))
+  ))
+  return step_code
 end
 
 --- M:nkeys
@@ -86,7 +96,6 @@ end
 -- @param @optional index (0-index)
 -- @return if idx string, else array
 function M:key(idx)
-  if self.finalized then self:__parse() end
   return sqlite.to_str(sqlite.column_name(self.pstmt, idx))
 end
 
@@ -124,7 +133,6 @@ function M:type(idx)
     ['blob'] = "binary",
     ['null'] = nil
   }
-  if self.finalized then self:__parse() end
   return convert_dt[sqlite.to_str(sqlite.column_decltype(self.pstmt, idx))]
 end
 
@@ -140,9 +148,6 @@ function M:types()
 end
 
 function M:val(idx)
-  if self.finalized then
-    self:__parse()
-  end
   local ktype = sqlite.column_type(self.pstmt, idx)
   if ktype == 5 then return end
   local val = sqlite["column_" .. sqlite_datatypes[ktype]](self.pstmt, idx)
@@ -165,7 +170,6 @@ end
 -- @return table of key value pair of a row.
 function M:kv()
   local ret = {}
-  -- if self.finalized then self.pstmt = self:__parse() end
   for i = 0, self:nkeys() - 1 do
     ret[self:key(i)] = self:val(i)
   end
@@ -175,7 +179,6 @@ end
 --- M:kt
 -- @return key/value pairs of the keys and their type
 function M:kt()
-  if self.finalized then self:__parse() end
   local ret = {}
   for i = 0, self:nkeys() - 1 do
     ret[self:key(i)] = self:type(i)
@@ -226,9 +229,6 @@ function M:kvrows(callback)
     end
   end)
   if not callback then
-    -- self:finalize()
-    -- @conni does this make sense to have? or do we require
-    -- it to be called explicitly?
     return kv
   end
 end
@@ -249,9 +249,6 @@ function M:vrows(callback)
     end
   end)
   if not callback then
-    -- self:finalize()
-    -- @conni does this make sense to have? or do we require
-    -- it to be called explicitly?
     return vals
   end
 end
@@ -315,7 +312,7 @@ function M:bind(...)
     for k, v in pairs(names) do
       local index = parameter_index_cache[k] or table.remove(anon_indices, 1)
       local ret = self:bind(index, v)
-      if ret ~= flags.ok then return ret end -- should we have error here?
+      if ret ~= flags.ok then return ret end -- TODO(conni): should we error out ?
     end
     return flags.ok
   else
@@ -395,7 +392,7 @@ function M:bind_next(value)
     self.current_bind_index = self.current_bind_index + 1
     return ret
   end
-  return flags.error
+  return flags.error -- TODO(conni): should error out?
 end
 
 --- M:expand
