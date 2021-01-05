@@ -26,7 +26,8 @@ describe('stmt', function()
     end
     eq(0, sqlite.close(db))
   end
-  describe(':parse()', function()
+
+  describe(':parse()     ', function()
     local db = conn()
     local stm = "select * from todos"
 
@@ -50,8 +51,8 @@ describe('stmt', function()
     end)
   end)
 
-  local db,expectedlist,expectedkv,s
-  db = conn()
+  local db, expectedlist, expectedkv, s
+  db = conn() -- start of first suit test.
   for _,v in pairs({
     [[create table todos(id integer primary key, title text, desc text, deadline integer);]],
     [[insert into todos (title,desc,deadline) values("Create something", "Don't you dare to tell conni", 2021);]],
@@ -59,336 +60,371 @@ describe('stmt', function()
   }) do eval(db, v) end
 
   expectedkv = {
-    {
-      id = 1,
-      title = 'Create something',
+    { id = 1, title = 'Create something',
       desc = "Don't you dare to tell conni",
       deadline = 2021,
     },
-    {
-      id = 2,
+    { id = 2,
       title = "Don't work on something else",
       desc = 'keep conni close by :P',
       deadline = 2021,
     }}
 
-  expectedlist = {}
-  for i, t in ipairs(expectedkv) do
-    expectedlist[i] = {}
-    for _,v in pairs(t) do
-      table.insert(expectedlist[i], v)
-    end
-  end
-
-  s = stmt:parse(db, "select * from todos" )
-
-  describe(':nkeys()', function()
-    it('returns the number of columns/keys in results.', function()
-      eq(4, s:nkeys())
-    end)
-  end)
-
-  describe(':types()', function()
-    it('returns the type of each columns/keys in results.', function()
-      eq({ 'number', 'string', 'string', 'number', }, s:types())
-    end)
-  end)
-
-  describe(':type() ', function()
-    it('returns the type of columns/keys by idx.', function()
-      eq("string", s:type(1))
-    end)
-  end)
-
-  describe(':keys() ', function()
-    it('returns key/column names', function()
-      eq({ 'id', 'title', 'desc', 'deadline', }, s:keys())
-    end)
-  end)
-
-  describe(':key()  ', function()
-    it('returns key/column name by idx', function()
-      eq("id", s:key(0))
-    end)
-  end)
-
-  describe(':kt()   ', function()
-    it('returns a dict of key name and their type.', function()
-      eq({
-        deadline = 'number',
-        desc = 'string',
-        id = 'number',
-        title = 'string'
-      }, s:kt())
-    end)
-  end)
-
-  describe(':kv()   ', function()
-    it('returns (with stmt:each) key-value pairs of all rows', function()
-      local done = false
-      local res = {}
-      s:each(function(st)
-        table.insert(res, st:kv())
-        done = true
-      end)
-      vim.wait(4000, function() return done end)
-      eq(true, not vim.tbl_isempty(res), "It should be filled.")
-      eq(expectedkv, res, "It should be identical.")
-    end)
-  end)
-
-  if s.finalized then
-    s:__parse()
-  end
-
-  describe(':val()  ', function()
-    it('returns (with stmt:each) a list of vals in all the rows at idx.', function()
-      local res = {}
-      s:each(function(st)
-        table.insert(res, st:val(0))
-      end)
-      eq(false, vim.tbl_isempty(res))
-      eq({ 1, 2 }, res)
-    end)
-  end)
-
-  describe(':vals() ', function()
-    it('returns (with stmt:each) a nested list all the vals in all the rows.', function()
-      local res = {}
-      s:each(function(st)
-        table.insert(res, st:vals())
-      end)
-      eq(false, vim.tbl_isempty(res))
-      -- eq(expectedlist, res) -- the order is missed up.
-    end)
-  end)
-
-  describe(':kvrows()', function()
-    it('returns a nested kv-pairs all the rows. if no callback.', function()
-      local res = s:kvrows()
-      eq(true, not vim.tbl_isempty(res), "it should be filled.")
-      eq("table", type(res), "it should be of the type table.")
-      eq("table", type(res[1]), "should be true")
-      eq(expectedkv, res)
-      if s.finalized then
-        s:__parse()
+    expectedlist = {}
+    for i, t in ipairs(expectedkv) do
+      expectedlist[i] = {}
+      for _,v in pairs(t) do
+        table.insert(expectedlist[i], v)
       end
+    end
+    s = stmt:parse(db, "select * from todos" )
+
+    describe(':nkeys()     ', function()
+      it('returns the number of columns/keys in results.', function()
+        eq(4, s:nkeys())
       end)
     end)
 
-  describe(':vrows()', function()
-    -- assert(s.finalized)
-    it('returns a nested kv-pairs all the rows. if no callback.', function()
-      local res = s:vrows()
-      eq(true, not vim.tbl_isempty(res), "it should be filled.")
-      -- eq(expectedlist, res, "it should be identical") -- the order is mixed up
+    describe(':types()     ', function()
+      it('returns the type of each columns/keys in results.', function()
+        eq({ 'number', 'string', 'string', 'number', }, s:types())
+      end)
     end)
-  end)
 
-  describe(':nrows()', function()
-    it('returns the number of rows in results', function()
-      eq(2, s:nrows())
+    describe(':type()      ', function()
+      it('returns the type of columns/keys by idx.', function()
+        eq("string", s:type(1))
+      end)
     end)
-  end)
 
-  describe('bind with named parameters', function()
-    local bind_db = conn()
+    describe(':keys()      ', function()
+      it('returns key/column names', function()
+        eq({ 'id', 'title', 'desc', 'deadline', }, s:keys())
+      end)
+    end)
+
+    describe(':key()       ', function()
+      it('returns key/column name by idx', function()
+        eq("id", s:key(0))
+      end)
+    end)
+
+    describe(':kt()        ', function()
+      it('returns a dict of key name and their type.', function()
+        eq({
+          deadline = 'number',
+          desc = 'string',
+          id = 'number',
+          title = 'string'
+        }, s:kt())
+      end)
+    end)
+
+    describe(':kv()        ', function()
+      it('returns (with stmt:each) key-value pairs of all rows', function()
+        local done = false
+        local res = {}
+        s:each(function(st)
+          table.insert(res, st:kv())
+          done = true
+        end)
+        vim.wait(4000, function() return done end)
+        eq(true, not vim.tbl_isempty(res), "It should be filled.")
+        eq(expectedkv, res, "It should be identical.")
+      end)
+    end)
+
+    if s.finalized then
+      s:__parse()
+    end
+
+    describe(':val()       ', function()
+      it('returns (with stmt:each) a list of vals in all the rows at idx.', function()
+        local res = {}
+        s:each(function(st)
+          table.insert(res, st:val(0))
+        end)
+        eq(false, vim.tbl_isempty(res))
+        eq({ 1, 2 }, res)
+      end)
+    end)
+
+    describe(':vals()      ', function()
+      it('returns (with stmt:each) a nested list all the vals in all the rows.', function()
+        local res = {}
+        s:each(function(st)
+          table.insert(res, st:vals())
+        end)
+        eq(false, vim.tbl_isempty(res))
+        -- eq(expectedlist, res) -- the order is missed up.
+      end)
+    end)
+
+    describe(':kvrows()    ', function()
+      it('returns a nested kv-pairs all the rows. if no callback.', function()
+        local res = s:kvrows()
+        eq(true, not vim.tbl_isempty(res), "it should be filled.")
+        eq("table", type(res), "it should be of the type table.")
+        eq("table", type(res[1]), "should be true")
+        eq(expectedkv, res)
+        if s.finalized then
+          s:__parse()
+        end
+      end)
+    end)
+
+    describe(':vrows()     ', function()
+      -- assert(s.finalized)
+      it('returns a nested kv-pairs all the rows. if no callback.', function()
+        local res = s:vrows()
+        eq(true, not vim.tbl_isempty(res), "it should be filled.")
+        -- eq(expectedlist, res, "it should be identical") -- the order is mixed up
+      end)
+    end)
+
+    describe(':nrows()     ', function()
+      it('returns the number of rows in results', function()
+        eq(2, s:nrows())
+      end)
+    end)
+
+    kill(s, db) -- end of second suit
+    local bind_db = conn() -- start of third db test
     eval(bind_db, [[create table todos(id integer primary key, title text, desc text, deadline integer);]])
     local bind_s = stmt:parse(bind_db, "insert into todos (title,desc,deadline) values(:title, :desc, :deadline);")
     local expected_stmt = "insert into todos (title,desc,deadline) values('Fancy todo title', 'We are doing all the things', 2021.0);"
 
-    it('nparam should return the parameter count', function()
-      eq(3, bind_s:nparam())
+    describe(':nparam()    ', function()
+      it('returns the parameter count.', function()
+        eq(3, bind_s:nparam())
+      end)
     end)
 
-    it('Returns parameter names for each index', function()
-      eq(':title', bind_s:param_name(1))
-      eq(':desc', bind_s:param_name(2))
-      eq(':deadline', bind_s:param_name(3))
+    describe(':param_name()', function()
+      it('returns parameter names by idx.', function()
+        eq(':title', bind_s:param_name(1))
+        eq(':desc', bind_s:param_name(2))
+        eq(':deadline', bind_s:param_name(3))
+      end)
+
+      it('returns all parameter names with no idx', function()
+        eq({ ':title', ':desc', ':deadline' }, bind_s:param_name())
+      end)
     end)
 
-    it('Returns parameter names with no index', function()
-      eq({ ':title', ':desc', ':deadline' }, bind_s:param_name())
+    describe(':bind_index()', function()
+      it('binds values by idx', function()
+        bind_s:bind_index(1, 'Fancy todo title')
+        bind_s:bind_index(2, 'We are doing all the things')
+        bind_s:bind_index(3, 2021)
+        eq(expected_stmt, bind_s:expand())
+      end)
     end)
 
-    it('Able to bind values with :bind', function()
-      bind_s:clear_bindings()
-      bind_s:bind_index(1, 'Fancy todo title')
-      bind_s:bind_index(2, 'We are doing all the things')
-      bind_s:bind_index(3, 2021)
-      eq(expected_stmt, bind_s:expand())
-    end)
-
-    it('Able to bind a blob', function()
-      bind_s:clear_bindings()
-      bind_s:bind_index_blob(1, sqlite.get_new_blob_ptr(), 10)
-    end)
-
-    it('Able to bind a zeroblob', function()
-      bind_s:clear_bindings()
-      bind_s:bind_index_zeroblob(1, 10)
-      eq("insert into todos (title,desc,deadline) values(zeroblob(10), NULL, NULL);", bind_s:expand())
-    end)
-
-    it('Should be able to bind values to names', function()
-      bind_s:clear_bindings()
-      bind_s:bind_names({
-        ['title'] = 'Fancy todo title',
-        ['desc'] = 'We are doing all the things',
-        ['deadline'] = 2021,
-      })
-      eq(expected_stmt, bind_s:expand())
-    end)
-
-    it('Should be able to bind values with next', function()
-      bind_s:clear_bindings()
-      bind_s:bind_next_value('Fancy todo title')
-      bind_s:bind_next_value('We are doing all the things')
-      bind_s:bind_next_value(2021)
-      eq(expected_stmt, bind_s:expand())
-    end)
-
-    kill(bind_s, bind_db)
-  end)
-
-  describe('bind with anon parameters', function()
-    local bind_db = conn()
-    eval(bind_db, [[create table todos(id integer primary key, title text, desc text, deadline integer);]])
-    local bind_s = stmt:parse(bind_db, "insert into todos (title,desc,deadline) values(?, ?, ?);")
-    local expected_stmt = "insert into todos (title,desc,deadline) values('Fancy todo title', 'We are doing all the things', 2021.0);"
-
-    it('nparam should return the parameter count', function()
-      eq(3, bind_s:nparam())
-    end)
-
-    it('Returns parameter names for each index', function()
-      eq('?', bind_s:param_name(1))
-      eq('?', bind_s:param_name(2))
-      eq('?', bind_s:param_name(3))
-    end)
-
-    it('Returns parameter names with no index', function()
-      eq({ '?', '?', '?' }, bind_s:param_name())
-    end)
-
-    it('Able to bind values with :bind', function()
-      bind_s:clear_bindings()
-      bind_s:bind_index(1, 'Fancy todo title')
-      bind_s:bind_index(2, 'We are doing all the things')
-      bind_s:bind_index(3, 2021)
-      eq(expected_stmt, bind_s:expand())
-    end)
-
-    it('Able to bind a blob', function()
-      bind_s:clear_bindings()
-      bind_s:bind_index_blob(1, sqlite.get_new_blob_ptr(), 10)
-    end)
-
-    it('Able to bind a zeroblob', function()
-      bind_s:clear_bindings()
-      bind_s:bind_index_zeroblob(1, 10)
-      eq("insert into todos (title,desc,deadline) values(zeroblob(10), NULL, NULL);", bind_s:expand())
-    end)
-
-    it('Should be able to bind values to names', function()
-      bind_s:clear_bindings()
-      bind_s:bind_names({
-        'Fancy todo title',
-        'We are doing all the things',
-        2021,
-      })
-      eq(expected_stmt, bind_s:expand())
-    end)
-
-    it('Should be able to bind values with next', function()
-      bind_s:clear_bindings()
-      bind_s:bind_next_value('Fancy todo title')
-      bind_s:bind_next_value('We are doing all the things')
-      bind_s:bind_next_value(2021)
-      eq(expected_stmt, bind_s:expand())
-    end)
-
-    kill(bind_s, bind_db)
-  end)
-
-  describe('bind with named and anon parameters', function()
-    local bind_db = conn()
-    eval(bind_db, [[create table todos(id integer primary key, title text, desc text, deadline integer);]])
-    local bind_s = stmt:parse(bind_db, "insert into todos (title,desc,deadline) values(:title, ?, :deadline);")
-    local expected_stmt = "insert into todos (title,desc,deadline) values('Fancy todo title', 'We are doing all the things', 2021.0);"
-
-    it('nparam should return the parameter count', function()
-      eq(3, bind_s:nparam())
-    end)
-
-    it('Returns parameter names for each index', function()
-      eq(':title', bind_s:param_name(1))
-      eq('?', bind_s:param_name(2))
-      eq(':deadline', bind_s:param_name(3))
-    end)
-
-    it('Returns parameter names with no index', function()
-      eq({ ':title', '?', ':deadline' }, bind_s:param_name())
-    end)
-
-    it('Able to bind values with :bind', function()
-      bind_s:clear_bindings()
-      bind_s:bind_index(1, 'Fancy todo title')
-      bind_s:bind_index(2, 'We are doing all the things')
-      bind_s:bind_index(3, 2021)
-      eq(expected_stmt, bind_s:expand())
-    end)
-
-    it('Able to bind a blob', function()
-      bind_s:clear_bindings()
-      bind_s:bind_index_blob(1, sqlite.get_new_blob_ptr(), 10)
-    end)
-
-    it('Able to bind a zeroblob', function()
-      bind_s:clear_bindings()
-      bind_s:bind_index_zeroblob(1, 10)
-      eq("insert into todos (title,desc,deadline) values(zeroblob(10), NULL, NULL);", bind_s:expand())
-    end)
-
-    it('Should be able to bind values to names', function()
-      bind_s:clear_bindings()
-      bind_s:bind_names({
-        ['title'] = 'Fancy todo title',
-        'We are doing all the things',
-        ['deadline'] = 2021,
-      })
-      eq(expected_stmt, bind_s:expand())
-    end)
-
-    it('Should be able to bind values with next', function()
-      bind_s:clear_bindings()
-      bind_s:bind_next_value('Fancy todo title')
-      bind_s:bind_next_value('We are doing all the things')
-      bind_s:bind_next_value(2021)
-      eq(expected_stmt, bind_s:expand())
-    end)
-
-    kill(bind_s, bind_db)
-  end)
-
-  describe('Combined test', function()
-    local bind_db = conn()
-    eval(bind_db, [[create table todos(id integer primary key, title text, desc text, deadline integer);]])
-    local bind_s = stmt:parse(bind_db, "insert into todos (id,title,desc,deadline) values(:id, :title, :desc, :deadline);")
-
-    it('should work', function()
-      for _, v in ipairs(expectedkv) do
-        bind_s:bind_names(v)
-        bind_s:step()
-        bind_s:reset()
+    describe(':bind_names()', function()
+      it('bind values by names.', function()
         bind_s:clear_bindings()
-      end
-      bind_s:finalize()
-      local select = stmt:parse(bind_db, "select * from todos" )
-      eq(expectedkv, select:kvrows())
-      kill(select, bind_db)
+        bind_s:bind_names({
+          ['title'] = 'Fancy todo title',
+          ['desc'] = 'We are doing all the things',
+          ['deadline'] = 2021,
+        })
+        eq(expected_stmt, bind_s:expand())
+      end)
+    end)
+
+    describe(':bind_next_value()', function()
+      it('bind values by order in which they appear next', function()
+        bind_s:clear_bindings()
+        bind_s:bind_next_value('Fancy todo title')
+        bind_s:bind_next_value('We are doing all the things')
+        bind_s:bind_next_value(2021)
+        eq(expected_stmt, bind_s:expand())
+      end)
+    end)
+
+
+    describe(':clear_bindings()', function()
+      it('clear bindigns.', function()
+        eq(0, bind_s:clear_bindings(), "it should return 0")
+      end)
+    end)
+
+    describe(':bind_index_blob()', function()
+      it('binds blobs by idx', function()
+        bind_s:clear_bindings()
+        bind_s:bind_index_blob(1, sqlite.get_new_blob_ptr(), 10)
+      end)
+    end)
+
+    describe(':bind_index_zeroblob()', function()
+      it('binds a zeroblob by idx', function()
+        bind_s:clear_bindings()
+        bind_s:bind_index_zeroblob(1, 10)
+        eq("insert into todos (title,desc,deadline) values(zeroblob(10), NULL, NULL);", bind_s:expand())
+      end)
+    end)
+
+
+    kill(bind_s, bind_db) -- end of third test suit
+    bind_db = conn()  -- beginning of forth test suit
+    eval(bind_db, [[create table todos(id integer primary key, title text, desc text, deadline integer);]])
+    bind_s = stmt:parse(bind_db, "insert into todos (title,desc,deadline) values(?, ?, ?);")
+    expected_stmt = "insert into todos (title,desc,deadline) values('Fancy todo title', 'We are doing all the things', 2021.0);"
+
+
+    describe(':nparam()     ', function()
+      it('does as expected with "anonymous parmas"', function()
+        eq(3, bind_s:nparam())
+      end)
+    end)
+
+    describe(':nparam_name()', function()
+      it('does as expected with "anonymous parmas"', function()
+        eq('?', bind_s:param_name(1))
+        eq('?', bind_s:param_name(2))
+        eq('?', bind_s:param_name(3))
+        eq({ '?', '?', '?' }, bind_s:param_name())
+      end)
+    end)
+
+    describe(':bind_index() ', function()
+      it('does as expected with "anonymous parmas"', function()
+        bind_s:clear_bindings()
+        bind_s:bind_index(1, 'Fancy todo title')
+        bind_s:bind_index(2, 'We are doing all the things')
+        bind_s:bind_index(3, 2021)
+        eq(expected_stmt, bind_s:expand())
+      end)
+    end)
+
+    describe(':bind_names() ', function()
+      it('does as expected with "anonymous parmas"', function()
+        bind_s:clear_bindings()
+        bind_s:bind_names({
+          'Fancy todo title',
+          'We are doing all the things',
+          2021,
+        })
+        eq(expected_stmt, bind_s:expand())
+      end)
+    end)
+
+    describe(':bind_next_value()', function()
+      it('does as expected with "anonymous parmas"', function()
+        bind_s:clear_bindings()
+        bind_s:bind_next_value('Fancy todo title')
+        bind_s:bind_next_value('We are doing all the things')
+        bind_s:bind_next_value(2021)
+        eq(expected_stmt, bind_s:expand())
+      end)
+    end)
+
+
+    describe(':bind_index_blob()', function()
+      it('does as expected with "anonymous parmas"', function()
+        bind_s:clear_bindings()
+        bind_s:bind_index_blob(1, sqlite.get_new_blob_ptr(), 10)
+      end)
+    end)
+
+    describe(':bind_index_zeroblob()', function()
+      it('does as expected with "anonymous parmas"', function()
+        bind_s:clear_bindings()
+        bind_s:bind_index_zeroblob(1, 10)
+        eq("insert into todos (title,desc,deadline) values(zeroblob(10), NULL, NULL);", bind_s:expand())
+      end)
+    end)
+
+    kill(bind_s, bind_db) -- end of forth test suit
+    bind_db = conn() -- beginning of fifth test suit
+    eval(bind_db, [[create table todos(id integer primary key, title text, desc text, deadline integer);]])
+    bind_s = stmt:parse(bind_db, "insert into todos (title,desc,deadline) values(:title, ?, :deadline);")
+    expected_stmt = "insert into todos (title,desc,deadline) values('Fancy todo title', 'We are doing all the things', 2021.0);"
+
+
+    describe(':nparam()     ', function()
+      it('does as expected with "anonymous params" and "named params"', function()
+        eq(3, bind_s:nparam())
+      end)
+    end)
+
+    describe(':nparam_name()', function()
+      it('does as expected with "anonymous params" and "named params"', function()
+        eq(':title', bind_s:param_name(1))
+        eq('?', bind_s:param_name(2))
+        eq(':deadline', bind_s:param_name(3))
+        eq({ ':title', '?', ':deadline' }, bind_s:param_name())
+      end)
+    end)
+
+    describe(':bind_index() ', function()
+      it('does as expected with "anonymous params" and "named params"', function()
+        bind_s:clear_bindings()
+        bind_s:bind_index(1, 'Fancy todo title')
+        bind_s:bind_index(2, 'We are doing all the things')
+        bind_s:bind_index(3, 2021)
+        eq(expected_stmt, bind_s:expand())
+      end)
+    end)
+
+    describe(':bind_names() ', function()
+      it('does as expected with "anonymous params" and "named params"', function()
+        bind_s:clear_bindings()
+        bind_s:bind_names({
+          ['title'] = 'Fancy todo title',
+          'We are doing all the things',
+          ['deadline'] = 2021,
+        })
+        eq(expected_stmt, bind_s:expand())
+      end)
+    end)
+
+    describe(':bind_next_value()', function()
+      it('does as expected with "anonymous params" and "named params"', function()
+        bind_s:clear_bindings()
+        bind_s:bind_next_value('Fancy todo title')
+        bind_s:bind_next_value('We are doing all the things')
+        bind_s:bind_next_value(2021)
+        eq(expected_stmt, bind_s:expand())
+      end)
+    end)
+
+    describe(':bind_index_blob()', function()
+      it('does as expected with "anonymous params" and "named params"', function()
+        bind_s:clear_bindings()
+        bind_s:bind_index_blob(1, sqlite.get_new_blob_ptr(), 10)
+      end)
+    end)
+
+    describe(':bind_index_zeroblob()', function()
+      it('does as expected with "anonymous params" and "named params"', function()
+        bind_s:clear_bindings()
+        bind_s:bind_index_zeroblob(1, 10)
+        eq("insert into todos (title,desc,deadline) values(zeroblob(10), NULL, NULL);", bind_s:expand())
+      end)
+    end)
+
+
+    kill(bind_s, bind_db) -- end of fifth test suit
+    bind_db = conn() -- beginning of sixth test suit
+    eval(bind_db, [[create table todos(id integer primary key, title text, desc text, deadline integer);]])
+    bind_s = stmt:parse(bind_db, "insert into todos (id,title,desc,deadline) values(:id, :title, :desc, :deadline);")
+
+    describe('Combined test', function()
+      it('passes', function()
+        -- [ @conni should this block be abstracted in :bind(dict)?
+        for _, v in ipairs(expectedkv) do
+          bind_s:bind_names(v)
+          bind_s:step()
+          bind_s:reset()
+          bind_s:clear_bindings()
+        end
+        -- ]]]]]
+        bind_s:finalize()
+        local select = stmt:parse(bind_db, "select * from todos" )
+        eq(expectedkv, select:kvrows())
+        kill(select, bind_db)
+      end)
     end)
   end)
-
-  kill(s, db)
-end)
