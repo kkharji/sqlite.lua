@@ -233,7 +233,7 @@ function M:kvrows(callback)
   end
 end
 
---- M:kvrows
+--- M:vrows
 -- loops through the parsed statement and return callback(row) or a nested
 -- table of row values
 -- @return if not callback table: nested list of all rows values.
@@ -262,44 +262,83 @@ local bind_type_to_func = {
   ['nil'] = 'null',      -- bind_null
 }
 
---- M:bind_index
--- binds values to indices. Type will be determined. For number is will bind
--- with double, for string it will bind with text and for nil it will bind_null
--- @param idx: index starting at 1
--- @param value: value to bind
+--- M:bind
+-- if first argument is a table, then it binds the table to indicies,
+-- and it works with named and unnamed.
+-- else if first argument is a number and second is a value then it binds by
+-- index. For number is will bind with double, for string it will bind with
+-- text and for nil it will bind_null
+-- @param if 1st arg is table then:
+--  { ['named'] = val, ['named_2'] = val2, val3, val4 }
+--  val3 will be unnamed and will be bind to the first ?
+--  val4 will be unnamed and will be bind to the second ?
+-- @param else 1st arg = idx: index starting at 1
+-- @param 2nd value: value to bind
 -- @return sqlite code
-function M:bind_index(idx, value)
-  local func = bind_type_to_func[type(value)]
-  local len = func == 'text' and #value or nil
-  if not func then return flags.error end
+function M:bind(...)
+  local args = {...}
+  if type(args[1]) == "number" and args[2] then
+    local idx, value = args[1], args[2]
+    local func = bind_type_to_func[type(value)]
+    local len = func == 'text' and #value or nil
 
-  if len then
-    return sqlite['bind_' .. func](self.pstmt, idx, value, len, nil)
-  else
-    if value then
-      return sqlite['bind_' .. func](self.pstmt, idx, value)
-    else
-      return sqlite['bind_' .. func](self.pstmt, idx)
+    if not func then
+      return error([[
+        sql.nvim error at stmt:bind(): Unrecognized or unsupported type.
+        Please report issue.
+      ]])
     end
+
+    if len then
+      return sqlite['bind_' .. func](self.pstmt, idx, value, len, nil)
+    else
+      if value then
+        return sqlite['bind_' .. func](self.pstmt, idx, value)
+      else
+        return sqlite['bind_' .. func](self.pstmt, idx)
+      end
+    end
+
+  elseif type(args[1]) == "table" then
+    local names = args[1]
+    local parameter_index_cache = {}
+    local anon_indices = {}
+    for i = 1, self:nparam() do
+      local name = self:param(i)
+      if name == '?' then
+        table.insert(anon_indices, i)
+      else
+        parameter_index_cache[name:sub(2, -1)] = i
+      end
+    end
+
+    for k, v in pairs(names) do
+      local index = parameter_index_cache[k] or table.remove(anon_indices, 1)
+      local ret = self:bind(index, v)
+      if ret ~= flags.ok then return ret end -- should we have error here?
+    end
+    return flags.ok
+  else
+    error("Wrong number of arguments.")
   end
 end
 
---- M:bind_index_blob
+--- M:bind_blob
 -- Will bind a blob at index with size
 -- @param idx: index starting at 1
 -- @param pointer: blob to bind
 -- @param size: pointer size
 -- @return sqlite code
-function M:bind_index_blob(idx, pointer, size)
+function M:bind_blob(idx, pointer, size)
   return sqlite.bind_blob64(self.pstmt, idx, pointer, size, nil) -- Always 64? or two functions
 end
 
---- M:bind_index_zeroblob
+--- M:bind_zeroblob
 -- Will bind zeroblob at index with size
 -- @param idx: index starting at 1
 -- @param size: zeroblob size
 -- @return sqlite code
-function M:bind_index_zeroblob(idx, size)
+function M:bind_zeroblob(idx, size)
   return sqlite.bind_zeroblob64(self.pstmt, idx, size)
 end
 
@@ -336,50 +375,23 @@ end
 --- M:clear_bindings
 -- Will clear the current bindings
 -- @return sqlite code
-function M:clear_bindings()
+function M:bind_clear()
   self.current_bind_index = nil
   return sqlite.clear_bindings(self.pstmt)
 end
 
---- M:bind_names
--- Bind a table to indicies, named and unnamed
--- @param names: table:
---  { ['named'] = val, ['named_2'] = val2, val3, val4 }
---  val3 will be unnamed and will be bind to the first ?
---  val4 will be unnamed and will be bind to the second ?
--- @return sqlite code
-function M:bind_names(names)
-  local parameter_index_cache = {}
-  local anon_indices = {}
-  for i = 1, self:nparam() do
-    local name = self:param(i)
-    if name == '?' then
-      table.insert(anon_indices, i)
-    else
-      parameter_index_cache[name:sub(2, -1)] = i
-    end
-  end
-
-  for k, v in pairs(names) do
-    local index = parameter_index_cache[k] or table.remove(anon_indices, 1)
-    local ret = self:bind_index(index, v)
-    if ret ~= flags.ok then return ret end
-  end
-  return flags.ok
-end
-
---- M:bind_next_value
+--- M:bind_next
 -- Bind the value at the next index until all values are bound
 -- clear_bindings() will reset the next index
 -- @param value: value to bind
 -- @return sqlite code
-function M:bind_next_value(value)
+function M:bind_next(value)
   if not self.current_bind_index then
     self.current_bind_index = 1
   end
 
   if self.current_bind_index <= self:nparam() then
-    local ret = self:bind_index(self.current_bind_index, value)
+    local ret = self:bind(self.current_bind_index, value)
     self.current_bind_index = self.current_bind_index + 1
     return ret
   end
