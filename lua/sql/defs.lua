@@ -10,8 +10,10 @@ local clib_path = vim.g.sql_clib_path or (function()
 
   if file_exists("/usr/lib/libsqlite3.so") then
     return "/usr/lib/libsqlite3.so"
-  elseif file_exists("usr/lib64/libsqlite3.so") then
+  elseif file_exists("/usr/lib64/libsqlite3.so") then
     return "/usr/lib64/libsqlite3.so"
+  elseif file_exists("/usr/lib/x86_64-linux-gnu/libsqlite3.so") then
+    return "/usr/lib/x86_64-linux-gnu/libsqlite3.so"
   end
   return nil
 end)()
@@ -1159,8 +1161,34 @@ ffi.cdef[[
     sqlite3_int64 szBuf,    /* Total size of buffer pData[] */
     unsigned mFlags         /* Zero or more SQLITE_DESERIALIZE_* flags */
   );
-
 ]]
+
+M.to_str = function(ptr, len)
+  if ptr == nil then return end
+  return ffi.string(ptr, len)
+end
+
+M.type_of = function(ptr)
+  if ptr == nil then return end
+  return ffi.typeof(ptr)
+end
+
+M.get_new_db_ptr = function()
+  return ffi.new('sqlite3*[1]')
+end
+
+M.get_new_stmt_ptr = function()
+  return ffi.new('sqlite3_stmt*[1]')
+end
+
+M.get_new_blob_ptr = function()
+  return ffi.new('sqlite3_blob*[1]')
+end
+
+M.type_of_db_ptr = ffi.typeof("sqlite3*[1]")
+M.type_of_stmt_ptr = ffi.typeof("sqlite3_stmt*[1]")
+M.type_of_exec_ptr = ffi.typeof("int (*)(void*,int,char**,char**)")
+M.type_of_blob_ptr = ffi.typeof("sqlite3_blob*[1]")
 
 M = setmetatable(M, {
   __index = function(_, k)
