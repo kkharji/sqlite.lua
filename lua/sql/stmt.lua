@@ -314,20 +314,21 @@ function M:nparam()
   return self.parm_count
 end
 
---- M:param_name
--- Will return the parameter name at index
--- @param idx: index starting at 1. If nil return all param_names
+--- M:param
+-- return the parameter key/name at index
+-- @param idx: index starting at 1
 -- @return string or table
-function M:param_name(idx)
-  if self.finalized then self:__parse() end
+function M:param(idx)
+  return sqlite.to_str(sqlite.bind_parameter_name(self.pstmt, idx)) or '?'
+end
 
-  if idx then
-    return sqlite.to_str(sqlite.bind_parameter_name(self.pstmt, idx)) or '?'
-  end
-
+--- M:params
+-- return parameters keys/names
+-- @return table of params keys
+function M:params()
   local res = {}
   for i = 1, self:nparam() do
-    table.insert(res, (self:param_name(i) or '?'))
+    table.insert(res, self:param(i))
   end
   return res
 end
@@ -351,7 +352,7 @@ function M:bind_names(names)
   local parameter_index_cache = {}
   local anon_indices = {}
   for i = 1, self:nparam() do
-    local name = self:param_name(i)
+    local name = self:param(i)
     if name == '?' then
       table.insert(anon_indices, i)
     else
