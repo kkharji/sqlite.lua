@@ -1,13 +1,34 @@
 local sqlite = require'sql.defs'
 local flags = sqlite.flags
 
-local M = {}
-M.__index = M
+local Stmt = {}
+Stmt.__index = Stmt
 
---- M:parse
--- Compile sql statement into an internal rep
--- @returns collection of methods, applicable to the parsed statement..
-function M:parse(conn, stmt)
+---@brief [[
+--- stmt.lua is a collection of methods to deal with sqlite statements.
+---@brief ]]
+---@tag stmt.lua
+
+---@class sqlite3*[1]
+--- sqlite3 db object
+
+---@class sqlite3_blob*[1]
+--- sqlite3 blob object
+
+---@class sqlite_flag
+--- sqlite3 error flags
+
+---@class Stmt
+--- object to deal with sqlite statements
+
+
+--- Create new object to deal with sqlite {stmt}
+---@param conn sqlite3*[1]: the database connection.
+---@param stmt string: the sqlite statement to be parsed.
+---@return Stmt Stmt: collection of methods, applicable to the parsed statement.
+---@see Stmt:__parse()
+---@usage local stmt = Stmt:parse(db, "insert into todos (title,desc) values(:title, :desc)")
+function Stmt:parse(conn, stmt)
   assert(type(conn) == "cdata", "Invalid connection passed to stmt:parse")
   assert(type(stmt) == "string", "Invalid second argument passed to stmt:parse")
   local o = {
@@ -20,12 +41,10 @@ function M:parse(conn, stmt)
   return o
 end
 
---- M:__parse
--- Compile sql statement into an internal rep.
--- Required to reparse the sql statement after finalized.
--- @returns parsed sql statement
--- @raise error if the statement couldn't be parsed
-function M:__parse()
+--- parse {stmt} into an sqlite representation and set it to self.pstmt.
+---@raise error if the statement couldn't be parsed
+---@local
+function Stmt:__parse()
   local pstmt = sqlite.get_new_stmt_ptr()
   local code  = sqlite.prepare_v2(self.conn, self.str, #self.str, pstmt, nil);
   assert(code == flags.ok, string.format(
@@ -35,19 +54,19 @@ function M:__parse()
   self.pstmt = pstmt[0]
 end
 
---- M:reset
--- resets the parsed statement.
--- This is required so that we can re-executed the parse statement.
+--- Resets the parsed statement. required for parsed statements to be re-executed.
 -- NOTE: Any statement variables that had values bound to them using the
--- stmt:bind functions retain their values.
-function M:reset()
+-- Stmt:bind functions retain their values.
+---@return number: falgs.ok or errcode
+---@todo should we error out when errcode?
+function Stmt:reset()
   return sqlite.reset(self.pstmt)
 end
 
---- M:finalize
--- Frees the prepared statement
--- @return sqlite code, ok if successful
-function M:finalize()
+--- Frees the prepared statement
+---@return boolean: if no error true.
+---@raise error msg with sqlite error msg.
+function Stmt:finalize()
   self.errcode = sqlite.finalize(self.pstmt)
   self.finalized = self.errcode == flags.ok
   assert(self.finalized, string.format(
@@ -57,15 +76,15 @@ function M:finalize()
   return self.finalized
 end
 
---- M:step
--- Called before evaluating the (next iteration) of the prepared statement.
--- @return sqlite code:
--- flags.busy: unable to acquite the locks needs
--- flags.done: finished executing.
--- flags.row: row of data
--- flags.error: runtime error
--- flags.misuse: the statement may have been already finalized.
-function M:step()
+--- Called before evaluating the (next iteration) of the prepared statement.
+---@return sqlite_flag:
+---flags.busy: unable to acquite the locks needs
+---flags.done: finished executing.
+---flags.row: row of data
+---flags.error: runtime error
+---flags.misuse: the statement may have been already finalized.
+---@raise when code == falgs.error or falgs.misuse.
+function Stmt:step()
   local step_code = sqlite.step(self.pstmt)
   assert(step_code ~= flags.error or step_code ~= flags.misuse, string.format(
     "sql.nvim: error in step(), ERRMSG: %s. Please report issue.",
@@ -74,15 +93,15 @@ function M:step()
   return step_code
 end
 
---- M:nkeys
--- @return number: column count in the results
-function M:nkeys()
+--- Number of keys/columns in results
+---@return number: column count in the results.
+function Stmt:nkeys()
   return sqlite.column_count(self.pstmt)
 end
 
---- M:nrows
+--- Number of rows/items in results.
 -- @return number: rows count in the results.
-function M:nrows()
+function Stmt:nrows()
   local count = 0
   self:each(function()
     count = count + 1
@@ -90,21 +109,19 @@ function M:nrows()
   return count
 end
 
---- M:keys
--- if idx then return the keyname of that idx, else return an array of keys
--- names i.e. column names.
--- @param @optional index (0-index)
--- @return if idx string, else array
-function M:key(idx)
+--- key-name/column-name at {idx} in results.
+---@param idx number: (0-index)
+---@return string: keyname/column name at {idx}
+---@todo should accept 1-index
+function Stmt:key(idx)
   return sqlite.to_str(sqlite.column_name(self.pstmt, idx))
 end
 
---- M:keys
--- if idx then return the keyname of that idx, else return an array of keys
--- names i.e. column names.
--- @param @optional index (0-index)
--- @return if idx string, else array
-function M:keys()
+--- key-names/column-names in results.
+---@return table: key-names/column-names.
+---@see Stmt:nkeys
+---@see Stmt:key
+function Stmt:keys()
   local keys = {}
   for i = 0, self:nkeys() - 1 do
     table.insert(keys, i + 1, self:key(i))
@@ -120,11 +137,11 @@ local sqlite_datatypes = {
   [5] = 'null',      -- bind_null
 }
 
---- M:type
--- sqlite key/column datatype at`idx`
--- @param index: (0-index)
--- @return string
-function M:type(idx)
+--- Key/Column lua datatype at {idx}
+---@param idx number: (0-index)
+---@return string: key/column type at {idx}
+---@todo should accept 1-index
+function Stmt:type(idx)
   local convert_dt = {
     ['integer'] = "number",
     ['float'] = "number",
@@ -136,10 +153,11 @@ function M:type(idx)
   return convert_dt[sqlite.to_str(sqlite.column_decltype(self.pstmt, idx))]
 end
 
---- M:types
--- Return all the keys/columns types visible in current result
--- @return  array of types in ordered by key location.
-function M:types()
+--- Keys/Columns types visible in current result.
+---@return table: list of types, ordered by key location.
+---@see Stmt:type
+---@see Stmt:nkeys
+function Stmt:types()
   local types = {}
   for i = 0, self:nkeys() - 1 do
     table.insert(types, i + 1, self:type(i))
@@ -147,17 +165,22 @@ function M:types()
   return types
 end
 
-function M:val(idx)
+--- Value at {idx}
+---@param idx number: (0-index)
+---@return string: value at {idx}
+---@todo should accept 1-index
+function Stmt:val(idx)
   local ktype = sqlite.column_type(self.pstmt, idx)
   if ktype == 5 then return end
   local val = sqlite["column_" .. sqlite_datatypes[ktype]](self.pstmt, idx)
   return ktype == 3 and sqlite.to_str(val) or val
 end
 
---- M:vals
--- ordered list of current query reslut values.
--- @return list of values
-function M:vals()
+--- Ordered list of current result values.
+---@return table: list of values, ordered by key location.
+---@see Stmt:val
+---@see Stmt:nkeys
+function Stmt:vals()
   local vals = {}
   for i = 0, self:nkeys() - 1 do
     table.insert(vals, i + 1, self:val(i))
@@ -165,10 +188,12 @@ function M:vals()
   return vals
 end
 
---- M:kv
--- return key value pairs of results
--- @return table of key value pair of a row.
-function M:kv()
+--- Key/value pair in current result.
+---@return table: key/value pair of a row.
+---@see Stmt:key
+---@see Stmt:val
+---@see Stmt:nkeys
+function Stmt:kv()
   local ret = {}
   for i = 0, self:nkeys() - 1 do
     ret[self:key(i)] = self:val(i)
@@ -176,9 +201,12 @@ function M:kv()
   return ret
 end
 
---- M:kt
--- @return key/value pairs of the keys and their type
-function M:kt()
+--- Key/type pair in current result.
+---@return table: key/type pair of a row.
+---@see Stmt:key
+---@see Stmt:val
+---@see Stmt:nkeys
+function Stmt:kt()
   local ret = {}
   for i = 0, self:nkeys() - 1 do
     ret[self:key(i)] = self:type(i)
@@ -186,13 +214,13 @@ function M:kt()
   return ret
 end
 
---- M:next
+--- Stmt:next
 -- If code == flags.row it returns
 -- if code == flags.done it reset the parsed statement
-function M:next()
+function Stmt:next()
   local code = self:step()
   if code == flags.row then
-    return M
+    return self
   elseif code == flags.done then
     self:reset()
   else
@@ -200,25 +228,28 @@ function M:next()
   end
 end
 
-function M:iter()
+function Stmt:iter()
   return self:next(), self.pstmt
 end
 
---- M:each
--- loops through the parsed statement until there is no row left from the
--- parsed statement.
-function M:each(callback)
+--- loops through results with {callback} until there is no row left.
+---@param callback function: a function to be called on each number of row.
+---@usage Stmt:each(function(s)  print(s:val(1))  end)
+---@see Stmt:step
+function Stmt:each(callback)
+  assert(type(callback) == "function", "stmt:each expected a function, got something else.")
   while self:step() == flags.row do
     callback(self)
   end
 end
 
---- M:kvrows
--- loops through the parsed statement and return callback(row) or a nested
--- table of kv pairs.
--- @return if not callback table: key-value pairs of all the rows.
--- @return if callback, call with a key-value pair of a row
-function M:kvrows(callback)
+-- loops through the results and if {callback} pass to it row, else return nested kv pairs.
+---@param callback function: a function to be called with each row.
+---@return function: if callback then callback({kv_row})
+---@return table: if no callback then nested key-value pairs.
+---@see Stmt:kv
+---@see Stmt:each
+function Stmt:kvrows(callback)
   local kv = {}
   self:each(function()
     local row = self:kv()
@@ -233,12 +264,13 @@ function M:kvrows(callback)
   end
 end
 
---- M:vrows
--- loops through the parsed statement and return callback(row) or a nested
--- table of row values
--- @return if not callback table: nested list of all rows values.
--- @return if callback, call with a row values
-function M:vrows(callback)
+-- like Stmt:kvrows but passed list of values instead of kv pairs.
+---@param callback function: a function to be called with each row.
+---@return function: if callback then callback({row})
+---@return table: if no callback then nested lists of values in each row.
+---@see Stmt:vals
+---@see Stmt:each
+function Stmt:vrows(callback)
   local vals = {}
   self:each(function(s)
     local row = s:vals()
@@ -259,20 +291,14 @@ local bind_type_to_func = {
   ['nil'] = 'null',      -- bind_null
 }
 
---- M:bind
--- if first argument is a table, then it binds the table to indicies,
--- and it works with named and unnamed.
--- else if first argument is a number and second is a value then it binds by
--- index. For number is will bind with double, for string it will bind with
--- text and for nil it will bind_null
--- @param if 1st arg is table then:
---  { ['named'] = val, ['named_2'] = val2, val3, val4 }
---  val3 will be unnamed and will be bind to the first ?
---  val4 will be unnamed and will be bind to the second ?
--- @param else 1st arg = idx: index starting at 1
--- @param 2nd value: value to bind
--- @return sqlite code
-function M:bind(...)
+--- bind {args[2]} at {args[1]} or kv pairs {args[1]}.
+-- if {args[1]} is a number and {args[2]} is a value then it binds by index.
+-- else first argument is a table, then it binds the table to indicies, and it
+-- works with named and unnamed.
+---@see Stmt:nparam
+---@see Stmt:param
+---@see Stmt:bind
+function Stmt:bind(...)
   local args = {...}
   if type(args[1]) == "number" and args[2] then
     local idx, value = args[1], args[2]
@@ -320,29 +346,26 @@ function M:bind(...)
   end
 end
 
---- M:bind_blob
--- Will bind a blob at index with size
--- @param idx: index starting at 1
--- @param pointer: blob to bind
--- @param size: pointer size
--- @return sqlite code
-function M:bind_blob(idx, pointer, size)
+--- binds a blob at {idx} with {size}
+---@param idx number: index starting at 1
+---@param pointer sqlite3_blob*[1]: blob to bind
+---@param size number: pointer size
+---@return sqlite_flag
+function Stmt:bind_blob(idx, pointer, size)
   return sqlite.bind_blob64(self.pstmt, idx, pointer, size, nil) -- Always 64? or two functions
 end
 
---- M:bind_zeroblob
--- Will bind zeroblob at index with size
--- @param idx: index starting at 1
--- @param size: zeroblob size
--- @return sqlite code
-function M:bind_zeroblob(idx, size)
+--- binds zeroblob at {idx} with {size}
+---@param idx number: index starting at 1
+---@param size number: zeroblob size
+---@return sqlite_flag
+function Stmt:bind_zeroblob(idx, size)
   return sqlite.bind_zeroblob64(self.pstmt, idx, size)
 end
 
---- M:nparam
--- Will return the parameter count
--- @return count
-function M:nparam()
+--- the number of parameter to bind.
+---@return number: number of params in {Stmt.pstmt}
+function Stmt:nparam()
   if not self.parm_count then
     self.parm_count = sqlite.bind_parameter_count(self.pstmt)
   end
@@ -350,18 +373,18 @@ function M:nparam()
   return self.parm_count
 end
 
---- M:param
--- return the parameter key/name at index
--- @param idx: index starting at 1
--- @return string or table
-function M:param(idx)
+--- the parameter key/name at {idx}
+---@param idx number: index starting at 1
+---@return string: param key ":key" at {idx}
+function Stmt:param(idx)
   return sqlite.to_str(sqlite.bind_parameter_name(self.pstmt, idx)) or '?'
 end
 
---- M:params
--- return parameters keys/names
--- @return table of params keys
-function M:params()
+--- parameters keys/names
+---@return table: paramters key/names in {Stmt.pstmt}
+---@see Stmt:nparam
+---@see Stmt:param
+function Stmt:params()
   local res = {}
   for i = 1, self:nparam() do
     table.insert(res, self:param(i))
@@ -369,20 +392,18 @@ function M:params()
   return res
 end
 
---- M:clear_bindings
--- Will clear the current bindings
--- @return sqlite code
-function M:bind_clear()
+--- clear the current bindings.
+--- @return sqlite_flag
+function Stmt:bind_clear()
   self.current_bind_index = nil
   return sqlite.clear_bindings(self.pstmt)
 end
 
---- M:bind_next
--- Bind the value at the next index until all values are bound
--- clear_bindings() will reset the next index
--- @param value: value to bind
--- @return sqlite code
-function M:bind_next(value)
+--- Bind the value at the next index until all values are bound
+---@param value any: value to bind
+---@return sqlite_flag
+---@todo does it return sqlite_flag in all cases? @conni
+function Stmt:bind_next(value)
   if not self.current_bind_index then
     self.current_bind_index = 1
   end
@@ -395,12 +416,10 @@ function M:bind_next(value)
   return flags.error -- TODO(conni): should error out?
 end
 
---- M:expand
--- Will expand the statement.
--- Useful for debugging when you want to take a look at the resulting
--- statement after you bound some values.
-function M:expand()
+--- expand the resulting statement after binding, used for debugging purpose.
+---@return string: the resulting statement that can be finalized.
+function Stmt:expand()
   return sqlite.to_str(sqlite.expanded_sql(self.pstmt))
 end
 
-return M
+return Stmt
