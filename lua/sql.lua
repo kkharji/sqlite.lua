@@ -249,44 +249,36 @@ end
 ---@todo handle inconflict case
 function sql:insert(...)
   local args = {...}
+  local ret_vals = {}
+
+  local inner_eval = function(tbl, p)
+    return self:eval(self:parse("insert", {
+      tbl = tbl,
+      values = p,
+      placeholders = true,
+    }), p)
+  end
+
   if u.is_str(args[1]) then
     local tbl = args[1]
     local params = args[2]
     assert_tbl(self, tbl)
-
-    return self:eval(self:parse("insert", {
-      tbl = tbl,
-      values = params,
-      placeholders = true,
-    }), params)
-
-  elseif u.is_str(args[1][1]) and u.is_str(args[1][2]) then
-    local ret_vals = {}
+    table.insert(ret_vals, inner_eval(tbl, params))
+  elseif u.is_str(args[1][1]) then
     local tbls = args[1]
     for k, tbl in ipairs(tbls) do
-      local params = args[2][k]
-      local ret = self:eval(self:parse("insert", {
-        tbl = tbl,
-        values = params,
-        placeholders = true
-      }), params)
-      table.insert(ret_vals, ret)
+      local params = args[k + 1]
+      table.insert(ret_vals, inner_eval(tbl, params))
     end
-    return u.all(ret_vals, function(_, v) return v end)
   elseif args[1][2] == nil then
-    local ret_vals = {}
     local tbls = u.keys(args[1])
     for _, tbl in ipairs(tbls) do
       local params = args[1][tbl]
-      local ret = self:eval(self:parse("insert", {
-        tbl = tbl,
-        values = params,
-        placeholders = true,
-      }), params)
-      table.insert(ret_vals, ret)
+      table.insert(ret_vals, inner_eval(tbl, params))
     end
-    return u.all(ret_vals, function(_, v) return v end)
   end
+
+  return u.all(ret_vals, function(_, v) return v end)
 end
 
 --- Equivalent to |sql:insert|
@@ -300,44 +292,49 @@ function sql:add(...) return sql:insert(...) end
 ---@todo support unnamed or anonymous args
 function sql:update(...)
   local args = {...}
+  local ret_vals = {}
+
+  local inner_eval = function(tbl, p)
+    return self:eval(self:parse("update", {
+      tbl = tbl,
+      set = p.values,
+      where = p.where,
+      placeholders = true,
+    }), u.tbl_extend('force', p.values, p.where))
+  end
+
+  local unwrap_params = function(tbl, params)
+    if params[1] then
+      for _, p in ipairs(params) do
+        table.insert(ret_vals, inner_eval(tbl, p))
+      end
+    else
+      table.insert(ret_vals, inner_eval(tbl, params))
+    end
+  end
+
   if u.is_str(args[1]) then
     local tbl = args[1]
     local params = args[2]
     assert_tbl(self, tbl)
-
-    return self:eval(self:parse("update", {
-      tbl = tbl,
-      set = params.values,
-      where = params.where,
-      placeholders = true,
-    }), u.tbl_extend('force', params.values, params.where))
-  else
-    local ret_vals = {}
+    unwrap_params(tbl, params)
+  elseif u.is_str(args[1][1]) then
+    local tbls = args[1]
+    for k, tbl in ipairs(tbls) do
+      assert_tbl(self, tbl)
+      local params = args[k + 1]
+      unwrap_params(tbl, params)
+    end
+  elseif args[1][2] == nil then
     local tbls = u.keys(args[1])
     for _, tbl in ipairs(tbls) do
+      assert_tbl(self, tbl)
       local params = args[1][tbl]
-      if params[1] then
-        for _, p in ipairs(params) do
-          local ret self:eval(self:parse("update", {
-            tbl = tbl,
-            set = p.values,
-            where = p.where,
-            placeholders = true,
-          }), u.tbl_extend('force', p.values, p.where))
-          table.insert(ret_vals, ret)
-        end
-      else
-        local ret self:eval(self:parse("update", {
-          tbl = tbl,
-          set = params.values,
-          where = params.where,
-          placeholders = true,
-        }), u.tbl_extend('force', params.values, params.where))
-        table.insert(ret_vals, ret)
-      end
+      unwrap_params(tbl, params)
     end
-    return u.all(ret_vals, function(_, v) return v end)
   end
+
+  return u.all(ret_vals, function(_, v) return v end)
 end
 
 -- same as insert but, mutates the sql_table with the new changes
