@@ -5,43 +5,48 @@ local sql = require'sql'
 describe("sql", function()
   describe(":open/:close", function() -- todo(tami5): change to open instead of connect.
     it('creates in memory database.', function()
-      local db = sql.open()
+      local db = sql:open()
       eq("table", type(db), "returns new main interface object.")
       eq("cdata", type(db.conn), "returns sql object.")
       assert(db:close(), "returns true if the connection is closed successfully.")
     end)
 
+    local path = "/tmp/db.sqlite3"
     it("creates new persistence database.", function()
-      local path = "/tmp/db.sqlite3"
-      local db = sql.open(path)
-      -- FIXME: doesn't return cdata and fail to evaluate statement, which is
-      -- need for creating the file.
-      -- eq("cdata", type(db.conn), "returns sqlite object.")
-      -- eq(true, db:eval("create todo table (title text, desc text, created int)"))
-      assert(db:close(), "It should close connection successfully.")
-      -- eq(true, P.exists(P.new(path)), "It should created the file")
-      -- vim.loop.fs_unlink(path)
+      local db = sql:open(path)
+      eq("cdata", type(db.conn), "returns sqlite object.")
+
+      eq(true, db:eval("create table if not exists todo(title text, desc text, created int)"))
+      db:insert("todo", {
+        { title = "1", desc = "......", created = 2021 },
+        { title = "2", desc = "......", created = 2021 }
+      })
+
+      eq(true, db:close(), "It should close connection successfully.")
+      eq(true, P.exists(P.new(path)), "It should created the file")
     end)
 
     it("connects to pre-existent database.", function()
-      local db = sql.open(path)
-      local path = "/tmp/db2.sqlite3"
-      vim.loop.fs_open(path, "w", 420)
-      eq("cdata", type(db.conn), "It should return sqlite object.")
-      assert(db:close(), "It should close connection successfully.")
-      assert(P.exists(P.new(path)), "It should created the file")
+      local db = sql:open(path)
+
+      local todos = db:eval("select * from todo")
+      eq("1", todos[1].title)
+      eq("2", todos[2].title)
+
+      eq(true, db:close(), "It should close connection successfully.")
+      eq(true, P.exists(P.new(path)), "File should still exists")
       vim.loop.fs_unlink(path)
     end)
 
     it('returns data and time of creation', function()
-      local db = sql.open()
+      local db = sql:open()
       eq(os.date('%Y-%m-%d %H:%M:%S'), db.created)
       db:close()
     end)
   end)
 
   describe(':isopen/isclose', function()
-    local db = sql.open()
+    local db = sql:open()
     it('returns true if the db connection is open', function()
       assert(db:isopen())
     end)
@@ -52,7 +57,7 @@ describe("sql", function()
   end)
 
   describe(':status', function()
-    local db = sql.open()
+    local db = sql:open()
     local status = db:status()
     it('returns status code of the last filed call', function()
       eq("number", type(status.code), "it should return sqlite last flag code")
@@ -70,7 +75,7 @@ describe("sql", function()
   end)
 
   describe(":eval", function()
-    local db = sql.open()
+    local db = sql:open()
     it('It evaluate should basic sqlite statement', function()
       eq(true, db:eval("create table people(id integer primary key, name text, age  integer)"))
     end)
@@ -146,7 +151,7 @@ describe("sql", function()
     db:close()
   end)
   describe(':insert', function()
-    local db = sql.open()
+    local db = sql:open()
     assert(db:eval("create table todos(title text, desc text)"))
 
     it('works with table_name being as the first argument', function()
@@ -300,7 +305,7 @@ describe("sql", function()
   end)
 
   describe(':update', function()
-    local db = sql.open()
+    local db = sql:open()
     assert(db:eval("create table todos(title text, desc text)"))
 
     it('works with table_name being as the first argument', function()
@@ -559,7 +564,7 @@ describe("sql", function()
   end)
 
   describe(':delete', function()
-    local db = sql.open()
+    local db = sql:open()
     assert(db:eval("create table todos(title text, desc text)"))
 
     it('works with table_name being as the first argument', function()

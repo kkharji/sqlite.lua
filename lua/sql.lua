@@ -14,16 +14,16 @@ end
 
 -- Creates a new sql.nvim object. if {uri} then connect to {uri}, else :memory:.
 ---@param uri string optional
----@usage `sql.open()`
----@usage `sql.open("./path/to/sql.sqlite")`
----@usage `sql.open("$ENV_VARABLE")`
+---@usage `sql:open()`
+---@usage `sql:open("./path/to/sql.sqlite")`
+---@usage `sql:open("$ENV_VARABLE")`
 ---@return table: sql.nvim object
 ---@todo: It should accept self when trying to reopen
 ---@todo: decide whether to add active_since.
 ---@todo: decide whether using os.time and epoch time would be better.
 function sql:open(uri)
   local o = {
-    uri = uri == "string" and u.expand(uri) or ":memory:",
+    uri = type(uri) == "string" and u.expand(uri) or ":memory:",
     -- checks if conn isopen
     created = os.date('%Y-%m-%d %H:%M:%S'),
     closed = false,
@@ -41,9 +41,7 @@ function sql:open(uri)
     if code == flags.ok then
       return conn[0]
     else
-      error(string.format(
-        "sql.nvim: couldn't connect to sql database, ERR:",
-      code))
+      error(string.format("sql.nvim: couldn't connect to sql database, ERR:", code))
       o.closed = true
     end
   end)()
@@ -152,8 +150,9 @@ function sql:eval(statement, params, callback)
   if type(ret) == "table" and ret[2] == nil then ret = ret[1] end -- FIXME: may not be desirable
 
   assert(self:__last_errcode() == flags.ok , string.format(
-  "sql.nvim: database connection didn't get closed, ERRMSG: %s",
-  self:__last_errmsg()))
+    "sql.nvim: database connection didn't get closed, ERRMSG: %s",
+    self:__last_errmsg()
+  ))
 
   if callback then
     return callback(ret)
@@ -378,7 +377,7 @@ function sql:delete(...)
   return u.all(ret_vals, function(_, v) return v end)
 end
 
---- sql.find
+--- sql:find
 -- If a number (primary_key) is passed then returns the row that match that
 -- primary key,
 -- else if a table is passed,
@@ -392,7 +391,7 @@ end
 -- @usage `db:find({project = 1, "todo" })`
 -- @usage `db:find("project", {order "id"})`
 -- @return lua array
--- @see sql.query
+-- @see sql:query
 function sql:find(params, opts) end
 
 --- Check if a table with {name} exists in sqlite db
