@@ -67,6 +67,60 @@ M.join = function(l,s)
   return table.concat(M.map(l, tostring), s, 1)
 end
 
+do
+  local run_behavior = setmetatable({
+    ['error'] = function()
+      error('Key already exists: ', k)
+    end,
+    ['keep'] = function() end,
+    ['force'] = function(t, k, v)
+      t[k] = v
+    end
+  }, {
+    __index = function(_, k)
+      error(k .. ' is not a valid behavior')
+    end
+  })
+
+  M.tbl_extend = function(behavior, ...)
+    local new_table = {}
+    local tables = {...}
+    for i = 1, #tables do
+      local b = tables[i]
+      for k, v in pairs(b) do
+        if v then
+          if new_table[k] then
+            run_behavior[behavior](new_table, k, v)
+          else
+            new_table[k] = v
+          end
+        end
+      end
+    end
+    return new_table
+  end
+end
+
+-- Flatten taken from: https://github.com/premake/premake-core/blob/master/src/base/table.lua
+M.flatten = function(arr)
+  local result = {}
+
+  local function flatten(arr)
+    local n = #arr
+    for i = 1, n do
+      local v = arr[i]
+      if type(v) == "table" then
+        flatten(v)
+      elseif v then
+        table.insert(result, v)
+      end
+    end
+  end
+
+  flatten(arr)
+  return result
+end
+
 M.keynames = function(params, placeholders)
   local keys = M.keys(params)
   local s = placeholders and ":" or ""
@@ -78,4 +132,3 @@ M.keynames = function(params, placeholders)
 end
 
 return M
-

@@ -154,7 +154,10 @@ describe("sql", function()
         title = "TODO 1",
         desc = "................",
       })
-      eq(true, type(db:eval("select * from todos")) == "table", "It should be inserted.")
+      local results = db:eval("select * from todos")
+      eq(true, type(results) == "table", "It should be inserted.")
+      eq("TODO 1", results.title)
+      eq("................", results.desc)
       db:eval("delete from todos")
     end)
 
@@ -165,11 +168,14 @@ describe("sql", function()
           desc = " .......... ",
         }
       }
-      eq(true, type(db:eval("select * from todos")) == "table", "It should be inserted.")
+      local results = db:eval("select * from todos")
+      eq(true, type(results) == "table", "It should be inserted.")
+      eq("TODO 1", results.title)
+      eq(" .......... ", results.desc)
       db:eval("delete from todos")
     end)
 
-    it('inserts multiple rows in a sql table', function()
+    it('inserts multiple rows in a sql_table', function()
       db:insert{
         todos = {
           {
@@ -188,11 +194,37 @@ describe("sql", function()
       }
       local store = db:eval("select * from todos")
       eq(3, vim.tbl_count(store))
+      for _, v in ipairs(store) do
+        eq(true, v.desc == "...")
+      end
       db:eval("delete from todos")
     end)
 
-    -- [[ TODO
-    it('inserts multiple rows in a multiple sql table', function()
+    it('inserts multiple rows in a sql_table (with tbl_name being first param)', function()
+      db:insert("todos", {
+          {
+            title = "todo 3",
+            desc = "...",
+          },
+          {
+            title = "todo 2",
+            desc = "...",
+          },
+          {
+            title = "todo 1",
+            desc = "...",
+          },
+        })
+      local store = db:eval("select * from todos")
+      eq(3, vim.tbl_count(store))
+      for _, v in ipairs(store) do
+        eq(true, v.desc == "...")
+      end
+      db:eval("delete from todos")
+    end)
+
+    it('inserts multiple rows/multiple sql_table', function()
+      assert(db:eval("create table projects(name text)"))
       db:insert{
         todos = {
           {
@@ -215,12 +247,206 @@ describe("sql", function()
         }
       }
       local todos = db:eval("select * from todos")
-      local projects = db:eval("select * from todos")
+      local projects = db:eval("select * from projects")
       eq(3, vim.tbl_count(todos))
       eq(3, vim.tbl_count(projects))
+      for _, v in ipairs(todos) do
+        eq(true, v.desc == "...")
+      end
+      for _, v in ipairs(projects) do
+        eq(true, v.name == 'Alpha' or v.name == 'Beta' or v.name == 'lost count :P')
+      end
+      db:eval("delete from todos")
+      db:eval("delete from projects")
+    end)
+
+    it('inserts multiple rows/multiple sql table (tables being in as first param)', function()
+      db:insert({"todos", "projects"},
+        {
+          {
+            title = "todo 3",
+            desc = "...",
+          },
+          {
+            title = "todo 2",
+            desc = "...",
+          },
+          {
+            title = "todo 1",
+            desc = "...",
+          },
+        },
+        {
+          {name = "Alpha"},
+          {name = "Beta"},
+          {name = "lost count :P"},
+        })
+
+      local todos = db:eval("select * from todos")
+      local projects = db:eval("select * from projects")
+      eq(3, vim.tbl_count(todos))
+      eq(3, vim.tbl_count(projects))
+      for _, v in ipairs(todos) do
+        eq(true, v.desc == "...")
+      end
+      for _, v in ipairs(projects) do
+        eq(true, v.name == 'Alpha' or v.name == 'Beta' or v.name == 'lost count :P')
+      end
       db:eval("delete from todos")
     end)
-    -- ]]
+
+    db:close()
+  end)
+
+  describe(':update', function()
+    local db = sql.open()
+    assert(db:eval("create table todos(title text, desc text)"))
+
+    it('works with table_name being as the first argument', function()
+      db:insert("todos", {
+        title = "TODO 1",
+        desc = "................",
+      })
+      db:update("todos", {
+        values = { desc = "done" },
+        where = { title = "TODO 1" },
+      })
+      local results = db:eval("select * from todos")
+      eq(true, type(results) == "table", "It should be inserted.")
+      eq("TODO 1", results.title)
+      eq("done", results.desc)
+      db:eval("delete from todos")
+    end)
+
+    it('works with table_name being a lua table key', function()
+      db:insert {
+        todos = {
+          title = "TODO 1",
+          desc = " .......... ",
+        }
+      }
+      db:update({
+        todos = {
+          values = { desc = "not done" },
+          where = { title = "TODO 1" },
+        }
+      })
+      local results = db:eval("select * from todos")
+      eq(true, type(results) == "table", "It should be inserted.")
+      eq("TODO 1", results.title)
+      eq("not done", results.desc)
+      db:eval("delete from todos")
+    end)
+
+    it('update multiple rows in a sql table', function()
+      db:insert{
+        todos = {
+          {
+            title = "todo 3",
+            desc = "...",
+          },
+          {
+            title = "todo 2",
+            desc = "...",
+          },
+          {
+            title = "todo 1",
+            desc = "...",
+          },
+        }
+      }
+
+      db:update({
+        todos = {
+          {
+            values = { desc = "not done" },
+            where = { title = "todo 1" },
+          },
+          {
+            values = { desc = "done" },
+            where = { title = "todo 2" },
+          },
+          {
+            values = { desc = "almost done" },
+            where = { title = "todo 3" },
+          }
+        }
+      })
+      local store = db:eval("select * from todos")
+      eq(3, vim.tbl_count(store))
+      for _, v in ipairs(store) do
+        eq(true, v.desc ~= "...")
+      end
+      db:eval("delete from todos")
+    end)
+
+    it('inserts multiple rows in a multiple sql table', function()
+      assert(db:eval("create table projects(id integer primary key, name text)"))
+      db:insert{
+        todos = {
+          {
+            title = "todo 3",
+            desc = "...",
+          },
+          {
+            title = "todo 2",
+            desc = "...",
+          },
+          {
+            title = "todo 1",
+            desc = "...",
+          },
+        },
+        projects = {
+          {name = "Alpha"},
+          {name = "Beta"},
+          {name = "lost count :P"},
+        }
+      }
+
+      db:update{
+        todos = {
+          {
+            values = { desc = "not done" },
+            where = { title = "todo 1" },
+          },
+          {
+            values = { desc = "done" },
+            where = { title = "todo 2" },
+          },
+          {
+            values = { desc = "almost done" },
+            where = { title = "todo 3" },
+          }
+        },
+        projects = {
+          {
+            values = { name = 'telescope' },
+            where = { id = 1 },
+          },
+          {
+            values = { name = 'plenary' },
+            where = { id = 2 },
+          },
+          {
+            values = { name = 'sql' },
+            where = { id = 3 },
+          }
+        }
+      }
+      local todos = db:eval("select * from todos")
+      local projects = db:eval("select * from projects")
+      eq(3, vim.tbl_count(todos))
+      eq(3, vim.tbl_count(projects))
+      for _, v in ipairs(todos) do
+        eq(true, v.desc ~= "...")
+      end
+      for _, v in ipairs(projects) do
+        eq(true, v.name == 'telescope' or v.name == 'plenary' or v.name == 'sql')
+        eq(false, v.name == 'Alpha' or v.name == 'Beta' or v.name == 'lost count :P')
+      end
+      db:eval("delete from todos")
+    end)
     db:close()
   end)
 end)

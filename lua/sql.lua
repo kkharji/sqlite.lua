@@ -21,7 +21,7 @@ end
 ---@todo: It should accept self when trying to reopen
 ---@todo: decide whether to add active_since.
 ---@todo: decide whether using os.time and epoch time would be better.
-sql.open = function(uri)
+function sql:open(uri)
   local o = {
     uri = uri == "string" and u.expand(uri) or ":memory:",
     -- checks if conn isopen
@@ -197,40 +197,35 @@ local parse_where = function(t)
   return "where " .. table.concat(where, ", ")
 end
 
-print(vim.inspect(parse_where({k = 1, e = 2})))
 --- Internal function for parsing
 ---@params act string: the sqlite action [insert, delete, update, drop, create]
--- TODO: refactor this mess!!!!
 function sql:parse(act, o)
   act = act == "insert" and "insert into" or act
-  tbl_name = o.tbl and o.tbl or ""
-  local t = {
+  local t = u.flatten{
     act,
-    tbl_name,
+    o.tbl and o.tbl or "",
     parse_keys(o.values),
     parse_values(o.placeholders, o.values),
     parse_set(o.set),
     parse_where(o.where),
   }
-  -- ret = table.concat(t, " ")
-  -- assert(not o.debug, "parse result: " .. '"' .. ret .. '"')
-  return t
+  local ret = table.concat(t, " ")
+  return ret
 end
-
-print(vim.inspect(sql.parse("update", {
-  tbl = "todos",
-  where = {
-    deadline = 2051,
-    id = 11,
-  },
-  set = {
-    title = "Fuck you",
-  }
-})))
 
 ------------------------------------------------------------
 -- Sugur over eval function.
 ------------------------------------------------------------
+
+local assert_tbl = function(self, tbl)
+  assert(self:exists(tbl),
+    string.format("sql.nvim: can't insert to non-existence table: '%s'.",
+    tbl
+  ))
+end
+
+
+
 
 --- WIP: Execute a complex queries against a table. e.g. contains, is,
 ---@usage `db:query("todos", {:contains "conni"})`
@@ -239,32 +234,59 @@ print(vim.inspect(sql.parse("update", {
 ---@usage `db:query("any", {:deadline function(d) return d < 2021 end})`
 ---@todo write function specification.
 ---@return table
-function sql:query() end
+function sql:query(...)
+  -- {tbl = "todos", deadline = "today"}
+end
 
 --- Insert to lua table into sqlite database table.
 --- +supports inserting multiple rows.
 ---@varargs if {[1]} == table/content else table_name as {args[1]} and table to insert as {args[2]}.
 ---@return boolean: true incase the table was inserted successfully.
 ---@usage db:insert("todos", { title = "new todo" })
----@usage db:insert{ todos = {title = "new todo"} }
+---@usage db:insert{ todos = { title = "new todo"} }
 ---@todo insert into multiple tables at the same time.
 ---@todo support unnamed or anonymous args
 ---@todo handle inconflict case
 function sql:insert(...)
   local args = {...}
-  local tbl = u.is_str(args[1]) and args[1] or u.keys(args[1])[1]
-  local params = u.is_tbl(args[2]) and args[2] or args[1][tbl]
+  if u.is_str(args[1]) then
+    local tbl = args[1]
+    local params = args[2]
+    assert_tbl(self, tbl)
 
-  -- assert(self:exists(tbl),
-  --   string.format("sql.nvim: can't insert to non-existence table: '%s'.",
-  --   tbl
-  -- ))
+    return self:eval(self:parse("insert", {
+      tbl = tbl,
+      values = params,
+      placeholders = true,
+    }), params)
 
-  return self:eval(self:parse("insert", {
-    tbl = tbl,
-    values = params,
-    placeholders = true,
-  }), params)
+  elseif u.is_str(args[1][1]) and u.is_str(args[1][2]) then
+    local ret_vals = {}
+    local tbls = args[1]
+    for k, tbl in ipairs(tbls) do
+      local params = args[2][k]
+      local ret = self:eval(self:parse("insert", {
+        tbl = tbl,
+        values = params,
+        placeholders = true
+      }), params)
+      table.insert(ret_vals, ret)
+    end
+    return u.all(ret_vals, function(_, v) return v end)
+  elseif args[1][2] == nil then
+    local ret_vals = {}
+    local tbls = u.keys(args[1])
+    for _, tbl in ipairs(tbls) do
+      local params = args[1][tbl]
+      local ret = self:eval(self:parse("insert", {
+        tbl = tbl,
+        values = params,
+        placeholders = true,
+      }), params)
+      table.insert(ret_vals, ret)
+    end
+    return u.all(ret_vals, function(_, v) return v end)
+  end
 end
 
 --- Equivalent to |sql:insert|
@@ -273,53 +295,51 @@ function sql:add(...) return sql:insert(...) end
 --- Update table row under certine
 ---@varargs if {[1]} == table/content else table_name as {args[1]} and table to insert as {args[2]}.
 ---@return boolean: true incase the table was inserted successfully.
----@usage db:update{ tbl = "todos", where = { id = "1" }, content = { action = "FIXME" }}
+---@usage db:update("todos", { where = { id = "1" }, values = { action = "DONE" }})
+---@usage db:update{ "todos" = { where = { deadline = "2021" }, values = { status = "overdue" }}}
 ---@todo support unnamed or anonymous args
-function sql:update(opts)
-  -- assert(self:exists(tbl), -- FIXME
-  --   string.format("sql.nvim: can't insert to non-existence table: '%s'.",
-  --   opts.tbl
-  -- ))
-  -- TODO check for content
-  -- return self:eval(self:parse("update", {
-  --   tbl = opts.tbl,
-  --   where = opts.where,
-  --   set = opts.values,
-  -- }), vim.tbl_extend("keep", opts.values, opts.where))
-  -- return table.concat(where, ",")
-  return opts
+function sql:update(...)
+  local args = {...}
+  if u.is_str(args[1]) then
+    local tbl = args[1]
+    local params = args[2]
+    assert_tbl(self, tbl)
+
+    return self:eval(self:parse("update", {
+      tbl = tbl,
+      set = params.values,
+      where = params.where,
+      placeholders = true,
+    }), u.tbl_extend('force', params.values, params.where))
+  else
+    local ret_vals = {}
+    local tbls = u.keys(args[1])
+    for _, tbl in ipairs(tbls) do
+      local params = args[1][tbl]
+      if params[1] then
+        for _, p in ipairs(params) do
+          local ret self:eval(self:parse("update", {
+            tbl = tbl,
+            set = p.values,
+            where = p.where,
+            placeholders = true,
+          }), u.tbl_extend('force', p.values, p.where))
+          table.insert(ret_vals, ret)
+        end
+      else
+        local ret self:eval(self:parse("update", {
+          tbl = tbl,
+          set = params.values,
+          where = params.where,
+          placeholders = true,
+        }), u.tbl_extend('force', params.values, params.where))
+        table.insert(ret_vals, ret)
+      end
+    end
+    return u.all(ret_vals, function(_, v) return v end)
+  end
 end
 
--- local db = sql.open()
--- db:eval("create table todos(id int, title text, deadline int)")
--- db:insert("todos", {
---   id = 11,
---   deadline = 2051,
---   title = "whats wrong with you"
--- })
--- db:insert("todos", {
---   id = 1,
---   deadline = 20,
---   title = "fd"
--- })
--- db:insert("todos", {
---   id = 11,
---   deadline = 2051,
---   title = "whats wrong with you"
-
--- })
--- print(vim.inspect(sql:update({
---   tbl = "todos",
---   where = {
---     deadline = 2051,
---     id = 11,
---   },
---   values = {
---     title = "Fuck you",
---   }
--- })))
--- print(vim.inspect(db:eval("select * from todos")))
---- sql.delete
 -- same as insert but, mutates the sql_table with the new changes
 --- It should append `;` to `statm`
 --- It should handle arrays as well as tables.
