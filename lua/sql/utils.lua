@@ -74,7 +74,7 @@ M.keynames = function(params, placeholders)
   M.map(keys, function(k)
     res[#res+1] = s .. k
   end)
-  return table.concat(res, ",")
+  return res
 end
 
 return M
