@@ -3,7 +3,6 @@ local eq = assert.are.same
 local sql = require'sql'
 
 describe("sql", function()
-
   describe(":open/:close", function() -- todo(tami5): change to open instead of connect.
     it('creates in memory database.', function()
       local db = sql.open()
@@ -144,6 +143,84 @@ describe("sql", function()
       eq(true, db:eval("delete from todos where id = :id", { id = 1 }))
     eq(true, db:eval("select * from todos"), "It should be empty by now.")
     end)
+    db:close()
+  end)
+  describe(':insert', function()
+    local db = sql.open()
+    assert(db:eval("create table todos(title text, desc text)"))
+
+    it('works with table_name being as the first argument', function()
+      db:insert("todos", {
+        title = "TODO 1",
+        desc = "................",
+      })
+      eq(true, type(db:eval("select * from todos")) == "table", "It should be inserted.")
+      db:eval("delete from todos")
+    end)
+
+    it('works with table_name being a lua table key', function()
+      db:insert {
+        todos = {
+          title = "TODO 1",
+          desc = " .......... ",
+        }
+      }
+      eq(true, type(db:eval("select * from todos")) == "table", "It should be inserted.")
+      db:eval("delete from todos")
+    end)
+
+    it('inserts multiple rows in a sql table', function()
+      db:insert{
+        todos = {
+          {
+            title = "todo 3",
+            desc = "...",
+          },
+          {
+            title = "todo 2",
+            desc = "...",
+          },
+          {
+            title = "todo 1",
+            desc = "...",
+          },
+        }
+      }
+      local store = db:eval("select * from todos")
+      eq(3, vim.tbl_count(store))
+      db:eval("delete from todos")
+    end)
+
+    -- [[ TODO
+    it('inserts multiple rows in a multiple sql table', function()
+      db:insert{
+        todos = {
+          {
+            title = "todo 3",
+            desc = "...",
+          },
+          {
+            title = "todo 2",
+            desc = "...",
+          },
+          {
+            title = "todo 1",
+            desc = "...",
+          },
+        },
+        projects = {
+          {name = "Alpha"},
+          {name = "Beta"},
+          {name = "lost count :P"},
+        }
+      }
+      local todos = db:eval("select * from todos")
+      local projects = db:eval("select * from todos")
+      eq(3, vim.tbl_count(todos))
+      eq(3, vim.tbl_count(projects))
+      db:eval("delete from todos")
+    end)
+    -- ]]
     db:close()
   end)
 end)

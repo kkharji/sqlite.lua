@@ -105,9 +105,9 @@ end
 ---@todo: support varags for unamed params
 function sql:eval(statement, params, callback)
   if type(statement) == "table" then
-    return u.all(function(_, v)
+    return u.all(statement, function(_, v)
       return self:eval(v)
-    end, statement)
+    end)
   end
 
   local s, res = self:__parse(statement), {}
@@ -145,7 +145,7 @@ function sql:eval(statement, params, callback)
   s:finalize()
 
   local ret = rawequal(next(res), nil) and self:__last_errcode() == flags.ok or res
-  if type(ret) == "table" and ret[2] == nil then ret = ret[1] end
+  if type(ret) == "table" and ret[2] == nil then ret = ret[1] end -- FIXME: may not be desirable
 
   assert(self:__last_errcode() == flags.ok , string.format(
   "sql.nvim: database connection didn't get closed, ERRMSG: %s",
@@ -156,6 +156,28 @@ function sql:eval(statement, params, callback)
   else
     return ret
   end
+end
+
+--- Internal function for parsing
+---@params act string: the sqlite action [insert, delete, udpate, drop, create]
+function sql:parse(act, args)
+  -- TODO: is there need for options to passed here?
+  local params, keys
+  act = (function()
+    -- TODO: cover other cases
+    return act == "insert" and "insert into"
+  end)()
+
+  local tbl = args.tbl and args.tbl or ""
+  if args.params then
+     -- TODO: unamed params
+    local t = u.is_nested(args.params) and args.params[1] or args.params
+    keys = string.format("(%s)", u.keynames(t))
+    params = args.placeholders and string.format("values (%s)", u.keynames(t, true))
+  end
+  local ret = table.concat({act, tbl, keys, params}, " ")
+  assert(not args.debug, "parse result: " .. '"' .. ret .. '"')
+  return ret
 end
 
 ------------------------------------------------------------
@@ -171,21 +193,32 @@ end
 ---@return table
 function sql:query() end
 
---- sql.insert
--- Inserts data to a sql_table..
---- It should append `;` to `statm`
---- It should handle arrays as well as tables.
--- @param `conn` the database connection.
--- @param `tbl_name` the sqlite table name.
--- @param `params` lua table or array.
--- @usage
--- db:insert("todos", {
---     title = "create something",
---     desc = "something that users can be build upon.",
---     created = os.time()
--- })
--- @return the primary_key/true? or error.
-function sql:insert() end
+--- Insert to lua table into sqlite database table.
+--- +supports inserting multiple rows.
+---@varargs if {[1]} == table/content else table_name as {args[1]} and table to insert as {args[2]}.
+---@return boolean: true incase the table was inserted successfully.
+---@usage db:insert("todos", { title = "new todo" })
+---@usage db:insert{ todos = {title = "new todo"} }
+---@todo insert into multiple tables at the same time.
+function sql:insert(...)
+  local args = {...}
+  local tbl = u.is_str(args[1]) and args[1] or u.keys(args[1])[1]
+  local params = u.is_tbl(args[2]) and args[2] or args[1][tbl]
+
+  assert(self:exists(tbl), -- FIXME
+    string.format("sql.nvim: can't insert to non-existence table: '%s'.",
+    tbl
+  ))
+
+  return self:eval(self:parse("insert", {
+    tbl = tbl,
+    params = params,
+    placeholders = true,
+  }), params)
+end
+
+--- Equivalent to |sql:insert|
+function sql:add(tbl_name, params) return sql:insert(tbl_name, params) end
 
 --- sql.update
 -- same as insert but, mutates the sql_table with the new changes

@@ -32,7 +32,7 @@ M.expand = function(path)
   return expanded and expanded or error("Path not valid")
 end
 
-M.all = function(fn, iterable)
+M.all = function(iterable, fn)
   for k, v in pairs(iterable) do
     if not fn(k, v) then
       return false
