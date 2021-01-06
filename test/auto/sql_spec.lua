@@ -557,4 +557,139 @@ describe("sql", function()
     end)
     db:close()
   end)
+
+  describe(':delete', function()
+    local db = sql.open()
+    assert(db:eval("create table todos(title text, desc text)"))
+
+    it('works with table_name being as the first argument', function()
+      db:insert("todos", {
+        title = "TODO 1",
+        desc = "................",
+      })
+      db:delete('todos')
+      local results = db:eval("select * from todos")
+      eq(false, type(results) == "table", "It should be inserted.")
+    end)
+
+    it('works with table_name being and where', function()
+      db:insert("todos", { {
+        title = "TODO 1",
+        desc = "................",
+      }, {
+        title = "TODO 2",
+        desc = "................",
+      }})
+      db:delete('todos', { where = { title = "TODO 1" }})
+      local results = db:eval("select * from todos")
+      eq(true, type(results) == "table")
+      eq("TODO 2", results.title)
+      eq("................", results.desc)
+    end)
+
+    it('delete multiple keys', function()
+      db:insert("todos", { {
+        title = "TODO 1",
+        desc = "................",
+      }, {
+        title = "TODO 2",
+        desc = "................",
+      }})
+      db:delete{
+        todos = {
+          { where = { title = "TODO 1" } },
+          { where = { title = "TODO 2" } }
+        }
+      }
+      local results = db:eval("select * from todos")
+      eq(false, type(results) == "table")
+    end)
+
+    it('delete multiple keys (with tbl_name being first param)', function()
+      db:insert("todos", { {
+        title = "TODO 1",
+        desc = "................",
+      }, {
+        title = "TODO 2",
+        desc = "................",
+      }})
+      db:delete('todos', { { where = { title = "TODO 1" } }, { where = {title = "TODO 2"} } })
+      local results = db:eval("select * from todos")
+      eq(false, type(results) == "table")
+    end)
+
+    it('delete multiple keys from multiple sql_tables', function()
+      assert(db:eval("create table projects(name text)"))
+      db:insert{
+        todos = {
+          {
+            title = "TODO 1",
+            desc = "...",
+          },
+          {
+            title = "TODO 2",
+            desc = "...",
+          },
+        },
+        projects = {
+          {name = "Alpha"},
+          {name = "Beta"},
+          {name = "lost count :P"},
+        }
+      }
+      db:delete{
+        todos = {
+          { where = { title = "TODO 1" } },
+          { where = { title = "TODO 2" } }
+        },
+        projects = {
+          { where = { name = "Alpha" } },
+          { where = { name = "Beta" } },
+          { where = { name = "lost count :P" } },
+        }
+      }
+      local results = db:eval("select * from todos")
+      local results2 = db:eval("select * from projects")
+      eq(false, type(results) == "table")
+      eq(false, type(results2) == "table")
+    end)
+
+    it('delete multiple keys from multiple sql_tables (tables being in as first param)', function()
+      db:insert{
+        todos = {
+          {
+            title = "TODO 1",
+            desc = "...",
+          },
+          {
+            title = "TODO 2",
+            desc = "...",
+          },
+        },
+        projects = {
+          {name = "Alpha"},
+          {name = "Beta"},
+          {name = "lost count :P"},
+        }
+      }
+      db:delete({'todos', 'projects'},
+        {
+          todos = {
+            { where = { title = "TODO 1" } },
+            { where = { title = "TODO 2" } }
+          },
+          projects = {
+            { where = { name = "Alpha" } },
+            { where = { name = "Beta" } },
+            { where = { name = "lost count :P" } },
+          }
+        }
+      )
+      local results = db:eval("select * from todos")
+      local results2 = db:eval("select * from projects")
+      eq(false, type(results) == "table")
+      eq(false, type(results2) == "table")
+    end)
+    db:close()
+  end)
 end)

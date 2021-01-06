@@ -201,6 +201,7 @@ end
 ---@params act string: the sqlite action [insert, delete, update, drop, create]
 function sql:parse(act, o)
   act = act == "insert" and "insert into" or act
+  act = act == "delete" and "delete from" or act
   local t = u.flatten{
     act,
     o.tbl and o.tbl or "",
@@ -337,15 +338,44 @@ function sql:update(...)
   return u.all(ret_vals, function(_, v) return v end)
 end
 
--- same as insert but, mutates the sql_table with the new changes
---- It should append `;` to `statm`
---- It should handle arrays as well as tables.
--- @param `conn` the database connection.
--- @param `id` sqlite row id
--- @usage `db:delete("todos", 1)`
--- @return true or error.
-function sql:delete()
+--- same as insert but, mutates the sql_table with the new changes
+---@varargs if {[1]} == table/content else table_name as {args[1]} and table with where to delete as {args[2]}.
+---@return boolean: true incase the table was inserted successfully.
+---@usage db:delete("todos")
+---@usage db:delete("todos", { where = { id = 1 })
+---@usage db:delete{ todos = { where = { id = 1 } }}
+function sql:delete(...)
+  local args = {...}
+  local ret_vals = {}
 
+  local inner_eval = function(tbl, p)
+    return self:eval(self:parse("delete", {
+      tbl = tbl,
+      where = p and p.where or nil,
+      placeholders = true,
+    }), p and p.where or nil)
+  end
+
+  if u.is_str(args[1]) then
+    local tbl = args[1]
+    assert_tbl(self, tbl)
+    local params = args[2]
+    table.insert(ret_vals, inner_eval(tbl, params))
+  elseif u.is_str(args[1][1]) then
+    local tbls = args[1]
+    for k, tbl in ipairs(tbls) do
+      local params = args[k + 1]
+      table.insert(ret_vals, inner_eval(tbl, params))
+    end
+  elseif args[1][2] == nil then
+    local tbls = u.keys(args[1])
+    for _, tbl in ipairs(tbls) do
+      local params = args[1][tbl]
+      table.insert(ret_vals, inner_eval(tbl, params))
+    end
+  end
+
+  return u.all(ret_vals, function(_, v) return v end)
 end
 
 --- sql.find
