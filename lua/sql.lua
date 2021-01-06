@@ -1,44 +1,8 @@
 local clib = require'sql.defs'
 local stmt = require'sql.stmt'
-local utils = {}
+local u = require'sql.utils'
 local flags = clib.flags
 local sql = {}
-
----@todo move to sql/util.lua
-utils.expand = function(path)
-  local expanded
-  if string.find(path, "~") then
-    expanded = string.gsub(path, "^~", os.getenv("HOME"))
-  elseif string.find(path, "^%.") then
-    expanded = vim.loop.fs_realpath(path)
-    if expanded == nil then
-     expanded = vim.fn.fnamemodify(path, ":p")
-   end
-  elseif string.find(path, "%$") then
-    local rep = string.match(path, "([^%$][^/]*)")
-    local val = os.getenv(string.upper(rep))
-    if val then
-      expanded = string.gsub(string.gsub(path, rep, val), "%$", "")
-    else
-      expanded = nil
-    end
-  else
-    expanded = path
-  end
-
-  return expanded and expanded or error("Path not valid")
-end
-
-utils.all = function(fn, iterable)
-  for k, v in pairs(iterable) do
-    if not fn(k, v) then
-      return false
-    end
-  end
-
-  return true
-end
-
 sql.__index = sql
 
 -- Creates a new sql.nvim object. if {uri} then connect to {uri}, else :memory:.
@@ -52,7 +16,7 @@ sql.__index = sql
 ---@todo: decide whether using os.time and epoch time would be better.
 sql.open = function(uri)
   local o = {
-    uri = uri == "string" and utils.expand(uri) or ":memory:",
+    uri = uri == "string" and u.expand(uri) or ":memory:",
     -- checks if conn isopen
     created = os.date('%Y-%m-%d %H:%M:%S'),
     closed = false,
@@ -89,11 +53,11 @@ function sql:__last_errmsg() return clib.to_str(clib.errmsg(self.conn)) end
 ---@return number: sqlite error number
 function sql:__last_errcode() return clib.errcode(self.conn) end
 
---- predict returning ture if db connection is active.
+--- predict returning true if db connection is active.
 ---@return boolean: true if db is opened, otherwise false.
 function sql:isopen() return not self.closed end
 
---- predict returning ture if db connection is active.
+--- predict returning true if db connection is deactivated.
 ---@return boolean: true if db is close, otherwise false.
 function sql:isclose() return self.closed end
 
@@ -141,7 +105,7 @@ end
 ---@todo: support varags for unamed params
 function sql:eval(statement, params, callback)
   if type(statement) == "table" then
-    return utils.all(function(_, v)
+    return u.all(function(_, v)
       return self:eval(v)
     end, statement)
   end
@@ -198,15 +162,13 @@ end
 -- Sugur over eval function.
 ------------------------------------------------------------
 
---- sql.query
--- Execute a query against sqlite `conn`.
---  It should append `;` to `statm`
--- @param `conn` the database connection.
--- @param `statm` the sql query statement (string).
--- @param `params` lua table.
--- @usage `db:query("select * from post where body = :body", {body = "body 2"})`
--- @usage `db:query("select * from todos where id = :id" {id = 1})`
--- @return table
+--- WIP: Execute a complex queries against a table. e.g. contains, is,
+---@usage `db:query("todos", {:contains "conni"})`
+---@usage `db:query("todos", {:is {deadline = 2021})`
+---@usage `db:query("todos", {:not {title = "X"})` < function(t) return t ~= end
+---@usage `db:query("any", {:deadline function(d) return d < 2021 end})`
+---@todo write function specification.
+---@return table
 function sql:query() end
 
 --- sql.insert
