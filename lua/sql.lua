@@ -301,12 +301,14 @@ function sql:insert(...)
   elseif u.is_str(args[1][1]) then
     local tbls = args[1]
     for k, tbl in ipairs(tbls) do
+      assert_tbl(self, tbl)
       local params = args[k + 1]
       table.insert(ret_vals, inner_eval(tbl, params))
     end
   elseif args[1][2] == nil then
     local tbls = u.keys(args[1])
     for _, tbl in ipairs(tbls) do
+      assert_tbl(self, tbl)
       local params = args[1][tbl]
       table.insert(ret_vals, inner_eval(tbl, params))
     end
@@ -397,12 +399,14 @@ function sql:delete(...)
   elseif u.is_str(args[1][1]) then
     local tbls = args[1]
     for k, tbl in ipairs(tbls) do
+      assert_tbl(self, tbl)
       local params = args[k + 1]
       table.insert(ret_vals, inner_eval(tbl, params))
     end
   elseif args[1][2] == nil then
     local tbls = u.keys(args[1])
     for _, tbl in ipairs(tbls) do
+      assert_tbl(self, tbl)
       local params = args[1][tbl]
       table.insert(ret_vals, inner_eval(tbl, params))
     end
