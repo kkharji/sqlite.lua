@@ -3,6 +3,9 @@ local eq = assert.are.same
 local sql = require'sql'
 
 describe("sql", function()
+  local path = "/tmp/db.sqlite3"
+  vim.loop.fs_unlink(path)
+
   describe(":open/:close", function() -- todo(tami5): change to open instead of connect.
     it('creates in memory database.', function()
       local db = sql.open()
@@ -10,9 +13,6 @@ describe("sql", function()
       eq("cdata", type(db.conn), "returns sql object.")
       assert(db:close(), "returns true if the connection is closed successfully.")
     end)
-
-    local path = "/tmp/db.sqlite3"
-    vim.loop.fs_unlink(path)
 
     it("creates new persistence database.", function()
       local db = sql:open(path)
@@ -72,6 +72,36 @@ describe("sql", function()
 
       eq(row, db:eval("select * from todo"), "local row should equal db:eval result.")
       vim.loop.fs_unlink(path)
+    end)
+  end)
+
+  describe(':open_with', function()
+    it('works with initalized sql objects.', function()
+      local db = sql:open(path)
+      local res = {}
+
+      db:eval("create table if not exists todo(title text, desc text)")
+      db:insert("todo", { title = "1", desc = "...." })
+      db:close()
+      eq(true, db.closed, "should be closed.")
+
+      db:with_open(function()
+        res = db:eval("select * from todo")
+      end)
+      eq(true, db.closed, "should be closed.")
+      eq("1", res.title, "should pass.")
+
+      vim.loop.fs_unlink(path)
+    end)
+
+    it('works without initalizing sql objects. (via uri)', function()
+      local res = {}
+      sql.with_open(path, function(db)
+        db:eval("create table if not exists todo(title text, desc text)")
+        db:insert("todo", { title = "1", desc = "...." })
+        res = db:eval("select * from todo")
+      end)
+      eq("1", res.title, "should pass.")
     end)
   end)
 

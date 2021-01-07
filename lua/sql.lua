@@ -57,6 +57,46 @@ function sql:open(uri)
   return o
 end
 
+--- Same as |sql:open| but closes db connection after executing {args[1]} or
+--- {args[2]} depending of how its called. if the function is called as a
+--- method to db object e.g. *db:with_open*, then {args[1]} must be a function.
+--- Else {args[1]} need to be the uri and {args[2]} the function.
+--- The function should accept and us db object.
+---@varargs If used as db method, then the {args[1]} should be a function, else {args[1]} and {args[2]}.
+---@usage `sql.open_with("$ENV_VARABLE/path", function(db) db:eval("...") end)`
+---@usage `db:with_open(function() db:insert{...} end)`
+---@return table: sql.nvim object
+---@see sql:open()
+function sql:with_open(...)
+  local args = {...}
+  if type(self) == 'string' or not self then
+    self = sql.open(self)
+  end
+
+  local func = type(args[1]) == "function" and args[1] or args[2]
+
+  if self:isclose() then
+    self:open()
+  end
+
+  func(self)
+  self:close()
+  return self
+end
+
+--- closes sqlite db connection.
+---@usage `db:close()`
+---@return boolean: true if closed, error otherwise.
+---@todo: add checks for db connection status and statement status before closing.
+function sql:close()
+  self.closed = clib.close(self.conn) == 0
+  assert(self.closed, string.format(
+    "sql.nvim: database connection didn't get closed, ERRMSG: %s",
+    self:__last_errmsg()
+  ))
+  return self.closed
+end
+
 --- Get last error msg
 ---@return string: sqlite error msg
 function sql:__last_errmsg() return clib.to_str(clib.errmsg(self.conn)) end
@@ -90,19 +130,6 @@ function sql:status()
     closed = self.closed,
     create = self.created
   }
-end
-
---- closes sqlite db connection.
----@usage `db:close()`
----@return boolean: true if closed, error otherwise.
----@todo: add checks for db connection status and statement status before closing.
-function sql:close()
-  self.closed = clib.close(self.conn) == 0
-  assert(self.closed, string.format(
-    "sql.nvim: database connection didn't get closed, ERRMSG: %s",
-    self:__last_errmsg()
-  ))
-  return self.closed
 end
 
 --- Evaluate {statement} and returns true if successful else error-out
