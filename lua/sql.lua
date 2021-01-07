@@ -226,10 +226,10 @@ local parse_where = function(t, name, join)
   local where = {}
   for _, v in pairs(t) do
     if join then
-    table.insert(where, name .. "." .. v .. " = :" .. v)
-      else
-    table.insert(where, v .. " = :" .. v)
-  end
+      table.insert(where, name .. "." .. v .. " = :" .. v)
+    else
+      table.insert(where, v .. " = :" .. v)
+    end
   end
   return "where " .. table.concat(where, ", ")
 end
@@ -295,6 +295,10 @@ local assert_tbl = function(self, tbl)
   ))
 end
 
+local fail_on_wrong_input = function(ret_vals)
+  assert(#ret_vals > 0, 'sql.nvim: can\'t parse your input. Make sure it use that function correct')
+end
+
 --- WIP: Execute a complex queries against a table. e.g. contains, is,
 ---@usage `db:query("todos", {:contains "conni"})`
 ---@usage `db:query("todos", {:is {deadline = 2021})`
@@ -348,6 +352,7 @@ function sql:insert(...)
     end
   end
 
+  fail_on_wrong_input(ret_vals)
   return u.all(ret_vals, function(_, v) return v end)
 end
 
@@ -404,6 +409,7 @@ function sql:update(...)
     end
   end
 
+  fail_on_wrong_input(ret_vals)
   return u.all(ret_vals, function(_, v) return v end)
 end
 
@@ -446,6 +452,7 @@ function sql:delete(...)
     end
   end
 
+  fail_on_wrong_input(ret_vals)
   return u.all(ret_vals, function(_, v) return v end)
 end
 
@@ -479,6 +486,7 @@ function sql:get(...)
     table.insert(ret_vals, inner_eval(tbl, params))
   end
 
+  fail_on_wrong_input(ret_vals)
   return ret_vals[2] == nil and ret_vals[1] or ret_vals
   -- TODO, It must alway return array at all time unless select *
 end
