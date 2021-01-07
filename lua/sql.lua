@@ -12,41 +12,48 @@ local booleansql = function(value) -- TODO: should be done a clib level
   return value
 end
 
--- Creates a new sql.nvim object. if {uri} then connect to {uri}, else :memory:.
----@param uri string optional
----@usage `sql:open()`
----@usage `sql:open("./path/to/sql.sqlite")`
----@usage `sql:open("$ENV_VARABLE")`
----@return table: sql.nvim object
----@todo: It should accept self when trying to reopen
----@todo: decide whether to add active_since.
+--- Internal function for creating new connection.
 ---@todo: decide whether using os.time and epoch time would be better.
-function sql:open(uri)
-  local o = {
-    uri = type(uri) == "string" and u.expand(uri) or ":memory:",
-    -- checks if conn isopen
-    created = os.date('%Y-%m-%d %H:%M:%S'),
-    closed = false,
-  }
-  -- in case we want support open_v2, to provide control over how
+-- sets {created, conn, closed}
+function sql:__connect()
+  local conn = clib.get_new_db_ptr()
+  local code = clib.open(self.uri, conn)
+  -- TODO: support open_v2, to provide control over how
   -- the database file is opened.
-  --[[
-  obj.flags = args[2], -- file open operations.
-  obj.vfs = args[3], -- VFS (Virtual File System) module to use
-  -- ]]
+  -- self.flags = args[2], -- file open operations.
+  -- self.vfs = args[3], -- VFS (Virtual File System) module to use
 
-  o.conn = (function()
-    local conn = clib.get_new_db_ptr()
-    local code = clib.open(o.uri, conn)
-    if code == flags.ok then
-      return conn[0]
-    else
-      error(string.format("sql.nvim: couldn't connect to sql database, ERR:", code))
-      o.closed = true
-    end
-  end)()
+  if code == flags.ok then
+    self.created = os.date('%Y-%m-%d %H:%M:%S')
+    self.conn = conn[0]
+    self.closed = false
+  else
+    error(string.format("sql.nvim: couldn't connect to sql database, ERR:", code))
+  end
+end
 
-  setmetatable(o, sql)
+--- Creates a new sql.nvim object.
+---@param uri string: if uri is nil, then create in memory database.
+---@usage `sql.open()`
+---@usage `sql.open("./path/to/sql.sqlite")`
+---@usage `sql:open("$ENV_VARABLE")`
+---@usage `db:open()` reopen connection if closed.
+---@return table: sql.nvim object
+---@todo: decide whether to add active_since.
+function sql:open(uri)
+  local o = {}
+  if type(self) == 'string' or not self then
+    uri, self = self, sql
+  end
+
+  if self.uri then
+    if self.closed then self:__connect() end
+    return not self.closed
+  end
+
+  o.uri = type(uri) == "string" and u.expand(uri) or ":memory:"
+  setmetatable(o, self)
+  o:__connect()
   return o
 end
 

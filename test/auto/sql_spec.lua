@@ -5,18 +5,21 @@ local sql = require'sql'
 describe("sql", function()
   describe(":open/:close", function() -- todo(tami5): change to open instead of connect.
     it('creates in memory database.', function()
-      local db = sql:open()
+      local db = sql.open()
       eq("table", type(db), "returns new main interface object.")
       eq("cdata", type(db.conn), "returns sql object.")
       assert(db:close(), "returns true if the connection is closed successfully.")
     end)
 
     local path = "/tmp/db.sqlite3"
+    vim.loop.fs_unlink(path)
+
     it("creates new persistence database.", function()
       local db = sql:open(path)
       eq("cdata", type(db.conn), "returns sqlite object.")
 
       eq(true, db:eval("create table if not exists todo(title text, desc text, created int)"))
+
       db:insert("todo", {
         { title = "1", desc = "......", created = 2021 },
         { title = "2", desc = "......", created = 2021 }
@@ -42,6 +45,33 @@ describe("sql", function()
       local db = sql:open()
       eq(os.date('%Y-%m-%d %H:%M:%S'), db.created)
       db:close()
+    end)
+
+    it(':open and .open work the same', function()
+      local db = sql.open()
+      eq("cdata", type(db.conn), "returns sql object.")
+      eq(true, db:close(), "it should closes")
+      local db2 = sql:open()
+      eq("cdata", type(db2.conn), "returns sql object.")
+      eq(true, db2:close(), "it should closes")
+    end)
+
+    it('reopen db object.', function()
+      local db = sql:open(path)
+      local row = {title = "1", desc = "...."}
+      db:eval("create table if not exists todo(title text, desc text)")
+      db:insert("todo", row)
+
+      db:close()
+      eq(true, db.closed, "should be closed." )
+
+      db:open()
+      eq(false, db.closed, "should be reopend." )
+
+      eq(path, db.uri, "uri should be identical to db.uri" )
+
+      eq(row, db:eval("select * from todo"), "local row should equal db:eval result.")
+      vim.loop.fs_unlink(path)
     end)
   end)
 
