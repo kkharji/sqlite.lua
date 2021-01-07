@@ -15,7 +15,25 @@ luajit support.
 
 Status
 ------------------
-Under heavy development. Contributions are welcomed.
+Under heavy development. API should be stable for usage. Contributions are
+welcomed. Issues, feature and suggestions are encouraged.
+
+#### Features:
+
+- Connect, reconnect, close sql db connections `sql:open/sql:close`
+- Evaluate any sqlite statement and return result if any `sql:eval`
+- helper function over `sql:eval` to do all sort of operation. 
+- 90% test coverage.
+
+#### WIP: 
+
+- docs
+- better boolean interop.
+- better join support.
+- interface for creating and defining schemas.
+- interface for droping tables.
+- support opening db with readonly, and other options.
+- improve existing interfaces.
 
 Installation
 -----------------
@@ -31,7 +49,7 @@ add to sql.nvim lookup paths for `libsqlite3.so`.
 
 Usage
 -----------------
-> To gain better understanding how sql.nvim works please review test/auto/ and docs/sql.txt.
+> For more usage example, please review test/auto/ and docs/sql.txt.
 
 
 #### Create new db connection
@@ -56,6 +74,17 @@ db:isclose() -- return true if the db connection is deactivated
 db:close()
 ```
 
+#### Open connection, execute a set of command then close
+
+```lua
+db:with_open(function(db) 
+  -- commands
+end)
+
+sql.with_open("/path/to/file", function(db) 
+  -- commands
+end)
+```
 #### Evaluate sqlite statements.
 
 ```lua
@@ -71,10 +100,42 @@ db:eval([[create table if not exists projects (
     title text, due_date integer
   )]])
 
-db:eval("/path/to/schema.sqlite3")
+db:eval("/path/to/schema.sqlite3") -- WIP
 ```
 
-#### Insert rows to tables
+
+#### find (get) rows in tables
+
+```lua
+ db:get{
+        posts = {
+          where  = {
+            id = 1
+          },
+          join = {
+           posts = "userId",
+           users = "id"
+          }
+        }
+      }
+      
+db:find{
+        posts = {
+          where  = {
+            id = 1
+          }
+        }
+      }
+      
+db:get("posts", {
+  where  = {
+    id = 1
+  }
+}
+db:get("posts") -- everything
+```
+
+#### Insert (add) rows to tables
 
 ```lua
 db:insert("todos", {
@@ -144,17 +205,6 @@ db:delete{
 }
 ```
 
-#### Open connection, execute a set of command then close
-
-```lua
-db:with_open(function(db) 
-  -- commands
-end)
-
-sql.with_open("/path/to/file", function(db) 
-  -- commands
-end)
-```
 
 Credit 
 -------------------
