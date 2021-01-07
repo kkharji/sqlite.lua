@@ -1,6 +1,8 @@
 local P = require'plenary.path'
+local curl = require'plenary.curl'
 local eq = assert.are.same
 local sql = require'sql'
+local u = require'sql.utils'
 
 describe("sql", function()
   local path = "/tmp/db.sqlite3"
@@ -757,4 +759,97 @@ describe("sql", function()
     end)
     db:close()
   end)
+
+  describe(':get', function()
+    local db = sql.open(path)
+    local posts = vim.fn.json_decode(curl.get("https://jsonplaceholder.typicode.com/posts").body)
+    local users = vim.fn.json_decode(curl.get("https://jsonplaceholder.typicode.com/users").body)
+    it('.... pre', function()
+      for _, user in ipairs(users) do -- Not sure how to deal with nested tables now
+        user["address"] = nil
+        user["company"] = nil
+      end
+      assert(db:eval("create table posts(id int not null primary key, userId int, title text, body text);"))
+      assert(db:eval("create table users(id int not null primary key, name text, email text, phone text, website text, username text);"))
+      -- eq(true, db:insert{users, posts}) -- FIXME
+      eq(true, db:insert("users", users))
+      eq(true, db:insert("posts", posts))
+      eq("table", type(db:eval("select * from posts")), "there should be posts")
+      eq("table", type(db:eval("select * from users")), "there should be users")
+    end)
+
+    it('return everything with no params', function()
+      eq(posts, db:get("posts"))
+    end)
+
+    it('return everything that matches where closure (form 1)', function()
+      local res = db:get("posts", {
+        where  = {
+          id = 1
+        }
+      })
+      local expected = (function()
+        for _, post in ipairs(posts) do
+          if post["id"] == 1 then
+            return post
+          end
+        end
+      end)()
+
+      eq(expected, res)
+    end)
+
+    it('return everything that matches where closure (form 2)', function()
+      local res = db:get{
+        posts = {
+          where  = {
+            id = 1
+          }
+        }
+      }
+      local expected = (function()
+        for _, post in ipairs(posts) do
+          if post["id"] == 1 then
+            return post
+          end
+        end
+      end)()
+
+      eq(expected, res)
+    end)
+
+    it('join tables.', function()
+      -- local res = db:get{
+      --   posts = {
+      --     where  = {
+      --       id = 1
+      --     },
+      --     join = {
+      --      posts = "userId",
+      --      users = "id"
+      --     }
+      --   }
+      -- }
+      local res = db:eval("select * from posts inner join users on users.id = posts.userId where posts.id = ?", 1)
+      local expected = (function()
+        for _, post in ipairs(posts) do
+          if post["id"] == 1 then
+            return u.tbl_extend("keep", post, (function()
+            for _, user in ipairs(users) do
+              if user["id"] == post["userId"] then
+                return user
+              end
+            end
+            end)())
+          end
+        end
+      end)()
+
+      eq(expected, res)
+    end)
+
+
+    db:close()
+  end)
+
 end)

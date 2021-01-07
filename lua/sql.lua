@@ -220,32 +220,76 @@ local parse_set = function(t)
   return "set " .. table.concat(set, ",")
 end
 
-local parse_where = function(t)
+local parse_where = function(t, name, join)
   if not t then return end
   t = u.keys(t)
   local where = {}
   for _, v in pairs(t) do
+    if join then
+    table.insert(where, name .. "." .. v .. " = :" .. v)
+      else
     table.insert(where, v .. " = :" .. v)
+  end
   end
   return "where " .. table.concat(where, ", ")
 end
 
+local parse_select = function(t, name)
+  t = u.is_tbl(t) and table.concat(t, ", ") or "* "
+  return "select " .. t .. "from " .. name
+end
+
+local parse_join = function(join, tbl)
+  if not join and not tbl then return end
+  local target
+  local on = (function()
+    for k, v in pairs(join) do
+      if k ~= tbl then
+        target = k
+        return string.format("%s.%s = ", k, v)
+      end
+    end
+  end)()
+  local select = (function()
+    for k, v in pairs(join) do
+      if k == tbl then
+        return string.format("%s.%s", k, v)
+      end
+    end
+  end)()
+  return string.format("inner join on %s %s %s", target, on, select)
+end
+-- print(vim.inspect(parse_join({ posts = "userId", users = "id"}, "posts")))
+
 --- Internal function for parsing
 ---@params act string: the sqlite action [insert, delete, update, drop, create]
 function sql:parse(act, o)
+  local tbl
   act = act == "insert" and "insert into" or act
   act = act == "delete" and "delete from" or act
+  if act == "select" then
+    act = parse_select(o.select, o.tbl)
+    tbl = o.tbl
+    o.tbl = nil
+  end
   local t = u.flatten{
     act,
     o.tbl and o.tbl or "",
+    -- parse_join(o.join, tbl),
     parse_keys(o.values),
     parse_values(o.placeholders, o.values),
     parse_set(o.set),
-    parse_where(o.where),
+    parse_where(o.where, tbl, o.join),
   }
   local ret = table.concat(t, " ")
   return ret
 end
+
+print(vim.inspect(sql:parse("select", {
+  tbl = "posts",
+  where = {id = 1},
+  join = { posts = "userId", users = "id" }
+})))
 
 ------------------------------------------------------------
 -- Sugur over eval function.
@@ -415,22 +459,43 @@ function sql:delete(...)
   return u.all(ret_vals, function(_, v) return v end)
 end
 
---- sql:find
--- If a number (primary_key) is passed then returns the row that match that
--- primary key,
--- else if a table is passed,
---   - {project = 4, todo = 1} then return only the todo row for project with id 4,
---   - {project = 4, "todo"} then return all the todo row for project with id 4
---     `opts` is for the last use case, eg. {limit = 10, order = "todo.id desc"}
--- @param `params` string or table or array.
--- @param `opts` table of basic sqlite opts
--- @usage `db:find("todos", 1)`
--- @usage `db:find({project = 1, todo = 1})`
--- @usage `db:find({project = 1, "todo" })`
--- @usage `db:find("project", {order "id"})`
--- @return lua array
--- @see sql:query
-function sql:find(params, opts) end
+--- Query from a table with where and join options
+---@usage db:get("todos") -- everything
+---@usage db:get("todos", { where = { id = 1 })
+---@usage db:get{ todos = { where = { id = 1 } }}
+-- @return lua list of matching rows
+function sql:get(...)
+  local args = {...}
+  local ret_vals = {}
+
+  local inner_eval = function(tbl, p)
+    return self:eval(self:parse("select", {
+      tbl = tbl,
+      where = p and p.where or nil,
+      join = p and p.join or nil,
+      placeholders = true,
+    }), p and p.where)
+  end
+
+  if u.is_str(args[1]) then
+    local tbl = args[1]
+    assert_tbl(self, tbl)
+    local params = args[2]
+    table.insert(ret_vals, inner_eval(tbl, params))
+    all = params and false or true
+  elseif u.is_tbl(args[1]) then
+    local tbl = u.keys(args[1])[1]
+    local params = args[1][tbl]
+    -- return inner_eval(tbl, params)
+    table.insert(ret_vals, inner_eval(tbl, params))
+  end
+
+  return ret_vals[2] == nil and ret_vals[1] or ret_vals
+  -- TODO, It must alway return array at all time unless select *
+end
+
+--- Equivalent to |sql:get|
+function sql:find(...) return sql:get(...) end
 
 --- Check if a table with {name} exists in sqlite db
 function sql:exists(name)
