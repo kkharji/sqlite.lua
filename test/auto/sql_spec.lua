@@ -771,7 +771,7 @@ describe("sql", function()
       end
       assert(db:eval("create table posts(id int not null primary key, userId int, title text, body text);"))
       assert(db:eval("create table users(id int not null primary key, name text, email text, phone text, website text, username text);"))
-      -- eq(true, db:insert{users, posts}) -- FIXME
+      eq(true, db:insert{users, posts})
       eq(true, db:insert("users", users))
       eq(true, db:insert("posts", posts))
       eq("table", type(db:eval("select * from posts")), "there should be posts")

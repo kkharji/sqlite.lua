@@ -240,13 +240,13 @@ local parse_select = function(t, name)
 end
 
 local parse_join = function(join, tbl)
-  if not join and not tbl then return end
+  if not join or not tbl then return {} end
   local target
   local on = (function()
     for k, v in pairs(join) do
       if k ~= tbl then
         target = k
-        return string.format("%s.%s = ", k, v)
+        return string.format("%s.%s =", k, v)
       end
     end
   end)()
@@ -257,9 +257,8 @@ local parse_join = function(join, tbl)
       end
     end
   end)()
-  return string.format("inner join on %s %s %s", target, on, select)
+  return string.format("inner join %s on %s %s", target, on, select)
 end
--- print(vim.inspect(parse_join({ posts = "userId", users = "id"}, "posts")))
 
 --- Internal function for parsing
 ---@params act string: the sqlite action [insert, delete, update, drop, create]
@@ -275,7 +274,7 @@ function sql:parse(act, o)
   local t = u.flatten{
     act,
     o.tbl and o.tbl or "",
-    -- parse_join(o.join, tbl),
+    parse_join(o.join, tbl),
     parse_keys(o.values),
     parse_values(o.placeholders, o.values),
     parse_set(o.set),
@@ -284,12 +283,6 @@ function sql:parse(act, o)
   local ret = table.concat(t, " ")
   return ret
 end
-
-print(vim.inspect(sql:parse("select", {
-  tbl = "posts",
-  where = {id = 1},
-  join = { posts = "userId", users = "id" }
-})))
 
 ------------------------------------------------------------
 -- Sugur over eval function.
@@ -301,9 +294,6 @@ local assert_tbl = function(self, tbl)
     tbl
   ))
 end
-
-
-
 
 --- WIP: Execute a complex queries against a table. e.g. contains, is,
 ---@usage `db:query("todos", {:contains "conni"})`
@@ -471,6 +461,7 @@ function sql:get(...)
   local inner_eval = function(tbl, p)
     return self:eval(self:parse("select", {
       tbl = tbl,
+      select = p and p.select or nil,
       where = p and p.where or nil,
       join = p and p.join or nil,
       placeholders = true,
@@ -482,11 +473,9 @@ function sql:get(...)
     assert_tbl(self, tbl)
     local params = args[2]
     table.insert(ret_vals, inner_eval(tbl, params))
-    all = params and false or true
   elseif u.is_tbl(args[1]) then
     local tbl = u.keys(args[1])[1]
     local params = args[1][tbl]
-    -- return inner_eval(tbl, params)
     table.insert(ret_vals, inner_eval(tbl, params))
   end
 

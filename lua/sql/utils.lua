@@ -69,7 +69,7 @@ end
 
 do
   local run_behavior = setmetatable({
-    ['error'] = function()
+    ['error'] = function(_, k, _)
       error('Key already exists: ', k)
     end,
     ['keep'] = function() end,
@@ -102,7 +102,7 @@ do
 end
 
 -- Flatten taken from: https://github.com/premake/premake-core/blob/master/src/base/table.lua
-M.flatten = function(arr)
+M.flatten = function(tbl)
   local result = {}
 
   local function flatten(arr)
@@ -117,7 +117,7 @@ M.flatten = function(arr)
     end
   end
 
-  flatten(arr)
+  flatten(tbl)
   return result
 end
 
