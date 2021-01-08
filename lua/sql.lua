@@ -132,17 +132,18 @@ function sql:status()
   }
 end
 
---- Evaluate {statement} and returns true if successful else error-out
----@param statement string or table: statements to be executed.
----@param params table: params to be bind to {statement}
----@param callback function: function to be callback with output.
+--- Evaluate {statement} and returns true if successful else error-out.
+--- Optionally it accept {params} which can be a dict of values corresponding
+--- to the sql statement or a list of unamed values.
+---@param statement string or table: string representing the {statement} or a list of {statements}
+---@param params table: params to be bind to {statement}, it can be a list or dict
 ---@usage db:eval("drop table if exists todos")
 ---@usage db:eval("select * from todos where id = ?", 1)
----@usage db:eval("create table todos")
----@return boolean
+---@usage db:eval("insert into todos(title, deadline) values(:title, :deadline)", {title = "1", deadline = 2021})
+---@return boolean: if the evaluation is successful then return true.
 ---@todo: support bolb binding.
 ---@todo: support varags for unamed params
-function sql:eval(statement, params, callback)
+function sql:eval(statement, params)
   if type(statement) == "table" then
     return u.all(statement, function(_, v)
       return self:eval(v)
@@ -188,11 +189,7 @@ function sql:eval(statement, params, callback)
     self:__last_errmsg()
   ))
 
-  if callback then
-    return callback(ret)
-  else
-    return ret
-  end
+  return ret
 end
 
 local parse_keys = function(values)
