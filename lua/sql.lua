@@ -32,7 +32,20 @@ function sql:__connect()
   end
 end
 
---- Creates a new sql.nvim object.
+--- Creates a new sql.nvim object, without creating a connection to uri
+--- |sql.new| is identical to |sql.open| but it without opening sqlite db connection.
+---@param uri string: if uri is nil, then create in memory database.
+---@usage `sql.new()`
+---@usage `sql.new("./path/to/sql.sqlite")`
+---@usage `sql:new("$ENV_VARABLE")`
+---@return table: sql.nvim object
+---@see |sql.open|
+function sql.new(uri)
+  return sql:open(uri, true)
+end
+
+--- Connect, or create new sqlite db, either in memory or via a {uri}.
+--- |sql.open| is identical to |sql.new| but it additionally opens the db
 ---@param uri string: if uri is nil, then create in memory database.
 ---@usage `sql.open()`
 ---@usage `sql.open("./path/to/sql.sqlite")`
@@ -40,19 +53,24 @@ end
 ---@usage `db:open()` reopen connection if closed.
 ---@return table: sql.nvim object
 ---@todo: decide whether to add active_since.
-function sql:open(uri)
+function sql:open(uri, noconn)
   local o = {}
   if type(self) == 'string' or not self then
     uri, self = self, sql
   end
 
   if self.uri then
-    if self.closed then self:__connect() end
+    if self.closed or self.closed == nil then self:__connect() end
     return not self.closed
   end
 
   o.uri = type(uri) == "string" and u.expand(uri) or ":memory:"
   setmetatable(o, self)
+
+  if noconn then
+    o.closed = true
+    return o
+  end
   o:__connect()
   return o
 end

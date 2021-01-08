@@ -8,6 +8,25 @@ describe("sql", function()
   local path = "/tmp/db.sqlite3"
   vim.loop.fs_unlink(path)
 
+  describe('.new', function()
+    it('should create sql.nvim without opening connection', function()
+      local tmp = "/tmp/db4.db"
+      local db = sql.new(tmp)
+      eq("table", type(db), "should return sql.nvim object")
+      eq(nil, db.conn, "connection shuld be nil")
+      eq(true, db:open(), "should close")
+      eq(true, db:isopen(), "should be opened")
+      eq(0, db:status().code, "should be be zero")
+      eq(true, db:eval("create table if not exists a(title)"), "should be create a table")
+      eq(true, db:eval("insert into a(title) values('new')"), "should be insert stuff")
+      eq("table", type(db:eval("select * from a")), "should be have content")
+      eq(true, db:close(), "should close")
+      eq(true, db:isclose("select * from a"), "should close")
+      eq(true, P.exists(P.new(tmp)), "It should created the file")
+      vim.loop.fs_unlink(tmp)
+    end)
+  end)
+
   describe(":open/:close", function() -- todo(tami5): change to open instead of connect.
     it('creates in memory database.', function()
       local db = sql.open()

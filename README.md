@@ -59,6 +59,9 @@ local sql = require'sql'
 local db = sql.open() -- new in-memory 
 local db = sql.open('/to/new/file') -- new sqlite database
 local db = sql.open('/to/prexiting-db.sqlite3') -- pre-exiting sqlite database.
+local db = sql.new(...) 
+-- new creates new sql.nvim object but without opening/connect to the sqlite db, 
+-- i.e. requires `db:open()`
 ```
 
 #### Check db connection status
