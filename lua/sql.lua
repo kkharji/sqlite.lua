@@ -61,7 +61,11 @@ function sql:open(uri, noconn)
 
   if self.uri then
     if self.closed or self.closed == nil then self:__connect() end
-    return not self.closed
+    if not self.closed then
+      return self
+    else
+      return false
+    end
   end
 
   o.uri = type(uri) == "string" and u.expand(uri) or ":memory:"
