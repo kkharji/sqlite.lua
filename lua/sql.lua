@@ -255,7 +255,7 @@ end
 
 local parse_select = function(t, name)
   t = u.is_tbl(t) and table.concat(t, ", ") or "* "
-  return "select " .. t .. "from " .. name
+  return "select " .. t .. " from " .. name
 end
 
 local parse_join = function(join, tbl)

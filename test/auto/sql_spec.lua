@@ -865,6 +865,32 @@ describe("sql", function()
       eq(expected, res)
     end)
 
+    it('return selected keys only', function()
+      local res = db:get{
+        posts = {
+          where  = {
+            id = 1
+          },
+          select = {
+            "userId",
+            "posts.body"
+          }
+        }
+      }
+      local expected = (function()
+        for _, post in ipairs(posts) do
+          if post["id"] == 1 then
+            return {
+              userId = post["userId"],
+              body = post["body"],
+            }
+          end
+        end
+      end)()
+
+      eq(expected, res)
+    end)
+
     db:close()
   end)
 
