@@ -1,8 +1,17 @@
 local u = require'sql.utils'
 local M = {}
 
+---@brief [[
+--- Internal functions for parsing sql statement from lua table.
+--- methods = { select, update, delete, insert, create, alter, drop }
+--- accepts tbl name and options.
+--- options = {join, keys, values, set, where, select}
+--- hopfully returning valid sql statement :D
+---@brief ]]
+---@tag parser.lua
+
 -- handle sqlite datatype interop
-local sqlvalue = function(v)
+M.sqlvalue = function(v)
   if type(v) == "boolean" then
     return v == true and 1 or 0
   else
@@ -10,7 +19,7 @@ local sqlvalue = function(v)
   end
 end
 
-local specifier = function(v)
+M.specifier = function(v)
   local type = type(v)
   if type == "number" then
     local _, b  = math.modf(v)
@@ -25,15 +34,15 @@ local bind = function(o)
   o = o or {}
   o.s = o.s or ", "
   if not o.kv then
-    o.v = o.v ~= nil and sqlvalue(o.v) or "?"
-    return string.format("%s = " .. specifier(o.v), o.k, o.v)
+    o.v = o.v ~= nil and M.sqlvalue(o.v) or "?"
+    return string.format("%s = " .. M.specifier(o.v), o.k, o.v)
   else
     local res = {}
     for k, v in pairs(o.kv) do
       k = o.k ~= nil and o.k or k
-      v = sqlvalue(v)
+      v = M.sqlvalue(v)
       table.insert(res, string.format(
-        "%s = " .. specifier(v), k, v
+        "%s = " .. M.specifier(v), k, v
       ))
     end
     return table.concat(res, o.s)
@@ -63,7 +72,7 @@ M.values = function(defs, kv)
   if not defs then return end
   kv = kv == nil and true or kv -- TODO: check if defs is key value pairs instead
   if kv then
-    keys = {}
+    local keys = {}
     defs = u.is_nested(defs) and defs[1] or defs
     for k, _ in pairs(defs) do
       table.insert(keys, ":" .. k)
@@ -140,29 +149,33 @@ M.join = function(defs, name)
   return string.format("inner join %s on %s %s", target, on, select)
 end
 
---- Internal function for parsing
----@params tbl string: the sqlite table name
----@params method string: the sqlite action [insert, delete, update, drop, create]
----@params o table: {join, keys, values, set, where, select}
----@return string: sql statement
-M.parse = function(tbl, method, o)
-  o = o or {}
-  method = method == "insert" and "insert into" or method
-  method = method == "delete" and "delete from" or method
-  if method == "select" then
-    name, tbl = tbl, nil
-    method = M.select(o.select, name)
+return (function()
+  local partial = function(method)
+    return function(tbl, o)
+      o = o or {}
+      local switch = {
+        ["insert"] = string.format("insert into %s", tbl),
+        ["delete"] = string.format("delete from %s", tbl),
+        ["update"] = string.format("update %s", tbl),
+        ["select"] = M.select(o.select, tbl)
+      }
+      return table.concat(u.flatten{
+        switch[method],
+        M.join(o.join, tbl),
+        M.keys(o.values, o.named),
+        M.values(o.values, o.named),
+        M.set(o.set),
+        M.where(o.where, tbl, o.join),
+      }, " ")
+    end
   end
-
-  return table.concat(u.flatten{
-    method,
-    tbl and tbl,
-    M.join(o.join, name),
-    M.keys(o.values, o.named),
-    M.values(o.values, o.named),
-    M.set(o.set),
-    M.where(o.where, name, o.join),
-  }, " ")
-end
-
-return M.parse
+  return {
+    select = partial("select"), -- extracts data from a database
+    update = partial("update"), -- updates data in a database
+    delete = partial("delete"), -- deletes data from a database
+    insert = partial("insert"), -- inserts new data into a database
+    create = partial("create"), -- creates a new table
+    alter  = partial("alter"),  -- modifies a table
+    drop   = partial("drop"),   -- deletes a table
+  }
+end)()

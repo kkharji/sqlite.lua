@@ -1,7 +1,7 @@
 local clib = require'sql.defs'
 local stmt = require'sql.stmt'
 local u = require'sql.utils'
-local parse = require'sql.parser'
+local P = require'sql.parser'
 local flags = clib.flags
 local sql = {}
 sql.__index = sql
@@ -243,12 +243,11 @@ end
 ---@todo support unnamed or anonymous args
 ---@todo handle inconflict case
 function sql:insert(...)
-  local method = "insert"
   local args = {...}
   local ret_vals = {}
 
   local inner_eval = function(tbl, p)
-    local sqlstmt = parse(tbl, method, {
+    local sqlstmt = P.insert(tbl, {
       values = p,
       named = true,
     })
@@ -290,12 +289,11 @@ function sql:add(...) return sql:insert(...) end
 ---@usage db:update{ "todos" = { where = { deadline = "2021" }, values = { status = "overdue" }}}
 ---@todo support unnamed or anonymous args
 function sql:update(...)
-  local method = "update"
   local args = {...}
   local ret_vals = {}
 
   local inner_eval = function(tbl, p)
-    local sqlstmt = parse(tbl, method, {
+    local sqlstmt = P.update(tbl, {
       set = p.values,
       where = p.where,
       named = true,
@@ -346,12 +344,11 @@ end
 ---@usage db:delete("todos", { where = { id = 1 })
 ---@usage db:delete{ todos = { where = { id = 1 } }}
 function sql:delete(...)
-  local method = "delete"
   local args = {...}
   local ret_vals = {}
 
   local inner_eval = function(tbl, p)
-    local sqlstmt = parse(tbl, method, {
+    local sqlstmt = P.delete(tbl, {
       where = p and p.where or nil,
       named = true,
     })
@@ -389,12 +386,11 @@ end
 ---@usage db:get{ todos = { where = { id = 1 } }}
 -- @return lua list of matching rows
 function sql:select(...)
-  local method = "select"
   local args = {...}
   local ret_vals = {}
 
   local inner_eval = function(tbl, p)
-    local sqlstmt = parse(tbl, method, {
+    local sqlstmt = P.select(tbl, {
       select = p and p.select or nil,
       where = p and p.where or nil,
       join = p and p.join or nil,
