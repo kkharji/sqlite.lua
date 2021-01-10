@@ -90,9 +90,8 @@ describe("sql", function()
       eq(false, db.closed, "should be reopend." )
 
       eq(path, db.uri, "uri should be identical to db.uri" )
-
-      eq(row, db:eval("select * from todo"), "local row should equal db:eval result.")
-      vim.loop.fs_unlink(path)
+      local res = db:eval("select * from todo")
+      eq(row, res[1], vim.loop.fs_unlink(path), "local row should equal db:eval result.")
     end)
   end)
 
@@ -110,7 +109,7 @@ describe("sql", function()
         res = db:eval("select * from todo")
       end)
       eq(true, db.closed, "should be closed.")
-      eq("1", res.title, "should pass.")
+      eq("1", res[1].title, "should pass.")
 
       vim.loop.fs_unlink(path)
     end)
@@ -122,7 +121,7 @@ describe("sql", function()
         db:insert("todo", { title = "1", desc = "...." })
         res = db:eval("select * from todo")
       end)
-      eq("1", res.title, "should pass.")
+      eq("1", res[1].title, "should pass.")
     end)
   end)
 
@@ -195,7 +194,8 @@ describe("sql", function()
     end)
 
     it('selects everything from table and return lua table if only one row.', function()
-      eq(row[1], db:eval("select * from todos"))
+      local res = db:eval("select * from todos")
+      eq(row[1], res[1])
     end)
 
     it('deletes from sql tables', function()
@@ -204,13 +204,19 @@ describe("sql", function()
 
     it('inserts nested lua table.', function()
       eq(true, db:eval("insert into todos(id,title,desc,created) values(:id, :title, :desc, :created)", row))
-      eq(row, db:eval("select * from todos"), row)
+      eq(row, db:eval("select * from todos"), "should equal")
     end)
 
     it('return a lua table by id', function()
-      eq(row[1], db:eval("select * from todos where id = :id", { id = 1 }), "with named params")
-      eq(row[1], db:eval("select * from todos where id = ?", { 1 }), "with unamed params")
-      eq(row[1], db:eval("select * from todos where id = ?",  1), "with single value")
+      local res
+      res = db:eval("select * from todos where id = :id", { id = 1 })
+      eq(row[1], res[1], "with named params")
+
+      res = db:eval("select * from todos where id = ?", { 1 })
+      eq(row[1], res[1], "with unamed params")
+
+      res = db:eval("select * from todos where id = ?",  1)
+      eq(row[1], res[1], "with single value")
     end)
 
     it('update by id', function()
@@ -242,8 +248,8 @@ describe("sql", function()
       })
       local results = db:eval("select * from todos")
       eq(true, type(results) == "table", "It should be inserted.")
-      eq("TODO 1", results.title)
-      eq("................", results.desc)
+      eq("TODO 1", results[1].title)
+      eq("................", results[1].desc)
       db:eval("delete from todos")
     end)
 
@@ -256,8 +262,8 @@ describe("sql", function()
       }
       local results = db:eval("select * from todos")
       eq(true, type(results) == "table", "It should be inserted.")
-      eq("TODO 1", results.title)
-      eq(" .......... ", results.desc)
+      eq("TODO 1", results[1].title)
+      eq(" .......... ", results[1].desc)
       db:eval("delete from todos")
     end)
 
@@ -400,8 +406,8 @@ describe("sql", function()
       })
       local results = db:eval("select * from todos")
       eq(true, type(results) == "table", "It should be inserted.")
-      eq("TODO 1", results.title)
-      eq("done", results.desc)
+      eq("TODO 1", results[1].title)
+      eq("done", results[1].desc)
       db:eval("delete from todos")
     end)
 
@@ -420,12 +426,13 @@ describe("sql", function()
       })
       local results = db:eval("select * from todos")
       eq(true, type(results) == "table", "It should be inserted.")
-      eq("TODO 1", results.title)
-      eq("not done", results.desc)
+      eq("TODO 1", results[1].title)
+      eq("not done", results[1].desc)
       db:eval("delete from todos")
     end)
 
     it('update multiple rows in a sql table', function()
+      db:eval("delete from todos")
       db:insert{
         todos = {
           {
@@ -669,8 +676,8 @@ describe("sql", function()
       db:delete('todos', { where = { title = "TODO 1" }})
       local results = db:eval("select * from todos")
       eq(true, type(results) == "table")
-      eq("TODO 2", results.title)
-      eq("................", results.desc)
+      eq("TODO 2", results[1].title)
+      eq("................", results[1].desc)
     end)
 
     it('delete multiple keys', function()
@@ -814,7 +821,7 @@ describe("sql", function()
         end
       end)()
 
-      eq(expected, res)
+      eq(expected, res[1])
     end)
 
     it('return everything that matches where closure (form 2)', function()
@@ -833,7 +840,7 @@ describe("sql", function()
         end
       end)()
 
-      eq(expected, res)
+      eq(expected, res[1])
     end)
 
     it('join tables.', function()
@@ -862,7 +869,7 @@ describe("sql", function()
         end
       end)()
 
-      eq(expected, res)
+      eq(expected, res[1])
     end)
 
     it('return selected keys only', function()
@@ -888,7 +895,7 @@ describe("sql", function()
         end
       end)()
 
-      eq(expected, res)
+      eq(expected, res[1])
     end)
 
     db:close()

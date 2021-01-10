@@ -204,7 +204,10 @@ function sql:eval(statement, params)
   s:finalize()
 
   local ret = rawequal(next(res), nil) and self:__last_errcode() == flags.ok or res
-  if type(ret) == "table" and ret[2] == nil then ret = ret[1] end -- FIXME: may not be desirable
+
+  if type(ret) == "table" and ret[2] == nil and u.is_nested(ret[1]) then
+    ret = ret[1]
+  end
 
   assert(self:__last_errcode() == flags.ok , string.format(
     "sql.nvim: database connection didn't get closed, ERRMSG: %s",
@@ -506,8 +509,11 @@ function sql:get(...)
   end
 
   fail_on_wrong_input(ret_vals)
-  return ret_vals[2] == nil and ret_vals[1] or ret_vals
-  -- TODO, It must alway return array at all time unless select *
+  if ret_vals[2] == nil and u.is_nested(ret_vals[1]) then
+    return ret_vals[1]
+  else
+    return ret_vals
+  end
 end
 
 --- Equivalent to |sql:get|
