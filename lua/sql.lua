@@ -300,7 +300,7 @@ function sql:update(...)
       where = p.where,
       named = true,
     })
-    return self:eval(sqlstmt, u.tbl_extend('force', p.values, p.where))
+    return self:eval(sqlstmt, u.tbl_extend('force', p.values))
   end
 
   local unwrap_params = function(tbl, params)
@@ -355,7 +355,7 @@ function sql:delete(...)
       where = p and p.where or nil,
       named = true,
     })
-    return self:eval(sqlstmt, p and p.where or nil)
+    return self:eval(sqlstmt)
   end
 
   if u.is_str(args[1]) then
@@ -400,7 +400,7 @@ function sql:select(...)
       join = p and p.join or nil,
       named = true,
     })
-    return self:eval(sqlstmt, p and p.where)
+    return self:eval(sqlstmt)
   end
 
   if u.is_str(args[1]) then

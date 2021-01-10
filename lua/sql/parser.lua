@@ -11,6 +11,14 @@ local keynames = function(params, kv)
   return res
 end
 
+local booleansql = function(value)
+  if type(value) == "boolean" then
+    value = (value == true) and 1 or 0
+  end
+  return value
+end
+
+
 --- format values part of sql statement
 ---@params defs table: key/value paris defining sqlite table keys.
 ---@params defs kv: whether to bind by named keys.
@@ -57,16 +65,23 @@ end
 M.where = function(defs, name, join)
   if not defs then return end
   local where = {}
-
-  for k, _ in pairs(defs) do
-    if join then
-      table.insert(where, string.format("%s.%s = :%s", name, k,  k))
+  for k, v in pairs(defs) do
+    local key = join and name .. "." .. k or k
+    if type(v) ~= "table" then
+      v = type(v) == "boolean" and booleansql(v) or v
+      local sy = type(v) == "number" and "%d" or "'%s'"
+      table.insert(where, string.format("%s = " .. sy, key, v))
     else
-      table.insert(where, string.format("%s = :%s", k, k))
+      local l = {}
+      for _, value in ipairs(v) do
+        local sy = type(value) == "number" and "%d" or "'%s'"
+        table.insert(l, string.format("%s = " .. sy, key, value))
+      end
+      table.insert(where, "(" .. table.concat(l, " or ") .. ")")
     end
   end
-
-  return string.format("where %s", table.concat(where, ", "))
+  local res = where[1] and table.concat(where, " and ")
+  return string.format("where %s", res)
 end
 
 --- select method specfic format
