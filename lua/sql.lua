@@ -1,6 +1,7 @@
 local clib = require'sql.defs'
 local stmt = require'sql.stmt'
 local u = require'sql.utils'
+local parse = require'sql.parser'
 local flags = clib.flags
 local sql = {}
 sql.__index = sql
@@ -217,95 +218,6 @@ function sql:eval(statement, params)
   return ret
 end
 
-local parse_keys = function(values)
-  if not values then return end
-  local t = u.is_nested(values) and values[1] or values
-  local keys = u.keynames(t)
-  return string.format("(%s)", type(keys) == "string" and keys or table.concat(keys, ","))
-end
-
-local parse_values = function(plh, values)
-  if not plh or not values then return end
-  local t = u.is_nested(values) and values[1] or values
-  local keys = u.keynames(t, true)
-  local keynames = type(keys) == "string" and keys or table.concat(keys, ",")
-  return string.format("values(%s)", keynames)
-end
-
-local parse_set = function(t)
-  if not t then return end
-  t = u.keys(t)
-  local set = {}
-  for _, v in pairs(t) do
-    table.insert(set, v .. " = :" .. v)
-  end
-  return "set " .. table.concat(set, ",")
-end
-
-local parse_where = function(t, name, join)
-  if not t then return end
-  t = u.keys(t)
-  local where = {}
-  for _, v in pairs(t) do
-    if join then
-      table.insert(where, name .. "." .. v .. " = :" .. v)
-    else
-      table.insert(where, v .. " = :" .. v)
-    end
-  end
-  return "where " .. table.concat(where, ", ")
-end
-
-local parse_select = function(t, name)
-  t = u.is_tbl(t) and table.concat(t, ", ") or "* "
-  return "select " .. t .. " from " .. name
-end
-
-local parse_join = function(join, tbl)
-  if not join or not tbl then return {} end
-  local target
-  local on = (function()
-    for k, v in pairs(join) do
-      if k ~= tbl then
-        target = k
-        return string.format("%s.%s =", k, v)
-      end
-    end
-  end)()
-  local select = (function()
-    for k, v in pairs(join) do
-      if k == tbl then
-        return string.format("%s.%s", k, v)
-      end
-    end
-  end)()
-  return string.format("inner join %s on %s %s", target, on, select)
-end
-
---- Internal function for parsing
----@params act string: the sqlite action [insert, delete, update, drop, create]
-function sql:parse(act, o)
-  local tbl
-  act = act == "insert" and "insert into" or act
-  act = act == "delete" and "delete from" or act
-  if act == "select" then
-    act = parse_select(o.select, o.tbl)
-    tbl = o.tbl
-    o.tbl = nil
-  end
-  local t = u.flatten{
-    act,
-    o.tbl and o.tbl or "",
-    parse_join(o.join, tbl),
-    parse_keys(o.values),
-    parse_values(o.placeholders, o.values),
-    parse_set(o.set),
-    parse_where(o.where, tbl, o.join),
-  }
-  local ret = table.concat(t, " ")
-  return ret
-end
-
 ------------------------------------------------------------
 -- Sugur over eval function.
 ------------------------------------------------------------
@@ -321,17 +233,6 @@ local fail_on_wrong_input = function(ret_vals)
   assert(#ret_vals > 0, 'sql.nvim: can\'t parse your input. Make sure it use that function correct')
 end
 
---- WIP: Execute a complex queries against a table. e.g. contains, is,
----@usage `db:query("todos", {:contains "conni"})`
----@usage `db:query("todos", {:is {deadline = 2021})`
----@usage `db:query("todos", {:not {title = "X"})` < function(t) return t ~= end
----@usage `db:query("any", {:deadline function(d) return d < 2021 end})`
----@todo write function specification.
----@return table
-function sql:query(...)
-  -- {tbl = "todos", deadline = "today"}
-end
-
 --- Insert to lua table into sqlite database table.
 --- +supports inserting multiple rows.
 ---@varargs if {[1]} == table/content else table_name as {args[1]} and table to insert as {args[2]}.
@@ -342,15 +243,16 @@ end
 ---@todo support unnamed or anonymous args
 ---@todo handle inconflict case
 function sql:insert(...)
+  local method = "insert"
   local args = {...}
   local ret_vals = {}
 
   local inner_eval = function(tbl, p)
-    return self:eval(self:parse("insert", {
-      tbl = tbl,
+    local sqlstmt = parse(tbl, method, {
       values = p,
       placeholders = true,
-    }), p)
+    })
+    return self:eval(sqlstmt, p)
   end
 
   if u.is_str(args[1]) then
@@ -388,16 +290,17 @@ function sql:add(...) return sql:insert(...) end
 ---@usage db:update{ "todos" = { where = { deadline = "2021" }, values = { status = "overdue" }}}
 ---@todo support unnamed or anonymous args
 function sql:update(...)
+  local method = "update"
   local args = {...}
   local ret_vals = {}
 
   local inner_eval = function(tbl, p)
-    return self:eval(self:parse("update", {
-      tbl = tbl,
+    local sqlstmt = parse(tbl, method, {
       set = p.values,
       where = p.where,
       placeholders = true,
-    }), u.tbl_extend('force', p.values, p.where))
+    })
+    return self:eval(sqlstmt, u.tbl_extend('force', p.values, p.where))
   end
 
   local unwrap_params = function(tbl, params)
@@ -442,15 +345,16 @@ end
 ---@usage db:delete("todos", { where = { id = 1 })
 ---@usage db:delete{ todos = { where = { id = 1 } }}
 function sql:delete(...)
+  local method = "delete"
   local args = {...}
   local ret_vals = {}
 
   local inner_eval = function(tbl, p)
-    return self:eval(self:parse("delete", {
-      tbl = tbl,
+    local sqlstmt = parse(tbl, method, {
       where = p and p.where or nil,
       placeholders = true,
-    }), p and p.where or nil)
+    })
+    return self:eval(sqlstmt, p and p.where or nil)
   end
 
   if u.is_str(args[1]) then
@@ -483,18 +387,19 @@ end
 ---@usage db:get("todos", { where = { id = 1 })
 ---@usage db:get{ todos = { where = { id = 1 } }}
 -- @return lua list of matching rows
-function sql:get(...)
+function sql:select(...)
+  local method = "select"
   local args = {...}
   local ret_vals = {}
 
   local inner_eval = function(tbl, p)
-    return self:eval(self:parse("select", {
-      tbl = tbl,
+    local sqlstmt = parse(tbl, method, {
       select = p and p.select or nil,
       where = p and p.where or nil,
       join = p and p.join or nil,
       placeholders = true,
-    }), p and p.where)
+    })
+    return self:eval(sqlstmt, p and p.where)
   end
 
   if u.is_str(args[1]) then
@@ -517,7 +422,10 @@ function sql:get(...)
 end
 
 --- Equivalent to |sql:get|
-function sql:find(...) return sql:get(...) end
+function sql:find(...) return self:select(...) end
+
+--- Equivalent to |sql:get|
+function sql:get(...) return self:select(...) end
 
 --- Check if a table with {name} exists in sqlite db
 function sql:exists(name)
