@@ -121,14 +121,4 @@ M.flatten = function(tbl)
   return result
 end
 
-M.keynames = function(params, placeholders)
-  local keys = M.keys(params)
-  local s = placeholders and ":" or ""
-  local res = {}
-  M.map(keys, function(k)
-    res[#res+1] = s .. k
-  end)
-  return res
-end
-
 return M
