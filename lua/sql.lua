@@ -245,7 +245,9 @@ end
 function sql:insert(...)
   local args = {...}
   local ret_vals = {}
-
+  local istbl = function(tbl)
+    return assert_tbl(self, tbl, "insert")
+  end
   local inner_eval = function(tbl, p)
     local sqlstmt = P.insert(tbl, {
       values = p,
@@ -257,19 +259,19 @@ function sql:insert(...)
   if u.is_str(args[1]) then
     local tbl = args[1]
     local params = args[2]
-    assert_tbl(self, tbl, "insert")
+    istbl(tbl)
     table.insert(ret_vals, inner_eval(tbl, params))
   elseif u.is_str(args[1][1]) then
     local tbls = args[1]
     for k, tbl in ipairs(tbls) do
-      assert_tbl(self, tbl, "insert")
+      istbl(tbl)
       local params = args[k + 1]
       table.insert(ret_vals, inner_eval(tbl, params))
     end
   elseif args[1][2] == nil then
     local tbls = u.keys(args[1])
     for _, tbl in ipairs(tbls) do
-      assert_tbl(self, tbl, "insert")
+      istbl(tbl)
       local params = args[1][tbl]
       table.insert(ret_vals, inner_eval(tbl, params))
     end
@@ -291,6 +293,9 @@ function sql:add(...) return sql:insert(...) end
 function sql:update(...)
   local args = {...}
   local ret_vals = {}
+  istbl = function(tbl)
+    return assert_tbl(self, tbl, "update")
+  end
 
   local inner_eval = function(tbl, p)
     local sqlstmt = P.update(tbl, {
@@ -315,19 +320,19 @@ function sql:update(...)
   if u.is_str(args[1]) then
     local tbl = args[1]
     local params = args[2]
-    assert_tbl(self, tbl, "update")
+    istbl(tbl)
     unwrap_params(tbl, params)
   elseif u.is_str(args[1][1]) then
     local tbls = args[1]
     for k, tbl in ipairs(tbls) do
-      assert_tbl(self, tbl, "update")
+      istbl(tbl)
       local params = args[k + 1]
       unwrap_params(tbl, params)
     end
   elseif args[1][2] == nil then
     local tbls = u.keys(args[1])
     for _, tbl in ipairs(tbls) do
-      assert_tbl(self, tbl, "update")
+      istbl(tbl)
       local params = args[1][tbl]
       unwrap_params(tbl, params)
     end
@@ -346,7 +351,9 @@ end
 function sql:delete(...)
   local args = {...}
   local ret_vals = {}
-
+  istbl = function(tbl)
+    return assert_tbl(self, tbl, "delete")
+  end
   local inner_eval = function(tbl, p)
     local sqlstmt = P.delete(tbl, {
       where = p and p.where or nil,
@@ -357,20 +364,20 @@ function sql:delete(...)
 
   if u.is_str(args[1]) then
     local tbl = args[1]
-    assert_tbl(self, tbl, "delete")
+    istbl(tbl)
     local params = args[2]
     table.insert(ret_vals, inner_eval(tbl, params))
   elseif u.is_str(args[1][1]) then
     local tbls = args[1]
     for k, tbl in ipairs(tbls) do
-      assert_tbl(self, tbl, "delete")
+      istbl(tbl)
       local params = args[k + 1]
       table.insert(ret_vals, inner_eval(tbl, params))
     end
   elseif args[1][2] == nil then
     local tbls = u.keys(args[1])
     for _, tbl in ipairs(tbls) do
-      assert_tbl(self, tbl, "delete")
+      istbl(tbl)
       local params = args[1][tbl]
       table.insert(ret_vals, inner_eval(tbl, params))
     end
@@ -388,6 +395,9 @@ end
 function sql:select(...)
   local args = {...}
   local ret_vals = {}
+  istbl = function(tbl)
+    return assert_tbl(self, tbl, "select")
+  end
 
   local inner_eval = function(tbl, p)
     local sqlstmt = P.select(tbl, {
@@ -401,11 +411,12 @@ function sql:select(...)
 
   if u.is_str(args[1]) then
     local tbl = args[1]
-    assert_tbl(self, tbl, "select/get/find")
+    istbl(tbl)
     local params = args[2]
     table.insert(ret_vals, inner_eval(tbl, params))
   elseif u.is_tbl(args[1]) then
     local tbl = u.keys(args[1])[1]
+    istbl(tbl)
     local params = args[1][tbl]
     table.insert(ret_vals, inner_eval(tbl, params))
   end
