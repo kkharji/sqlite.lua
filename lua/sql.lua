@@ -222,10 +222,10 @@ end
 -- Sugur over eval function.
 ------------------------------------------------------------
 
-local assert_tbl = function(self, tbl)
+local assert_tbl = function(self, tbl, method)
   assert(self:exists(tbl),
-    string.format("sql.nvim: can't insert to non-existence table: '%s'.",
-    tbl
+    string.format("sql.nvim: %s table doesn't exists. %s failed.",
+    tbl, method
   ))
 end
 
@@ -250,7 +250,7 @@ function sql:insert(...)
   local inner_eval = function(tbl, p)
     local sqlstmt = parse(tbl, method, {
       values = p,
-      placeholders = true,
+      named = true,
     })
     return self:eval(sqlstmt, p)
   end
@@ -258,19 +258,19 @@ function sql:insert(...)
   if u.is_str(args[1]) then
     local tbl = args[1]
     local params = args[2]
-    assert_tbl(self, tbl)
+    assert_tbl(self, tbl, "insert")
     table.insert(ret_vals, inner_eval(tbl, params))
   elseif u.is_str(args[1][1]) then
     local tbls = args[1]
     for k, tbl in ipairs(tbls) do
-      assert_tbl(self, tbl)
+      assert_tbl(self, tbl, "insert")
       local params = args[k + 1]
       table.insert(ret_vals, inner_eval(tbl, params))
     end
   elseif args[1][2] == nil then
     local tbls = u.keys(args[1])
     for _, tbl in ipairs(tbls) do
-      assert_tbl(self, tbl)
+      assert_tbl(self, tbl, "insert")
       local params = args[1][tbl]
       table.insert(ret_vals, inner_eval(tbl, params))
     end
@@ -298,12 +298,13 @@ function sql:update(...)
     local sqlstmt = parse(tbl, method, {
       set = p.values,
       where = p.where,
-      placeholders = true,
+      named = true,
     })
     return self:eval(sqlstmt, u.tbl_extend('force', p.values, p.where))
   end
 
   local unwrap_params = function(tbl, params)
+    if not params then return end
     if params[1] then
       for _, p in ipairs(params) do
         table.insert(ret_vals, inner_eval(tbl, p))
@@ -316,25 +317,25 @@ function sql:update(...)
   if u.is_str(args[1]) then
     local tbl = args[1]
     local params = args[2]
-    assert_tbl(self, tbl)
+    assert_tbl(self, tbl, "update")
     unwrap_params(tbl, params)
   elseif u.is_str(args[1][1]) then
     local tbls = args[1]
     for k, tbl in ipairs(tbls) do
-      assert_tbl(self, tbl)
+      assert_tbl(self, tbl, "update")
       local params = args[k + 1]
       unwrap_params(tbl, params)
     end
   elseif args[1][2] == nil then
     local tbls = u.keys(args[1])
     for _, tbl in ipairs(tbls) do
-      assert_tbl(self, tbl)
+      assert_tbl(self, tbl, "update")
       local params = args[1][tbl]
       unwrap_params(tbl, params)
     end
   end
 
-  fail_on_wrong_input(ret_vals)
+  -- fail_on_wrong_input(ret_vals)
   return u.all(ret_vals, function(_, v) return v end)
 end
 
@@ -352,27 +353,27 @@ function sql:delete(...)
   local inner_eval = function(tbl, p)
     local sqlstmt = parse(tbl, method, {
       where = p and p.where or nil,
-      placeholders = true,
+      named = true,
     })
     return self:eval(sqlstmt, p and p.where or nil)
   end
 
   if u.is_str(args[1]) then
     local tbl = args[1]
-    assert_tbl(self, tbl)
+    assert_tbl(self, tbl, "delete")
     local params = args[2]
     table.insert(ret_vals, inner_eval(tbl, params))
   elseif u.is_str(args[1][1]) then
     local tbls = args[1]
     for k, tbl in ipairs(tbls) do
-      assert_tbl(self, tbl)
+      assert_tbl(self, tbl, "delete")
       local params = args[k + 1]
       table.insert(ret_vals, inner_eval(tbl, params))
     end
   elseif args[1][2] == nil then
     local tbls = u.keys(args[1])
     for _, tbl in ipairs(tbls) do
-      assert_tbl(self, tbl)
+      assert_tbl(self, tbl, "delete")
       local params = args[1][tbl]
       table.insert(ret_vals, inner_eval(tbl, params))
     end
@@ -397,14 +398,14 @@ function sql:select(...)
       select = p and p.select or nil,
       where = p and p.where or nil,
       join = p and p.join or nil,
-      placeholders = true,
+      named = true,
     })
     return self:eval(sqlstmt, p and p.where)
   end
 
   if u.is_str(args[1]) then
     local tbl = args[1]
-    assert_tbl(self, tbl)
+    assert_tbl(self, tbl, "select/get/find")
     local params = args[2]
     table.insert(ret_vals, inner_eval(tbl, params))
   elseif u.is_tbl(args[1]) then
@@ -421,10 +422,10 @@ function sql:select(...)
   end
 end
 
---- Equivalent to |sql:get|
+--- Equivalent to |sql:insert|
 function sql:find(...) return self:select(...) end
 
---- Equivalent to |sql:get|
+--- Equivalent to |sql:insert|
 function sql:get(...) return self:select(...) end
 
 --- Check if a table with {name} exists in sqlite db
