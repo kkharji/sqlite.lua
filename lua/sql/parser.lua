@@ -1,23 +1,44 @@
 local u = require'sql.utils'
 local M = {}
 
-local keynames = function(params, kv)
-  local keys = u.keys(params)
-  local s = kv and ":" or ""
-  local res = {}
-  u.map(keys, function(k)
-    res[#res+1] = s .. k
-  end)
-  return res
-end
-
-local booleansql = function(value)
-  if type(value) == "boolean" then
-    value = (value == true) and 1 or 0
+-- handle sqlite datatype interop
+local sqlvalue = function(v)
+  if type(v) == "boolean" then
+    return v == true and 1 or 0
+  else
+    return v == nil and "null" or v
   end
-  return value
 end
 
+local specifier = function(v)
+  local type = type(v)
+  if type == "number" then
+    local _, b  = math.modf(v)
+    return b == 0 and "%d" or "%f"
+  else
+    return type == "string" and "'%s'" or ""
+  end
+end
+
+--- return key = value seprated via comma
+local bind = function(o)
+  o = o or {}
+  o.s = o.s or ", "
+  if not o.kv then
+    o.v = o.v ~= nil and sqlvalue(o.v) or "?"
+    return string.format("%s = " .. specifier(o.v), o.k, o.v)
+  else
+    local res = {}
+    for k, v in pairs(o.kv) do
+      k = o.k ~= nil and o.k or k
+      v = sqlvalue(v)
+      table.insert(res, string.format(
+        "%s = " .. specifier(v), k, v
+      ))
+    end
+    return table.concat(res, o.s)
+  end
+end
 
 --- format values part of sql statement
 ---@params defs table: key/value paris defining sqlite table keys.
@@ -26,10 +47,12 @@ M.keys = function(defs, kv)
   if not defs then return end
   kv = kv == nil and true or kv
   if kv then
+    local keys = {}
     defs = u.is_nested(defs) and defs[1] or defs
-    local keys = keynames(defs)
-    local named = type(keys) == "string" and keys or table.concat(keys, ",")
-    return string.format("(%s)", named)
+    for k, _ in pairs(defs) do
+      table.insert(keys, k)
+    end
+    return string.format("(%s)", table.concat(keys, ", "))
   end
 end
 
@@ -40,10 +63,12 @@ M.values = function(defs, kv)
   if not defs then return end
   kv = kv == nil and true or kv
   if kv then
+    keys = {}
     defs = u.is_nested(defs) and defs[1] or defs
-    local keys = keynames(defs, true)
-    local named = type(keys) == "string" and keys or table.concat(keys, ",")
-    return string.format("values(%s)", named)
+    for k, _ in pairs(defs) do
+      table.insert(keys, ":" .. k)
+    end
+    return string.format("values(%s)", table.concat(keys, ", "))
   end
 end
 
@@ -51,11 +76,7 @@ end
 ---@params defs table: key/value paris defining sqlite table keys.
 M.set = function(defs)
   if not defs then return end
-  local set = {}
-  for k, _ in pairs(defs) do
-    table.insert(set, string.format("%s = :%s", k, k))
-  end
-  return string.format("set %s", table.concat(set, ","))
+  return "set " .. bind{ kv = defs }
 end
 
 --- format where part of a sql statement.
@@ -66,22 +87,22 @@ M.where = function(defs, name, join)
   if not defs then return end
   local where = {}
   for k, v in pairs(defs) do
-    local key = join and name .. "." .. k or k
+    k = join and name .. "." .. k or k
     if type(v) ~= "table" then
-      v = type(v) == "boolean" and booleansql(v) or v
-      local sy = type(v) == "number" and "%d" or "'%s'"
-      table.insert(where, string.format("%s = " .. sy, key, v))
+      table.insert(where, bind{
+        v = v,
+        k = k,
+        s = " and "
+      })
     else
-      local l = {}
-      for _, value in ipairs(v) do
-        local sy = type(value) == "number" and "%d" or "'%s'"
-        table.insert(l, string.format("%s = " .. sy, key, value))
-      end
-      table.insert(where, "(" .. table.concat(l, " or ") .. ")")
+      table.insert(where, "(" .. bind{
+        kv = v,
+        k = k,
+        s = " or "
+      } .. ")")
     end
   end
-  local res = where[1] and table.concat(where, " and ")
-  return string.format("where %s", res)
+  return "where " .. table.concat(where, " and ")
 end
 
 --- select method specfic format
