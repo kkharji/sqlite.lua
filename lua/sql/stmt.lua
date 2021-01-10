@@ -131,7 +131,7 @@ end
 
 local sqlite_datatypes = {
   [1] = 'int', -- bind_double
-  [2] = 'float',   -- bind_text
+  [2] = 'double',   -- bind_text
   [3] = 'text',      -- bind_null
   [4] = 'blob',      -- bind_null
   [5] = 'null',      -- bind_null
