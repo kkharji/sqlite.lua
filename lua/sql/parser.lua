@@ -41,7 +41,7 @@ local bind = function(o)
 end
 
 --- format values part of sql statement
----@params defs table: key/value paris defining sqlite table keys.
+---@params defs table: key/value pairs defining sqlite table keys.
 ---@params defs kv: whether to bind by named keys.
 M.keys = function(defs, kv)
   if not defs then return end
@@ -57,11 +57,11 @@ M.keys = function(defs, kv)
 end
 
 --- format values part of sql statement, usually used with select method.
----@params defs table: key/value paris defining sqlite table keys.
+---@params defs table: key/value pairs defining sqlite table keys.
 ---@params defs kv: whether to bind by named keys.
 M.values = function(defs, kv)
   if not defs then return end
-  kv = kv == nil and true or kv
+  kv = kv == nil and true or kv -- TODO: check if defs is key value pairs instead
   if kv then
     keys = {}
     defs = u.is_nested(defs) and defs[1] or defs
@@ -73,14 +73,14 @@ M.values = function(defs, kv)
 end
 
 --- format set part of sql statement, usually used with update method.
----@params defs table: key/value paris defining sqlite table keys.
+---@params defs table: key/value pairs defining sqlite table keys.
 M.set = function(defs)
   if not defs then return end
   return "set " .. bind{ kv = defs }
 end
 
 --- format where part of a sql statement.
----@params defs table: key/value paris defining sqlite table keys.
+---@params defs table: key/value pairs defining sqlite table keys.
 ---@params name string: the name of the sqlite table
 ---@params join table: used as boolean, controling whether to use name.key or just key.
 M.where = function(defs, name, join)
@@ -106,7 +106,7 @@ M.where = function(defs, name, join)
 end
 
 --- select method specfic format
----@params defs table: key/value paris defining sqlite table keys.
+---@params defs table: key/value pairs defining sqlite table keys.
 ---@params name string: the name of the sqlite table
 M.select = function(defs, name)
   defs = u.is_tbl(defs) and table.concat(defs, ", ") or "*"
@@ -114,7 +114,7 @@ M.select = function(defs, name)
 end
 
 --- format join part of a sql statement.
----@params defs table: key/value paris defining sqlite table keys.
+---@params defs table: key/value pairs defining sqlite table keys.
 ---@params name string: the name of the sqlite table
 M.join = function(defs, name)
   if not defs or not name then return {} end

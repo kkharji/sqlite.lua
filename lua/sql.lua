@@ -300,7 +300,7 @@ function sql:update(...)
       where = p.where,
       named = true,
     })
-    return self:eval(sqlstmt, u.tbl_extend('force', p.values))
+    return self:eval(sqlstmt)
   end
 
   local unwrap_params = function(tbl, params)

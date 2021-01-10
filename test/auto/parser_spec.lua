@@ -70,4 +70,20 @@ describe('parse', function()
     end)
 
   end)
+
+  describe('set', function()
+    local getstmt = function(m, set, where)
+      return parse(tbl, m, { set = set, where = where })
+    end
+
+    it('with single value and where', function()
+      local set = { date = 2021 }
+      local where = { id = 1 }
+      local pupdate = getstmt("update", set, where)
+      local eupdate = "update todo set date = 2021 where id = 1"
+      eq(eupdate, pupdate, "should be identical")
+    end)
+
+  end)
+
 end)
