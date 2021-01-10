@@ -239,6 +239,7 @@ describe("sql", function()
     end)
     db:close()
   end)
+
   describe(':insert', function()
     local db = sql:open()
     assert(db:eval("create table todos(title text, desc text)"))

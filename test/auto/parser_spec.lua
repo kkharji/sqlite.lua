@@ -1,5 +1,6 @@
 local p = require'sql.parser'
 local eq = assert.are.same
+
 describe('parse', function()
   local tbl = "todo"
 
@@ -7,6 +8,10 @@ describe('parse', function()
     it('select all', function()
       local sqlstmt = p.select(tbl)
       eq("select * from todo", sqlstmt, "It should be identical")
+    end)
+    it('delete all', function()
+      local sqlstmt = p.delete(tbl)
+      eq("delete from todo", sqlstmt, "It should be identical")
     end)
   end)
 
@@ -79,3 +84,10 @@ describe('parse', function()
   end)
 
 end)
+
+-- local ecreate = "create table people(id integer primary key, name text, age  integer)"
+-- local ecreate = "create table if not exists todos(title text, desc text, created int)"
+-- local einsert = "insert into todos(id, title,desc,created) values(:id, :title, :desc, :created)"
+-- local edelete = "delete from todos"
+-- local eupdate = "update todos set desc = ? where id = ?"
+-- local edelete = "delete from todos where id = :id"
