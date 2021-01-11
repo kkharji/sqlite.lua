@@ -122,9 +122,10 @@ end
 --- select method specfic format
 ---@params defs table: key/value pairs defining sqlite table keys.
 ---@params name string: the name of the sqlite table
-M.select = function(name, defs)
+M.select = function(name, defs, unique)
+  local cmd = unique and "select distinct %s" or "select %s"
   defs = u.is_tbl(defs) and table.concat(defs, ", ") or "*"
-  return string.format("select %s from %s", defs, name)
+  return string.format(cmd .. " from %s", defs, name)
 end
 
 --- format join part of a sql statement.
@@ -198,7 +199,7 @@ return (function()
         ["insert"] = function() return string.format("insert into %s", tbl) end,
         ["delete"] = function() return string.format("delete from %s", tbl) end,
         ["update"] = function() return string.format("update %s", tbl) end,
-        ["select"] = function() return M.select(tbl, o.select) end,
+        ["select"] = function() return M.select(tbl, o.select, o.unique) end,
         ["create"] = function() return M.create(tbl, o) end
       }
 

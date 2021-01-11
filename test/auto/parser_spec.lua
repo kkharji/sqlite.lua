@@ -114,6 +114,7 @@ describe('parse', function()
       eq(expected, passed, "should be identical")
     end)
   end)
+
   describe('[order by]', function()
     it('works with signle table name', function()
       local defs = {
@@ -135,6 +136,18 @@ describe('parse', function()
         }
       }
       local expected = "select id, name from people order by name asc, age asc"
+      local passed = p.select("people", defs)
+      eq(expected, passed, "should be identical")
+    end)
+  end)
+  describe('[distinct]', function()
+    -- remove duplicate from result set
+    it('with single key', function()
+      local defs = {
+        select = { "id", "name" },
+        unique = true
+      }
+      local expected = "select distinct id, name from people"
       local passed = p.select("people", defs)
       eq(expected, passed, "should be identical")
     end)
