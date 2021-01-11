@@ -58,7 +58,7 @@ end
 ---@params defs table: key/value pairs defining sqlite table keys.
 ---@params defs kv: whether to bind by named keys.
 M.keys = function(defs, kv)
-  if not defs then return end
+  if not defs then return {} end
   kv = kv == nil and true or kv
   if kv then
     local keys = {}
@@ -74,7 +74,7 @@ end
 ---@params defs table: key/value pairs defining sqlite table keys.
 ---@params defs kv: whether to bind by named keys.
 M.values = function(defs, kv)
-  if not defs then return end
+  if not defs then return {} end
   kv = kv == nil and true or kv -- TODO: check if defs is key value pairs instead
   if kv then
     local keys = {}
@@ -89,7 +89,7 @@ end
 --- format set part of sql statement, usually used with update method.
 ---@params defs table: key/value pairs defining sqlite table keys.
 M.set = function(defs)
-  if not defs then return end
+  if not defs then return {} end
   return "set " .. bind{ kv = defs, nonbind = true }
 end
 
@@ -98,7 +98,7 @@ end
 ---@params name string: the name of the sqlite table
 ---@params join table: used as boolean, controling whether to use name.key or just key.
 M.where = function(defs, name, join)
-  if not defs then return end
+  if not defs then return {} end
   local where = {}
   for k, v in u.opairs(defs) do
     k = join and name .. "." .. k or k
@@ -155,7 +155,7 @@ M.join = function(defs, name)
 end
 
 M.create = function(name, defs)
-  if not defs then return end
+  if not defs then return {} end
   -- TODO: make the order of keys matach the keys as they order in the table
   -- maybe not important
   name = defs.ensure and "if not exists " .. name or name
@@ -172,6 +172,23 @@ M.create = function(name, defs)
 
   return string.format("create table %s(%s)", name, table.concat(items, ", "))
 end
+
+M.order_by = function(defs) -- TODO: what if nulls? should append "nulls last"
+  if not defs then return {} end
+  local items = {}
+  for v, k in u.opairs(defs) do
+    if type(k) == "table" then
+      for _, _k in u.opairs(k) do
+        table.insert(items, string.format("%s %s", _k, v))
+       end
+    else
+      table.insert(items, string.format("%s %s", k, v))
+    end
+  end
+
+  return string.format("order by %s", table.concat(items, ", "))
+end
+
 
 return (function()
   local partial = function(method)
@@ -191,7 +208,8 @@ return (function()
         M.keys(o.values),
         M.values(o.values, o.named),
         M.set(o.set),
-        M.where(o.where, tbl, o.join),
+        M.where(o.where, tbl, o.join), -- FIXME: why does this need to be last? to work
+        M.order_by(o.order_by),
       }, " ")
     end
   end

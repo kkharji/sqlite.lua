@@ -88,7 +88,8 @@ describe('parse', function()
       eq(eupdate, pupdate, "should be identical")
     end)
   end)
-  describe('create', function()
+
+  describe('[create]', function()
     it('table', function()
       local defs = {
           id = {"integer", "primary", "key"},
@@ -110,6 +111,31 @@ describe('parse', function()
       }
       local expected = "create table if not exists people(age int, id integer primary key, name text)"
       local passed = p.create("people", defs)
+      eq(expected, passed, "should be identical")
+    end)
+  end)
+  describe('[order by]', function()
+    it('works with signle table name', function()
+      local defs = {
+        select = { "id", "name" },
+        order_by = {
+          desc = "name",
+          asc = "id"
+        }
+      }
+      local expected = "select id, name from people order by id asc, name desc"
+      local passed = p.select("people", defs)
+      eq(expected, passed, "should be identical")
+    end)
+    it('works with multiple table name', function()
+      local defs = {
+        select = { "id", "name" },
+        order_by = {
+          asc = {"name", "age"}
+        }
+      }
+      local expected = "select id, name from people order by name asc, age asc"
+      local passed = p.select("people", defs)
       eq(expected, passed, "should be identical")
     end)
   end)
