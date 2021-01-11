@@ -92,12 +92,12 @@ describe('parse', function()
   describe('[create]', function()
     it('table', function()
       local defs = {
-          id = {"integer", "primary", "key"},
-          title = "text",
-          desc = "text",
-          created = "int",
-          done = {"int", "not", "null", "default", 0},
-        }
+        id = {"integer", "primary", "key"},
+        title = "text",
+        desc = "text",
+        created = "int",
+        done = {"int", "not", "null", "default", 0},
+      }
       local expected = "create table todos(created int, desc text, done int not null default 0, id integer primary key, title text)"
       local passed = p.create("todos", defs)
       eq(expected, passed, "should be identical")
@@ -143,11 +143,40 @@ describe('parse', function()
   describe('[distinct]', function()
     -- remove duplicate from result set
     it('with single key', function()
-      local defs = {
+      local defs = { -- TODO: works for a single key
         select = { "id", "name" },
         unique = true
       }
       local expected = "select distinct id, name from people"
+      local passed = p.select("people", defs)
+      eq(expected, passed, "should be identical")
+    end)
+  end)
+  describe('[limit]', function()
+    it('with limit as number', function()
+      local defs = {
+        select = { "id", "name" },
+        limit = 10
+      }
+      local expected = "select id, name from people limit 10"
+      local passed = p.select("people", defs)
+      eq(expected, passed, "should be identical")
+    end)
+    it('with limit as number inside list', function()
+      local defs = {
+        select = { "id", "name" },
+        limit = {10}
+      }
+      local expected = "select id, name from people limit 10"
+      local passed = p.select("people", defs)
+      eq(expected, passed, "should be identical")
+    end)
+    it('with limit and offset', function()
+      local defs = {
+        select = { "id", "name" },
+        limit = {10, 10}
+      }
+      local expected = "select id, name from people limit 10 offset 10"
       local passed = p.select("people", defs)
       eq(expected, passed, "should be identical")
     end)

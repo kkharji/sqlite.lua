@@ -99,7 +99,8 @@ end
 ---@params join table: used as boolean, controling whether to use name.key or just key.
 M.where = function(defs, name, join)
   if not defs then return {} end
-  local where = {}
+  local where = {} -- TODO support key like '%value%'
+
   for k, v in u.opairs(defs) do
     k = join and name .. "." .. k or k
     if type(v) ~= "table" then
@@ -119,10 +120,28 @@ M.where = function(defs, name, join)
   return "where " .. table.concat(where, " and ")
 end
 
+M.limit = function(defs)
+  if not defs then return {} end
+  local type = type(defs)
+  local limit
+
+  if type == "number" then
+    limit = "limit " .. defs
+  elseif type == "table" and defs[2] then
+    limit = string.format("limit %s offset %s", defs[1], defs[2])
+  else
+    limit = "limit " .. defs[1]
+  end
+
+  return limit
+end
+
 --- select method specfic format
 ---@params defs table: key/value pairs defining sqlite table keys.
 ---@params name string: the name of the sqlite table
+---@params unique string: the name of the sqlite column to uniquify (not practical)
 M.select = function(name, defs, unique)
+  -- TODO: works for a single key
   local cmd = unique and "select distinct %s" or "select %s"
   defs = u.is_tbl(defs) and table.concat(defs, ", ") or "*"
   return string.format(cmd .. " from %s", defs, name)
@@ -211,6 +230,7 @@ return (function()
         M.set(o.set),
         M.where(o.where, tbl, o.join), -- FIXME: why does this need to be last? to work
         M.order_by(o.order_by),
+        M.limit(o.limit),
       }, " ")
     end
   end
