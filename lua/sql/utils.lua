@@ -7,6 +7,46 @@ M.is_userdata = function(t) return type(t) == "userdata" end
 M.is_nested = function(t) return type(t[1]) == "table" end
 -- I'm sure there is a better way.
 
+local __gen_order_index = function(t)
+    local orderedIndex = {}
+    for key in pairs(t) do
+        table.insert( orderedIndex, key )
+    end
+    table.sort( orderedIndex )
+    return orderedIndex
+end
+
+local nextpair = function(t, state)
+  -- Equivalent of the next function, but returns the keys in the alphabetic
+  -- order. We use a temporary ordered key table that is stored in the
+  -- table being iterated.
+
+  local key = nil
+  if state == nil then
+    -- the first time, generate the index
+    t.__orderedIndex = __gen_order_index( t )
+    key = t.__orderedIndex[1]
+  else
+    -- fetch the next value
+    for i = 1,table.getn(t.__orderedIndex) do
+      if t.__orderedIndex[i] == state then
+        key = t.__orderedIndex[i+1]
+      end
+    end
+  end
+
+  if key then
+    return key, t[key]
+  end
+
+  -- no more value to return, cleanup
+  t.__orderedIndex = nil
+  return
+end
+
+M.opairs = function(t)
+  return nextpair, t, nil
+end
 
 M.expand = function(path)
   local expanded
@@ -65,7 +105,7 @@ end
 
 M.mapv = function(t, f)
   local _t = {}
-  for i,value in pairs(t) do
+  for i,value in M.opairs(t) do
     local _, kv, v = i, f(value, i)
     table.insert(_t, v or kv)
   end
@@ -109,6 +149,7 @@ do
     return new_table
   end
 end
+
 
 -- Flatten taken from: https://github.com/premake/premake-core/blob/master/src/base/table.lua
 M.flatten = function(tbl)

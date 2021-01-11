@@ -41,7 +41,7 @@ describe('parse', function()
         date = 2021
       }
       local pselect = p.select(tbl, { where = where })
-      local eselect = "select * from todo where date = 2021 and name = 'conni' and (act = 'done' or act = 'overdue')"
+      local eselect = "select * from todo where (act = 'done' or act = 'overdue') and date = 2021 and name = 'conni'"
       eq(eselect, pselect, "It should be identical")
     end)
     it('with multi [or] and multi keys', function()
@@ -51,7 +51,7 @@ describe('parse', function()
         date = 2021
       }
       local pselect = p.select(tbl, { where = where })
-      local eselect = "select * from todo where date = 2021 and (n = 1 or n = 2 or n = 3) and (act = 'a' or act = 'b')"
+      local eselect = "select * from todo where (act = 'a' or act = 'b') and date = 2021 and (n = 1 or n = 2 or n = 3)"
       eq(eselect, pselect , "It should be identical")
     end)
     it('interop boolean', function()
@@ -60,7 +60,7 @@ describe('parse', function()
         n = true,
         date = 2021
       }
-      local eselect = "select * from todo where date = 2021 and act = 0 and n = 1"
+      local eselect = "select * from todo where act = 0 and date = 2021 and n = 1"
       local pselect = p.select(tbl, { where = where })
       eq(eselect, pselect , "It should be identical")
     end)
@@ -84,21 +84,7 @@ describe('parse', function()
       local set = { date = 2021, a = "b", c = "d"  }
       local where = { id = 1 }
       local pupdate = p.update(tbl, { where = where, set = set})
-      local eupdate = "update todo set date = :date, a = :a, c = :c where id = 1"
-      eq(eupdate, pupdate, "should be identical")
-    end)
-    it('interop boolean', function()
-      local set = { date = 2021, a = false, c = true  }
-      local where = { id = 1 }
-      local pupdate = p.update(tbl, { where = where, set = set})
-      local eupdate = "update todo set date = :date, a = :a, c = :c where id = 1"
-      eq(eupdate, pupdate, "should be identical")
-    end)
-    it('handles quotes ', function()
-      local set = { a = "I'm", c = "it's"  }
-      local where = { id = 1 }
-      local pupdate = p.update(tbl, { where = where, set = set})
-      local eupdate = [[update todo set a = :a, c = :c where id = 1]]
+      local eupdate = "update todo set a = :a, c = :c, date = :date where id = 1"
       eq(eupdate, pupdate, "should be identical")
     end)
   end)
@@ -111,7 +97,7 @@ describe('parse', function()
           created = "int",
           done = {"int", "not", "null", "default", 0},
         }
-      local expected = "create table todos(desc text, title text, id integer primary key, done int not null default 0, created int)"
+      local expected = "create table todos(created int, desc text, done int not null default 0, id integer primary key, title text)"
       local passed = p.create("todos", defs)
       eq(expected, passed, "should be identical")
     end)
@@ -122,7 +108,7 @@ describe('parse', function()
         age = "int",
         ensure = true
       }
-      local expected = "create table if not exists people(age int, name text, id integer primary key)"
+      local expected = "create table if not exists people(age int, id integer primary key, name text)"
       local passed = p.create("people", defs)
       eq(expected, passed, "should be identical")
     end)

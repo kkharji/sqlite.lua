@@ -42,7 +42,7 @@ local bind = function(o)
     return string.format("%s = " .. M.specifier(o.v), o.k, o.v)
   else
     local res = {}
-    for k, v in pairs(o.kv) do
+    for k, v in u.opairs(o.kv) do
       k = o.k ~= nil and o.k or k
       v = M.sqlvalue(v)
       v = o.nonbind and ":" .. k or v
@@ -100,7 +100,7 @@ end
 M.where = function(defs, name, join)
   if not defs then return end
   local where = {}
-  for k, v in pairs(defs) do
+  for k, v in u.opairs(defs) do
     k = join and name .. "." .. k or k
     if type(v) ~= "table" then
       table.insert(where, bind{
@@ -112,7 +112,7 @@ M.where = function(defs, name, join)
       table.insert(where, "(" .. bind{
         kv = v,
         k = k,
-        s = " or "
+        s = " or ",
       } .. ")")
     end
   end
@@ -161,13 +161,14 @@ M.create = function(name, defs)
   name = defs.ensure and "if not exists " .. name or name
   defs.ensure = nil
 
-  local items = u.mapv(defs, function(v, k)
+  local items = {}
+  for k, v in u.opairs(defs) do
     if type(v) ~= "table" then
-      return string.format("%s %s", k, v)
+      table.insert(items, string.format("%s %s", k, v))
     else
-      return string.format("%s %s", k, table.concat(v, " "))
+      table.insert(items, string.format("%s %s", k, table.concat(v, " ")))
     end
-  end)
+  end
 
   return string.format("create table %s(%s)", name, table.concat(items, ", "))
 end
