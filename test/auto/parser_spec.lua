@@ -77,28 +77,28 @@ describe('parse', function()
       local set = { date = 2021 }
       local where = { id = 1 }
       local pupdate = p.update(tbl, { where = where, set = set})
-      local eupdate = "update todo set date = 2021 where id = 1"
+      local eupdate = "update todo set date = :date where id = 1"
       eq(eupdate, pupdate, "should be identical")
     end)
     it('multiple value and where', function()
       local set = { date = 2021, a = "b", c = "d"  }
       local where = { id = 1 }
       local pupdate = p.update(tbl, { where = where, set = set})
-      local eupdate = "update todo set date = 2021, a = 'b', c = 'd' where id = 1"
+      local eupdate = "update todo set date = :date, a = :a, c = :c where id = 1"
       eq(eupdate, pupdate, "should be identical")
     end)
     it('interop boolean', function()
       local set = { date = 2021, a = false, c = true  }
       local where = { id = 1 }
       local pupdate = p.update(tbl, { where = where, set = set})
-      local eupdate = "update todo set date = 2021, a = 0, c = 1 where id = 1"
+      local eupdate = "update todo set date = :date, a = :a, c = :c where id = 1"
       eq(eupdate, pupdate, "should be identical")
     end)
     it('handles quotes ', function()
       local set = { a = "I'm", c = "it's"  }
       local where = { id = 1 }
       local pupdate = p.update(tbl, { where = where, set = set})
-      local eupdate = [[update todo set a = "I'm", c = "it's" where id = 1]]
+      local eupdate = [[update todo set a = :a, c = :c where id = 1]]
       eq(eupdate, pupdate, "should be identical")
     end)
   end)
@@ -120,7 +120,7 @@ describe('parse', function()
         id = {"integer", "primary", "key"},
         name = "text",
         age = "int",
-        ensure = true,
+        ensure = true
       }
       local expected = "create table if not exists people(age int, name text, id integer primary key)"
       local passed = p.create("people", defs)

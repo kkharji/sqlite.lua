@@ -19,13 +19,15 @@ M.sqlvalue = function(v)
   end
 end
 
-M.specifier = function(v)
+M.specifier = function(v, nonbind)
   local type = type(v)
-  if type == "number" then
+  if type == "number"then
     local _, b  = math.modf(v)
     return b == 0 and "%d" or "%f"
-  elseif type == "string" then
+  elseif type == "string" and not nonbind then
     return v:find("'") and [["%s"]] or "'%s'"
+  elseif nonbind then
+    return v
   else
     return ""
   end
@@ -43,8 +45,9 @@ local bind = function(o)
     for k, v in pairs(o.kv) do
       k = o.k ~= nil and o.k or k
       v = M.sqlvalue(v)
+      v = o.nonbind and ":" .. k or v
       table.insert(res, string.format(
-        "%s = " .. M.specifier(v), k, v
+        "%s" .. (o.nonbind and nil or " = ") .. M.specifier(v, o.nonbind), k, v
       ))
     end
     return table.concat(res, o.s)
@@ -87,7 +90,7 @@ end
 ---@params defs table: key/value pairs defining sqlite table keys.
 M.set = function(defs)
   if not defs then return end
-  return "set " .. bind{ kv = defs }
+  return "set " .. bind{ kv = defs, nonbind = true }
 end
 
 --- format where part of a sql statement.
@@ -151,12 +154,11 @@ M.join = function(defs, name)
   return string.format("inner join %s on %s %s", target, on, select)
 end
 
-M.create = function(name, defs, ensure)
+M.create = function(name, defs)
   if not defs then return end
   -- TODO: make the order of keys matach the keys as they order in the table
   -- maybe not important
-  ensure = defs.ensure and defs.ensure or ensure
-  name = ensure and "if not exists " .. name or name
+  name = defs.ensure and "if not exists " .. name or name
   defs.ensure = nil
 
   local items = u.mapv(defs, function(v, k)
@@ -166,29 +168,29 @@ M.create = function(name, defs, ensure)
       return string.format("%s %s", k, table.concat(v, " "))
     end
   end)
+
   return string.format("create table %s(%s)", name, table.concat(items, ", "))
 end
-
--- print(vim.inspect(M.create("table", {id = 1, fomat = {1,2,3}})))
 
 return (function()
   local partial = function(method)
     return function(tbl, o)
       o = o or {}
       local switch = {
-        ["insert"] = string.format("insert into %s", tbl),
-        ["delete"] = string.format("delete from %s", tbl),
-        ["update"] = string.format("update %s", tbl),
-        ["select"] = M.select(tbl, o.select),
-        ["create"] = M.create(tbl, o)
+        ["insert"] = function() return string.format("insert into %s", tbl) end,
+        ["delete"] = function() return string.format("delete from %s", tbl) end,
+        ["update"] = function() return string.format("update %s", tbl) end,
+        ["select"] = function() return M.select(tbl, o.select) end,
+        ["create"] = function() return M.create(tbl, o) end
       }
+
       return table.concat(u.flatten{
-        switch[method],
-        o.join and M.join(o.join, tbl),
-        o.keys and M.keys(o.values, o.named),
-        o.values and M.values(o.values, o.named),
-        o.set and M.set(o.set),
-        o.where and M.where(o.where, tbl, o.join),
+        switch[method](),
+        M.join(o.join, tbl),
+        M.keys(o.values),
+        M.values(o.values, o.named),
+        M.set(o.set),
+        M.where(o.where, tbl, o.join),
       }, " ")
     end
   end

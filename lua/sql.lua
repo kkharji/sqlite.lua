@@ -293,7 +293,7 @@ function sql:add(...) return sql:insert(...) end
 function sql:update(...)
   local args = {...}
   local ret_vals = {}
-  istbl = function(tbl)
+  local istbl = function(tbl)
     return assert_tbl(self, tbl, "update")
   end
 
@@ -303,7 +303,7 @@ function sql:update(...)
       where = p.where,
       named = true,
     })
-    return self:eval(sqlstmt)
+    return self:eval(sqlstmt, p and p.values)
   end
 
   local unwrap_params = function(tbl, params)
@@ -351,7 +351,7 @@ end
 function sql:delete(...)
   local args = {...}
   local ret_vals = {}
-  istbl = function(tbl)
+  local istbl = function(tbl)
     return assert_tbl(self, tbl, "delete")
   end
   local inner_eval = function(tbl, p)
@@ -395,7 +395,7 @@ end
 function sql:select(...)
   local args = {...}
   local ret_vals = {}
-  istbl = function(tbl)
+  local istbl = function(tbl)
     return assert_tbl(self, tbl, "select")
   end
 
