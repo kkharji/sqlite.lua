@@ -63,6 +63,15 @@ M.map = function(t, f)
   return _t
 end
 
+M.mapv = function(t, f)
+  local _t = {}
+  for i,value in pairs(t) do
+    local _, kv, v = i, f(value, i)
+    table.insert(_t, v or kv)
+  end
+  return _t
+end
+
 M.join = function(l,s)
   return table.concat(M.map(l, tostring), s, 1)
 end
