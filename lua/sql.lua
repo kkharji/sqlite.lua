@@ -154,6 +154,14 @@ function sql:status()
   }
 end
 
+
+--- wrapper around clib.exec for convenience.
+---@param statement string: statement to be executed.
+---@return table: stmt object
+function sql:__exec(statement)
+  return clib.exec(self.db, statement, nil, nil, nil)
+end
+
 --- Evaluate {statement} and returns true if successful else error-out.
 --- Optionally it accept {params} which can be a dict of values corresponding
 --- to the sql statement or a list of unamed values.
@@ -166,42 +174,53 @@ end
 ---@todo: support bolb binding.
 ---@todo: support varags for unamed params
 function sql:eval(statement, params)
+  local res = {}
+  self:__exec("BEGIN TRANSACTION")
+
   if type(statement) == "table" then
-    return u.all(statement, function(_, v)
-      return self:eval(v)
+    u.map(statement, function(v)
+      local s = self:__parse(v)
+      s:each(function(stm)
+        table.insert(res, stm:kv())
+      end)
+      s:reset()
+      s:finalize()
     end)
-  end
 
-  local s, res = self:__parse(statement), {}
+  else
 
-  if params == nil then
-    s:each(function(stm)
-      table.insert(res, stm:kv())
-    end)
-    s:reset()
+    local s = self:__parse(statement)
 
-  elseif params and type(params) ~= "table" and statement:match('%?') then
-    local value = booleansql(params)
-    s:bind({value})
-    s:each(function(stm)
-      table.insert(res, stm:kv())
-    end)
-    s:reset()
-    s:bind_clear()
+    if params == nil then
+      s:each(function(stm)
+        table.insert(res, stm:kv())
+      end)
+      s:reset()
 
-  elseif params and type(params) == "table" then
-    params = type(params[1]) == "table" and params or {params}
-    for _, v in ipairs(params) do
-      s:bind(v)
+    elseif params and type(params) ~= "table" and statement:match('%?') then
+      local value = booleansql(params)
+      s:bind({value})
       s:each(function(stm)
         table.insert(res, stm:kv())
       end)
       s:reset()
       s:bind_clear()
-    end
-  end
 
-  s:finalize()
+    elseif params and type(params) == "table" then
+      params = type(params[1]) == "table" and params or {params}
+      for _, v in ipairs(params) do
+        s:bind(v)
+        s:each(function(stm)
+          table.insert(res, stm:kv())
+        end)
+        s:reset()
+        s:bind_clear()
+      end
+    end
+    s:finalize()
+  end
+  self:__exec("END TRANSACTION")
+  self:__exec("COMMIT")
 
   local ret = rawequal(next(res), nil) and self:__last_errcode() == flags.ok or res
 
