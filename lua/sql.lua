@@ -251,51 +251,35 @@ local fail_on_wrong_input = function(ret_vals)
 end
 
 --- Insert to lua table into sqlite database table.
---- +supports inserting multiple rows.
----@varargs if {[1]} == table/content else table_name as {args[1]} and table to insert as {args[2]}.
+---@params tbl string: the table name
+---@params rows table: rows to insert to the table.
 ---@return boolean: true incase the table was inserted successfully.
 ---@usage db:insert("todos", { title = "new todo" })
----@usage db:insert{ todos = { title = "new todo"} }
----@todo insert into multiple tables at the same time.
 ---@todo support unnamed or anonymous args
 ---@todo handle inconflict case
-function sql:insert(...)
-  local args = {...}
-  local ret_vals = {}
-  local istbl = function(tbl)
-    return assert_tbl(self, tbl, "insert")
-  end
-  local inner_eval = function(tbl, p)
-    local sqlstmt = P.insert(tbl, {
-      values = p,
-      named = true,
-    })
-    return self:eval(sqlstmt, p)
+function sql:insert(tbl, rows)
+  assert_tbl(self, tbl, "insert")
+  local tbl_sch = self:eval(string.format("pragma table_info(%s)",  tbl))
+  local tbl_keys = {}
+  local succ
+
+  for _, v in ipairs(tbl_sch) do
+    tbl_keys[v.name] = 'null'
   end
 
-  if u.is_str(args[1]) then
-    local tbl = args[1]
-    local params = args[2]
-    istbl(tbl)
-    table.insert(ret_vals, inner_eval(tbl, params))
-  elseif u.is_str(args[1][1]) then
-    local tbls = args[1]
-    for k, tbl in ipairs(tbls) do
-      istbl(tbl)
-      local params = args[k + 1]
-      table.insert(ret_vals, inner_eval(tbl, params))
+  self:__wrap_stmts(function()
+    s = self:__parse(P.insert(tbl, { values = tbl_keys }))
+    rows = u.is_nested(rows) and rows or {rows}
+    for _, v in ipairs(rows) do
+      s:bind(v)
+      s:step()
+      s:reset()
+      s:bind_clear()
     end
-  elseif args[1][2] == nil then
-    local tbls = u.keys(args[1])
-    for _, tbl in ipairs(tbls) do
-      istbl(tbl)
-      local params = args[1][tbl]
-      table.insert(ret_vals, inner_eval(tbl, params))
-    end
-  end
+    succ = s:finalize()
+  end)
 
-  fail_on_wrong_input(ret_vals)
-  return u.all(ret_vals, function(_, v) return v end)
+  return succ
 end
 
 --- Equivalent to |sql:insert|

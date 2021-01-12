@@ -146,30 +146,21 @@ db:insert("todos", {
   desc = "................",
 })
 
-db:insert {
-  todos = {
-    title = "TODO 1",
-    desc = " .......... ",
-  }
-}
-
 -- multiple rows
-db:insert{
-  todos = {
+db:insert("todos", {
     {
       title = "todo 3",
       desc = "...",
     },
     {
       title = "todo 2",
-      desc = "...",
     },
     {
       title = "todo 1",
-      desc = "...",
+      deadline = 2025,
     },
-  }
-}
+})
+
 -- :add is alternative name to :insert
 db:add("todos", {
   title = "TODO 1",
