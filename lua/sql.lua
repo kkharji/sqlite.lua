@@ -13,6 +13,13 @@ local booleansql = function(value) -- TODO: should be done a clib level
   return value
 end
 
+function sql:__wrap_stmts(fn)
+  clib.exec(self.conn,"BEGIN", nil, nil, nil)
+  fn()
+  clib.exec(self.conn, "COMMIT", nil, nil, nil)
+  return
+end
+
 --- Internal function for creating new connection.
 ---@todo: decide whether using os.time and epoch time would be better.
 -- sets {created, conn, closed}
@@ -33,6 +40,18 @@ function sql:__connect()
   else
     error(string.format("sql.nvim: couldn't connect to sql database, ERR:", code))
   end
+end
+
+--- wrapper around stmt module for convenience.
+---@param statement string: statement to be parsed.
+---@return table: stmt object
+function sql:__parse(statement) return stmt:parse(self.conn, statement) end
+
+--- wrapper around clib.exec for convenience.
+---@param statement string: statement to be executed.
+---@return table: stmt object
+function sql:__exec(statement)
+  return clib.exec(self.conn, statement, nil, nil, nil)
 end
 
 --- Creates a new sql.nvim object, without creating a connection to uri
@@ -138,32 +157,11 @@ function sql:isopen() return not self.closed end
 ---@return boolean: true if db is close, otherwise false.
 function sql:isclose() return self.closed end
 
---- wrapper around stmt module for convenience.
----@param statement string: statement to be parsed.
----@return table: stmt object
-function sql:__parse(statement) return stmt:parse(self.conn, statement) end
-
 --- Returns current connection status
 --- Get last error code
 ---@todo: decide whether to keep this function
 ---@return table: msg,code,closed
-function sql:status()
-  return {
-    -- perhaps we should process those and return eg. error = false
-    msg = self:__last_errmsg(),
-    code = self:__last_errcode(),
-    closed = self.closed,
-    create = self.created
-  }
-end
-
-
---- wrapper around clib.exec for convenience.
----@param statement string: statement to be executed.
----@return table: stmt object
-function sql:__exec(statement)
-  return clib.exec(self.conn, statement, nil, nil, nil)
-end
+function sql:status() return { msg = self:__last_errmsg(), code = self:__last_errcode() } end
 
 --- Evaluate {statement} and returns true if successful else error-out.
 --- Optionally it accept {params} which can be a dict of values corresponding
@@ -172,14 +170,14 @@ end
 ---@param params table: params to be bind to {statement}, it can be a list or dict
 ---@usage db:eval("drop table if exists todos")
 ---@usage db:eval("select * from todos where id = ?", 1)
----@usage db:eval("insert into todos(title, deadline) values(:title, :deadline)", {title = "1", deadline = 2021})
+---@usage db:eval("insert into t(a, b) values(:a, :b)", {a = "1", b = 2021})
 ---@return boolean: if the evaluation is successful then return true.
 ---@todo: support bolb binding.
 ---@todo: support varags for unamed params
 function sql:eval(statement, params)
   local res = {}
-  self:__exec("BEGIN TRANSACTION")
 
+  self:__exec("BEGIN")
   if type(statement) == "table" then
     u.map(statement, function(v)
       local s = self:__parse(v)
@@ -189,7 +187,6 @@ function sql:eval(statement, params)
       s:reset()
       s:finalize()
     end)
-
   else
 
     local s = self:__parse(statement)
@@ -222,7 +219,6 @@ function sql:eval(statement, params)
     end
     s:finalize()
   end
-  self:__exec("END TRANSACTION")
   self:__exec("COMMIT")
 
   local ret = rawequal(next(res), nil) and self:__last_errcode() == flags.ok or res
@@ -232,7 +228,7 @@ function sql:eval(statement, params)
   end
 
   assert(self:__last_errcode() == flags.ok , string.format(
-    "sql.nvim: database connection didn't get closed, ERRMSG: %s",
+  "sql.nvim: database connection didn't get closed, ERRMSG: %s",
     self:__last_errmsg()
   ))
 
