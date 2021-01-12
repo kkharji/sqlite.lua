@@ -54,6 +54,22 @@ local bind = function(o)
   end
 end
 
+--- format glob pattern as part of where clause
+M.contains = function(defs)
+  if not defs then return {} end
+  local items = {}
+  for k,v in u.opairs(defs) do
+    if type(v) == "table" then
+      table.insert(items, table.concat(u.map(v, function(_v)
+        return string.format("%s glob " .. M.specifier(k), k, M.sqlvalue(_v))
+      end), " or "))
+    else
+      table.insert(items, string.format("%s glob " .. M.specifier(k), k, v))
+    end
+  end
+  return table.concat(items, " ")
+end
+
 --- format values part of sql statement
 ---@params defs table: key/value pairs defining sqlite table keys.
 ---@params defs kv: whether to bind by named keys.
@@ -86,37 +102,37 @@ M.values = function(defs, kv)
   end
 end
 
---- format set part of sql statement, usually used with update method.
----@params defs table: key/value pairs defining sqlite table keys.
-M.set = function(defs)
-  if not defs then return {} end
-  return "set " .. bind{ kv = defs, nonbind = true }
-end
-
 --- format where part of a sql statement.
 ---@params defs table: key/value pairs defining sqlite table keys.
 ---@params name string: the name of the sqlite table
 ---@params join table: used as boolean, controling whether to use name.key or just key.
-M.where = function(defs, name, join)
-  if not defs then return {} end
-  local where = {} -- TODO support key like '%value%'
+M.where = function(defs, name, join, contains)
+  if not defs and not contains then return {} end
+  local where = {}
 
-  for k, v in u.opairs(defs) do
-    k = join and name .. "." .. k or k
-    if type(v) ~= "table" then
-      table.insert(where, bind{
-        v = v,
-        k = k,
-        s = " and "
-      })
-    else
-      table.insert(where, "(" .. bind{
-        kv = v,
-        k = k,
-        s = " or ",
-      } .. ")")
+  if defs then
+    for k, v in u.opairs(defs) do
+      k = join and name .. "." .. k or k
+      if type(v) ~= "table" then
+        table.insert(where, bind{
+          v = v,
+          k = k,
+          s = " and "
+        })
+      else
+        table.insert(where, "(" .. bind{
+          kv = v,
+          k = k,
+          s = " or ",
+        } .. ")")
+      end
     end
   end
+
+  if contains then
+    table.insert(where, M.contains(contains))
+  end
+
   return "where " .. table.concat(where, " and ")
 end
 
@@ -134,6 +150,13 @@ M.limit = function(defs)
   end
 
   return limit
+end
+
+--- format set part of sql statement, usually used with update method.
+---@params defs table: key/value pairs defining sqlite table keys.
+M.set = function(defs)
+  if not defs then return {} end
+  return "set " .. bind{ kv = defs, nonbind = true }
 end
 
 --- select method specfic format
@@ -228,7 +251,7 @@ return (function()
         M.keys(o.values),
         M.values(o.values, o.named),
         M.set(o.set),
-        M.where(o.where, tbl, o.join), -- FIXME: why does this need to be last? to work
+        M.where(o.where, tbl, o.join, o.contains),
         M.order_by(o.order_by),
         M.limit(o.limit),
       }, " ")

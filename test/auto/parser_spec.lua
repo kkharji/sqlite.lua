@@ -181,4 +181,38 @@ describe('parse', function()
       eq(expected, passed, "should be identical")
     end)
   end)
+  describe('[glob]/contains', function()
+    it('with single key', function()
+      local defs = {
+        select = { "id", "name" },
+        contains = { name = "%j" }
+      }
+      local expected = "select id, name from people where name glob '%j'"
+      local passed = p.select("people", defs)
+      eq(expected, passed, "should be identical")
+    end)
+    it('with single key and an list of patterns', function()
+      local defs = {
+        select = { "id", "name" },
+        contains = { name = {"%j", "%a", "%b%"} }
+      }
+      local expected = "select id, name from people where name glob '%j' or name glob '%a' or name glob '%b%'"
+      local passed = p.select("people", defs)
+      eq(expected, passed, "should be identical")
+    end)
+    it('with multi key and an list of patterns', function()
+      local defs = {
+        select = { "id", "name" },
+        contains = {
+          name = {"%j", "%a", "%b%"},
+          last = "%f"
+        }
+      }
+      local expected = "select id, name from people where last glob '%f' name glob '%j' or name glob '%a' or name glob '%b%'"
+      local passed = p.select("people", defs)
+      eq(expected, passed, "should be identical")
+    end)
+
+  end)
+
 end)
