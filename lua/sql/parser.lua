@@ -10,8 +10,8 @@ local M = {}
 ---@brief ]]
 ---@tag parser.lua
 
--- handle sqlite datatype interop
-M.sqlvalue = function(v)
+--- handle sqlite datatype interop
+local sqlvalue = function(v)
   if type(v) == "boolean" then
     return v == true and 1 or 0
   else
@@ -19,7 +19,11 @@ M.sqlvalue = function(v)
   end
 end
 
-M.specifier = function(v, nonbind)
+--- string.format specifier based on value type
+---@param v any: the value
+---@param nonbind boolean: whether to return the specifier or just return the value.
+---@return string
+local specifier = function(v, nonbind)
   local type = type(v)
   if type == "number"then
     local _, b  = math.modf(v)
@@ -33,21 +37,20 @@ M.specifier = function(v, nonbind)
   end
 end
 
---- return key = value seprated via comma
 local bind = function(o)
   o = o or {}
   o.s = o.s or ", "
   if not o.kv then
-    o.v = o.v ~= nil and M.sqlvalue(o.v) or "?"
-    return string.format("%s = " .. M.specifier(o.v), o.k, o.v)
+    o.v = o.v ~= nil and sqlvalue(o.v) or "?"
+    return string.format("%s = " .. specifier(o.v), o.k, o.v)
   else
     local res = {}
     for k, v in u.opairs(o.kv) do
       k = o.k ~= nil and o.k or k
-      v = M.sqlvalue(v)
+      v = sqlvalue(v)
       v = o.nonbind and ":" .. k or v
       table.insert(res, string.format(
-        "%s" .. (o.nonbind and nil or " = ") .. M.specifier(v, o.nonbind), k, v
+        "%s" .. (o.nonbind and nil or " = ") .. specifier(v, o.nonbind), k, v
       ))
     end
     return table.concat(res, o.s)
@@ -55,16 +58,16 @@ local bind = function(o)
 end
 
 --- format glob pattern as part of where clause
-M.contains = function(defs)
+local pcontains = function(defs)
   if not defs then return {} end
   local items = {}
   for k,v in u.opairs(defs) do
     if type(v) == "table" then
       table.insert(items, table.concat(u.map(v, function(_v)
-        return string.format("%s glob " .. M.specifier(k), k, M.sqlvalue(_v))
+        return string.format("%s glob " .. specifier(k), k, sqlvalue(_v))
       end), " or "))
     else
-      table.insert(items, string.format("%s glob " .. M.specifier(k), k, v))
+      table.insert(items, string.format("%s glob " .. specifier(k), k, v))
     end
   end
   return table.concat(items, " ")
@@ -73,7 +76,7 @@ end
 --- format values part of sql statement
 ---@params defs table: key/value pairs defining sqlite table keys.
 ---@params defs kv: whether to bind by named keys.
-M.keys = function(defs, kv)
+local pkeys = function(defs, kv)
   if not defs then return {} end
   kv = kv == nil and true or kv
   if kv then
@@ -89,7 +92,7 @@ end
 --- format values part of sql statement, usually used with select method.
 ---@params defs table: key/value pairs defining sqlite table keys.
 ---@params defs kv: whether to bind by named keys.
-M.values = function(defs, kv)
+local pvalues = function(defs, kv)
   if not defs then return {} end
   kv = kv == nil and true or kv -- TODO: check if defs is key value pairs instead
   if kv then
@@ -106,7 +109,7 @@ end
 ---@params defs table: key/value pairs defining sqlite table keys.
 ---@params name string: the name of the sqlite table
 ---@params join table: used as boolean, controling whether to use name.key or just key.
-M.where = function(defs, name, join, contains)
+local pwhere = function(defs, name, join, contains)
   if not defs and not contains then return {} end
   local where = {}
 
@@ -130,13 +133,13 @@ M.where = function(defs, name, join, contains)
   end
 
   if contains then
-    table.insert(where, M.contains(contains))
+    table.insert(where, pcontains(contains))
   end
 
   return "where " .. table.concat(where, " and ")
 end
 
-M.limit = function(defs)
+local plimit = function(defs)
   if not defs then return {} end
   local type = type(defs)
   local limit
@@ -154,26 +157,15 @@ end
 
 --- format set part of sql statement, usually used with update method.
 ---@params defs table: key/value pairs defining sqlite table keys.
-M.set = function(defs)
+local pset = function(defs)
   if not defs then return {} end
   return "set " .. bind{ kv = defs, nonbind = true }
-end
-
---- select method specfic format
----@params defs table: key/value pairs defining sqlite table keys.
----@params name string: the name of the sqlite table
----@params unique string: the name of the sqlite column to uniquify (not practical)
-M.select = function(name, defs, unique)
-  -- TODO: works for a single key
-  local cmd = unique and "select distinct %s" or "select %s"
-  defs = u.is_tbl(defs) and table.concat(defs, ", ") or "*"
-  return string.format(cmd .. " from %s", defs, name)
 end
 
 --- format join part of a sql statement.
 ---@params defs table: key/value pairs defining sqlite table keys.
 ---@params name string: the name of the sqlite table
-M.join = function(defs, name)
+local pjoin = function(defs, name)
   if not defs or not name then return {} end
   local target
 
@@ -197,26 +189,8 @@ M.join = function(defs, name)
   return string.format("inner join %s on %s %s", target, on, select)
 end
 
-M.create = function(name, defs)
-  if not defs then return {} end
-  -- TODO: make the order of keys matach the keys as they order in the table
-  -- maybe not important
-  name = defs.ensure and "if not exists " .. name or name
-  defs.ensure = nil
-
-  local items = {}
-  for k, v in u.opairs(defs) do
-    if type(v) ~= "table" then
-      table.insert(items, string.format("%s %s", k, v))
-    else
-      table.insert(items, string.format("%s %s", k, table.concat(v, " ")))
-    end
-  end
-
-  return string.format("create table %s(%s)", name, table.concat(items, ", "))
-end
-
-M.order_by = function(defs) -- TODO: what if nulls? should append "nulls last"
+local porder_by = function(defs)
+  -- TODO: what if nulls? should append "nulls last"
   if not defs then return {} end
   local items = {}
   for v, k in u.opairs(defs) do
@@ -232,38 +206,88 @@ M.order_by = function(defs) -- TODO: what if nulls? should append "nulls last"
   return string.format("order by %s", table.concat(items, ", "))
 end
 
+local partial = function(method, tbl, opts)
+  opts = opts or {}
+  return table.concat(u.flatten{
+    method,
+    pkeys(opts.values),
+    pvalues(opts.values, opts.named),
+    pset(opts.set),
+    pwhere(opts.where, tbl, opts.join, opts.contains),
+    porder_by(opts.order_by),
+    plimit(opts.limit),
+  }, " ")
+end
 
-return (function()
-  local partial = function(method)
-    return function(tbl, o)
-      o = o or {}
-      local switch = {
-        ["insert"] = function() return string.format("insert into %s", tbl) end,
-        ["delete"] = function() return string.format("delete from %s", tbl) end,
-        ["update"] = function() return string.format("update %s", tbl) end,
-        ["select"] = function() return M.select(tbl, o.select, o.unique) end,
-        ["create"] = function() return M.create(tbl, o) end
-      }
+--- parse select statement to extracts data from a database
+---@param tbl string: table name
+---@param opts table: lists of options: valid{ select, join, order_by, limit, where }
+---@return string: the select sql statement.
+M.select = function(tbl, opts)
+  opts = opts or {}
+  local cmd = opts.unique and "select distinct %s" or "select %s"
+  local select = u.is_tbl(opts.select) and table.concat(opts.select, ", ") or "*"
+  local stmt = string.format(cmd .. " from %s", select, tbl)
+  local method = opts.join and stmt .. " " .. pjoin(opts.join, tbl) or stmt
+  return partial(method, tbl, opts)
+end
 
-      return table.concat(u.flatten{
-        switch[method](),
-        M.join(o.join, tbl),
-        M.keys(o.values),
-        M.values(o.values, o.named),
-        M.set(o.set),
-        M.where(o.where, tbl, o.join, o.contains),
-        M.order_by(o.order_by),
-        M.limit(o.limit),
-      }, " ")
+--- parse select statement to update data in the database
+---@param tbl string: table name
+---@param opts table: lists of options: valid{ set, where }
+---@return string: the update sql statement.
+M.update = function(tbl, opts)
+  local method = string.format("update %s", tbl)
+  return partial(method, tbl, opts)
+end
+
+--- parse insert statement to insert data into a database
+---@param tbl string: table name
+---@param opts table: lists of options: valid{ where }
+---@return string: the insert sql statement.
+M.insert = function(tbl, opts)
+ local method = string.format("insert into %s", tbl)
+  return partial(method, tbl, opts)
+end
+
+--- parse delete statement to deletes data from a database
+---@param tbl string: table name
+---@param opts table: lists of options: valid{ where }
+---@return string: the delete sql statement.
+M.delete = function(tbl, opts)
+  opts = opts or {}
+  local method = string.format("delete from %s", tbl)
+  local where = pwhere(opts.where)
+  return type(where) == "string" and method .. " " .. where or method
+end
+
+--- parse table create statement
+---@param tbl string: table name
+---@param defs table: keys and type pairs
+---@return string: the create sql statement.
+M.create = function(tbl, defs)
+  if not defs then return end
+  local items = {}
+
+  tbl = defs.ensure and "if not exists " .. tbl or tbl
+  defs.ensure = nil
+
+  for k, v in u.opairs(defs) do
+    if type(v) ~= "table" then
+      table.insert(items, string.format("%s %s", k, v))
+    else
+      table.insert(items, string.format("%s %s", k, table.concat(v, " ")))
     end
   end
-  return {
-    select = partial("select"), -- extracts data from a database
-    update = partial("update"), -- updates data in a database
-    delete = partial("delete"), -- deletes data from a database
-    insert = partial("insert"), -- inserts new data into a database
-    create = partial("create"), -- creates a new table
-    alter  = partial("alter"),  -- modifies a table
-    drop   = partial("drop"),   -- deletes a table
-  }
-end)()
+
+  return string.format("create table %s(%s)", tbl, table.concat(items, ", "))
+end
+
+--- parse table drop statement
+---@param tbl string: table name
+---@return string: the drop sql statement.
+M.drop  = function(tbl)
+  return string.format("drop %s", tbl)
+end
+
+return M
