@@ -1,6 +1,7 @@
 local clib = require'sql.defs'
 local stmt = require'sql.stmt'
 local u = require'sql.utils'
+local P = require'sql.parser'
 local flags = clib.flags
 local sql = {}
 sql.__index = sql
@@ -236,119 +237,19 @@ function sql:eval(statement, params)
   return ret
 end
 
-local parse_keys = function(values)
-  if not values then return end
-  local t = u.is_nested(values) and values[1] or values
-  local keys = u.keynames(t)
-  return string.format("(%s)", type(keys) == "string" and keys or table.concat(keys, ","))
-end
-
-local parse_values = function(plh, values)
-  if not plh or not values then return end
-  local t = u.is_nested(values) and values[1] or values
-  local keys = u.keynames(t, true)
-  local keynames = type(keys) == "string" and keys or table.concat(keys, ",")
-  return string.format("values(%s)", keynames)
-end
-
-local parse_set = function(t)
-  if not t then return end
-  t = u.keys(t)
-  local set = {}
-  for _, v in pairs(t) do
-    table.insert(set, v .. " = :" .. v)
-  end
-  return "set " .. table.concat(set, ",")
-end
-
-local parse_where = function(t, name, join)
-  if not t then return end
-  t = u.keys(t)
-  local where = {}
-  for _, v in pairs(t) do
-    if join then
-      table.insert(where, name .. "." .. v .. " = :" .. v)
-    else
-      table.insert(where, v .. " = :" .. v)
-    end
-  end
-  return "where " .. table.concat(where, ", ")
-end
-
-local parse_select = function(t, name)
-  t = u.is_tbl(t) and table.concat(t, ", ") or "* "
-  return "select " .. t .. " from " .. name
-end
-
-local parse_join = function(join, tbl)
-  if not join or not tbl then return {} end
-  local target
-  local on = (function()
-    for k, v in pairs(join) do
-      if k ~= tbl then
-        target = k
-        return string.format("%s.%s =", k, v)
-      end
-    end
-  end)()
-  local select = (function()
-    for k, v in pairs(join) do
-      if k == tbl then
-        return string.format("%s.%s", k, v)
-      end
-    end
-  end)()
-  return string.format("inner join %s on %s %s", target, on, select)
-end
-
---- Internal function for parsing
----@params act string: the sqlite action [insert, delete, update, drop, create]
-function sql:parse(act, o)
-  local tbl
-  act = act == "insert" and "insert into" or act
-  act = act == "delete" and "delete from" or act
-  if act == "select" then
-    act = parse_select(o.select, o.tbl)
-    tbl = o.tbl
-    o.tbl = nil
-  end
-  local t = u.flatten{
-    act,
-    o.tbl and o.tbl or "",
-    parse_join(o.join, tbl),
-    parse_keys(o.values),
-    parse_values(o.placeholders, o.values),
-    parse_set(o.set),
-    parse_where(o.where, tbl, o.join),
-  }
-  local ret = table.concat(t, " ")
-  return ret
-end
-
 ------------------------------------------------------------
 -- Sugur over eval function.
 ------------------------------------------------------------
 
-local assert_tbl = function(self, tbl)
+local assert_tbl = function(self, tbl, method)
   assert(self:exists(tbl),
-    string.format("sql.nvim: can't insert to non-existence table: '%s'.",
-    tbl
+    string.format("sql.nvim: %s table doesn't exists. %s failed.",
+    tbl, method
   ))
 end
 
 local fail_on_wrong_input = function(ret_vals)
   assert(#ret_vals > 0, 'sql.nvim: can\'t parse your input. Make sure it use that function correct')
-end
-
---- WIP: Execute a complex queries against a table. e.g. contains, is,
----@usage `db:query("todos", {:contains "conni"})`
----@usage `db:query("todos", {:is {deadline = 2021})`
----@usage `db:query("todos", {:not {title = "X"})` < function(t) return t ~= end
----@usage `db:query("any", {:deadline function(d) return d < 2021 end})`
----@todo write function specification.
----@return table
-function sql:query(...)
-  -- {tbl = "todos", deadline = "today"}
 end
 
 --- Insert to lua table into sqlite database table.
@@ -363,31 +264,33 @@ end
 function sql:insert(...)
   local args = {...}
   local ret_vals = {}
-
+  local istbl = function(tbl)
+    return assert_tbl(self, tbl, "insert")
+  end
   local inner_eval = function(tbl, p)
-    return self:eval(self:parse("insert", {
-      tbl = tbl,
+    local sqlstmt = P.insert(tbl, {
       values = p,
-      placeholders = true,
-    }), p)
+      named = true,
+    })
+    return self:eval(sqlstmt, p)
   end
 
   if u.is_str(args[1]) then
     local tbl = args[1]
     local params = args[2]
-    assert_tbl(self, tbl)
+    istbl(tbl)
     table.insert(ret_vals, inner_eval(tbl, params))
   elseif u.is_str(args[1][1]) then
     local tbls = args[1]
     for k, tbl in ipairs(tbls) do
-      assert_tbl(self, tbl)
+      istbl(tbl)
       local params = args[k + 1]
       table.insert(ret_vals, inner_eval(tbl, params))
     end
   elseif args[1][2] == nil then
     local tbls = u.keys(args[1])
     for _, tbl in ipairs(tbls) do
-      assert_tbl(self, tbl)
+      istbl(tbl)
       local params = args[1][tbl]
       table.insert(ret_vals, inner_eval(tbl, params))
     end
@@ -409,17 +312,21 @@ function sql:add(...) return sql:insert(...) end
 function sql:update(...)
   local args = {...}
   local ret_vals = {}
+  local istbl = function(tbl)
+    return assert_tbl(self, tbl, "update")
+  end
 
   local inner_eval = function(tbl, p)
-    return self:eval(self:parse("update", {
-      tbl = tbl,
+    local sqlstmt = P.update(tbl, {
       set = p.values,
       where = p.where,
-      placeholders = true,
-    }), u.tbl_extend('force', p.values, p.where))
+      named = true,
+    })
+    return self:eval(sqlstmt, p and p.values)
   end
 
   local unwrap_params = function(tbl, params)
+    if not params then return end
     if params[1] then
       for _, p in ipairs(params) do
         table.insert(ret_vals, inner_eval(tbl, p))
@@ -432,25 +339,25 @@ function sql:update(...)
   if u.is_str(args[1]) then
     local tbl = args[1]
     local params = args[2]
-    assert_tbl(self, tbl)
+    istbl(tbl)
     unwrap_params(tbl, params)
   elseif u.is_str(args[1][1]) then
     local tbls = args[1]
     for k, tbl in ipairs(tbls) do
-      assert_tbl(self, tbl)
+      istbl(tbl)
       local params = args[k + 1]
       unwrap_params(tbl, params)
     end
   elseif args[1][2] == nil then
     local tbls = u.keys(args[1])
     for _, tbl in ipairs(tbls) do
-      assert_tbl(self, tbl)
+      istbl(tbl)
       local params = args[1][tbl]
       unwrap_params(tbl, params)
     end
   end
 
-  fail_on_wrong_input(ret_vals)
+  -- fail_on_wrong_input(ret_vals)
   return u.all(ret_vals, function(_, v) return v end)
 end
 
@@ -463,31 +370,33 @@ end
 function sql:delete(...)
   local args = {...}
   local ret_vals = {}
-
+  local istbl = function(tbl)
+    return assert_tbl(self, tbl, "delete")
+  end
   local inner_eval = function(tbl, p)
-    return self:eval(self:parse("delete", {
-      tbl = tbl,
+    local sqlstmt = P.delete(tbl, {
       where = p and p.where or nil,
-      placeholders = true,
-    }), p and p.where or nil)
+      named = true,
+    })
+    return self:eval(sqlstmt)
   end
 
   if u.is_str(args[1]) then
     local tbl = args[1]
-    assert_tbl(self, tbl)
+    istbl(tbl)
     local params = args[2]
     table.insert(ret_vals, inner_eval(tbl, params))
   elseif u.is_str(args[1][1]) then
     local tbls = args[1]
     for k, tbl in ipairs(tbls) do
-      assert_tbl(self, tbl)
+      istbl(tbl)
       local params = args[k + 1]
       table.insert(ret_vals, inner_eval(tbl, params))
     end
   elseif args[1][2] == nil then
     local tbls = u.keys(args[1])
     for _, tbl in ipairs(tbls) do
-      assert_tbl(self, tbl)
+      istbl(tbl)
       local params = args[1][tbl]
       table.insert(ret_vals, inner_eval(tbl, params))
     end
@@ -502,27 +411,31 @@ end
 ---@usage db:get("todos", { where = { id = 1 })
 ---@usage db:get{ todos = { where = { id = 1 } }}
 -- @return lua list of matching rows
-function sql:get(...)
+function sql:select(...)
   local args = {...}
   local ret_vals = {}
+  local istbl = function(tbl)
+    return assert_tbl(self, tbl, "select")
+  end
 
   local inner_eval = function(tbl, p)
-    return self:eval(self:parse("select", {
-      tbl = tbl,
+    local sqlstmt = P.select(tbl, {
       select = p and p.select or nil,
       where = p and p.where or nil,
       join = p and p.join or nil,
-      placeholders = true,
-    }), p and p.where)
+      named = true,
+    })
+    return self:eval(sqlstmt)
   end
 
   if u.is_str(args[1]) then
     local tbl = args[1]
-    assert_tbl(self, tbl)
+    istbl(tbl)
     local params = args[2]
     table.insert(ret_vals, inner_eval(tbl, params))
   elseif u.is_tbl(args[1]) then
     local tbl = u.keys(args[1])[1]
+    istbl(tbl)
     local params = args[1][tbl]
     table.insert(ret_vals, inner_eval(tbl, params))
   end
@@ -535,8 +448,11 @@ function sql:get(...)
   end
 end
 
---- Equivalent to |sql:get|
-function sql:find(...) return sql:get(...) end
+--- Equivalent to |sql:insert|
+function sql:find(...) return self:select(...) end
+
+--- Equivalent to |sql:insert|
+function sql:get(...) return self:select(...) end
 
 --- Check if a table with {name} exists in sqlite db
 function sql:exists(name)
