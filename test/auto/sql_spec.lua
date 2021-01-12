@@ -218,7 +218,9 @@ describe("sql", function()
       res = db:eval("select * from todos where id = ?",  1)
       eq(row[1], res[1], "with single value")
     end)
-
+    it('return the lua table with where and or', function()
+      eq(row, db:eval("select * from todos where id = 1 or id = 2 or id = 3"))
+    end)
     it('update by id', function()
       eq(true, db:eval("update todos set desc = :desc where id = :id", {
         id = 1,
@@ -237,6 +239,7 @@ describe("sql", function()
     end)
     db:close()
   end)
+
   describe(':insert', function()
     local db = sql:open()
     assert(db:eval("create table todos(title text, desc text)"))
@@ -647,6 +650,9 @@ describe("sql", function()
         eq(false, v.name == 'Alpha' or v.name == 'Beta' or v.name == 'lost count :P')
       end
       db:eval("delete from todos")
+    end)
+    it('skip updating if opts is nil', function()
+      db:update("todos")
     end)
     db:close()
   end)
