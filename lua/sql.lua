@@ -28,6 +28,8 @@ function sql:__connect()
     self.created = os.date('%Y-%m-%d %H:%M:%S')
     self.conn = conn[0]
     self.closed = false
+    clib.exec(self.conn,"pragma synchronous = off", nil, nil, nil)
+    clib.exec(self.conn,"pragma journal_mode = wal", nil, nil, nil)
   else
     error(string.format("sql.nvim: couldn't connect to sql database, ERR:", code))
   end
@@ -160,7 +162,7 @@ end
 ---@param statement string: statement to be executed.
 ---@return table: stmt object
 function sql:__exec(statement)
-  return clib.exec(self.db, statement, nil, nil, nil)
+  return clib.exec(self.conn, statement, nil, nil, nil)
 end
 
 --- Evaluate {statement} and returns true if successful else error-out.
