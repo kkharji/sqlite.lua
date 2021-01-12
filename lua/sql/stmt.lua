@@ -300,6 +300,29 @@ local bind_type_to_func = {
 ---@see Stmt:bind
 function Stmt:bind(...)
   local args = {...}
+  -- bind by table
+  if type(args[1]) == "table" then
+    local names = args[1]
+    local parameter_index_cache = {}
+    local anon_indices = {}
+    for i = 1, self:nparam() do
+      local name = self:param(i)
+      if name == '?' then
+        table.insert(anon_indices, i)
+      else
+        parameter_index_cache[name:sub(2, -1)] = i
+      end
+    end
+
+    for k, v in pairs(names) do
+      local index = parameter_index_cache[k] or table.remove(anon_indices, 1)
+      local ret = self:bind(index, v)
+      if ret ~= flags.ok then return ret end -- TODO(conni): should we error out ?
+    end
+    return flags.ok
+  end
+
+  -- bind by index
   if type(args[1]) == "number" and args[2] then
     local idx, value = args[1], args[2]
     local func = bind_type_to_func[type(value)]
@@ -321,28 +344,6 @@ function Stmt:bind(...)
         return sqlite['bind_' .. func](self.pstmt, idx)
       end
     end
-
-  elseif type(args[1]) == "table" then
-    local names = args[1]
-    local parameter_index_cache = {}
-    local anon_indices = {}
-    for i = 1, self:nparam() do
-      local name = self:param(i)
-      if name == '?' then
-        table.insert(anon_indices, i)
-      else
-        parameter_index_cache[name:sub(2, -1)] = i
-      end
-    end
-
-    for k, v in pairs(names) do
-      local index = parameter_index_cache[k] or table.remove(anon_indices, 1)
-      local ret = self:bind(index, v)
-      if ret ~= flags.ok then return ret end -- TODO(conni): should we error out ?
-    end
-    return flags.ok
-  else
-    error("Wrong number of arguments.")
   end
 end
 
