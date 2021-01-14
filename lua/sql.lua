@@ -13,10 +13,22 @@ local booleansql = function(value) -- TODO: should be done a clib level
   return value
 end
 
+local fail_on_wrong_input = function(ret_vals)
+  assert(#ret_vals > 0, 'sql.nvim: can\'t parse your input. Make sure it use that function correct')
+end
+
+-- TODO: should move to utils?
+local assert_tbl = function(self, tbl, method)
+  assert(self:exists(tbl),
+  string.format("sql.nvim: %s table doesn't exists. %s failed.",
+  tbl, method
+  ))
+end
+
 function sql:__wrap_stmts(fn)
-  clib.exec(self.conn,"BEGIN", nil, nil, nil)
+  self:__exec("BEGIN")
   fn()
-  clib.exec(self.conn, "COMMIT", nil, nil, nil)
+  self:__exec("COMMIT")
   return
 end
 
@@ -40,30 +52,6 @@ function sql:__connect()
   else
     error(string.format("sql.nvim: couldn't connect to sql database, ERR:", code))
   end
-end
-
---- Wrapper around stmt module for convenience.
----@param statement string: statement to be parsed.
----@return table: stmt object
-function sql:__parse(statement) return stmt:parse(self.conn, statement) end
-
---- wrapper around clib.exec for convenience.
----@param statement string: statement to be executed.
----@return table: stmt object
-function sql:__exec(statement)
-  return clib.exec(self.conn, statement, nil, nil, nil)
-end
-
---- Creates a new sql.nvim object, without creating a connection to uri
---- |sql.new| is identical to |sql.open| but it without opening sqlite db connection.
----@param uri string: if uri is nil, then create in memory database.
----@usage `sql.new()`
----@usage `sql.new("./path/to/sql.sqlite")`
----@usage `sql:new("$ENV_VARABLE")`
----@return table: sql.nvim object
----@see |sql.open|
-function sql.new(uri)
-  return sql:open(uri, true)
 end
 
 --- Connect, or create new sqlite db, either in memory or via a {uri}.
@@ -101,6 +89,19 @@ function sql:open(uri, noconn)
   return o
 end
 
+--- closes sqlite db connection.
+---@usage `db:close()`
+---@return boolean: true if closed, error otherwise.
+---@todo: add checks for db connection status and statement status before closing.
+function sql:close()
+  self.closed = clib.close(self.conn) == 0
+  assert(self.closed, string.format(
+    "sql.nvim: database connection didn't get closed, ERRMSG: %s",
+    self:__last_errmsg()
+  ))
+  return self.closed
+end
+
 --- Same as |sql:open| but closes db connection after executing {args[1]} or
 --- {args[2]} depending of how its called. if the function is called as a
 --- method to db object e.g. *db:with_open*, then {args[1]} must be a function.
@@ -127,41 +128,6 @@ function sql:with_open(...)
   self:close()
   return self
 end
-
---- closes sqlite db connection.
----@usage `db:close()`
----@return boolean: true if closed, error otherwise.
----@todo: add checks for db connection status and statement status before closing.
-function sql:close()
-  self.closed = clib.close(self.conn) == 0
-  assert(self.closed, string.format(
-    "sql.nvim: database connection didn't get closed, ERRMSG: %s",
-    self:__last_errmsg()
-  ))
-  return self.closed
-end
-
---- Get last error msg
----@return string: sqlite error msg
-function sql:__last_errmsg() return clib.to_str(clib.errmsg(self.conn)) end
-
---- Get last error code
----@return number: sqlite error number
-function sql:__last_errcode() return clib.errcode(self.conn) end
-
---- predict returning true if db connection is active.
----@return boolean: true if db is opened, otherwise false.
-function sql:isopen() return not self.closed end
-
---- predict returning true if db connection is deactivated.
----@return boolean: true if db is close, otherwise false.
-function sql:isclose() return self.closed end
-
---- Returns current connection status
---- Get last error code
----@todo: decide whether to keep this function
----@return table: msg,code,closed
-function sql:status() return { msg = self:__last_errmsg(), code = self:__last_errcode() } end
 
 --- Main sqlite interface. This function evaluates {statement} and if there are
 --- results from evaluating it then the function returns list of row(s). Else, it
@@ -226,16 +192,47 @@ function sql:eval(statement, params)
   return res
 end
 
-local assert_tbl = function(self, tbl, method)
-  assert(self:exists(tbl),
-    string.format("sql.nvim: %s table doesn't exists. %s failed.",
-    tbl, method
-  ))
-end
+--- Wrapper around stmt module for convenience.
+---@param statement string: statement to be parsed.
+---@return table: stmt object
+function sql:__parse(statement) return stmt:parse(self.conn, statement) end
 
-local fail_on_wrong_input = function(ret_vals)
-  assert(#ret_vals > 0, 'sql.nvim: can\'t parse your input. Make sure it use that function correct')
-end
+--- wrapper around clib.exec for convenience.
+---@param statement string: statement to be executed.
+---@return table: stmt object
+function sql:__exec(statement) return clib.exec(self.conn, statement, nil, nil, nil) end
+
+--- Creates a new sql.nvim object, without creating a connection to uri
+--- |sql.new| is identical to |sql.open| but it without opening sqlite db connection.
+---@param uri string: if uri is nil, then create in memory database.
+---@usage `sql.new()`
+---@usage `sql.new("./path/to/sql.sqlite")`
+---@usage `sql:new("$ENV_VARABLE")`
+---@return table: sql.nvim object
+---@see |sql.open|
+function sql.new(uri) return sql:open(uri, true) end
+
+--- Get last error msg
+---@return string: sqlite error msg
+function sql:__last_errmsg() return clib.to_str(clib.errmsg(self.conn)) end
+
+--- Get last error code
+---@return number: sqlite error number
+function sql:__last_errcode() return clib.errcode(self.conn) end
+
+--- predict returning true if db connection is active.
+---@return boolean: true if db is opened, otherwise false.
+function sql:isopen() return not self.closed end
+
+--- predict returning true if db connection is deactivated.
+---@return boolean: true if db is close, otherwise false.
+function sql:isclose() return self.closed end
+
+--- Returns current connection status
+--- Get last error code
+---@todo: decide whether to keep this function
+---@return table: msg,code,closed
+function sql:status() return { msg = self:__last_errmsg(), code = self:__last_errcode() } end
 
 --- Insert to lua table into sqlite database table.
 ---@params tbl string: the table name
@@ -255,7 +252,7 @@ function sql:insert(tbl, rows)
   end
 
   self:__wrap_stmts(function()
-    s = self:__parse(P.insert(tbl, { values = tbl_keys }))
+    local s = self:__parse(P.insert(tbl, { values = tbl_keys }))
     rows = u.is_nested(rows) and rows or {rows}
     for _, v in ipairs(rows) do
       s:bind(v)
