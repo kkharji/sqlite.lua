@@ -4,20 +4,11 @@ local bit = require'bit'
 local M = {}
 
 local clib_path = vim.g.sql_clib_path or (function()
-  local file_exists = function(path)
-    return vim.loop.fs_stat(path) ~= nil
+  if vim.loop.os_uname().sysname == 'Darwin' then
+    return '/usr/local/opt/sqlite3/lib/libsqlite3.dylib'
   end
-
-  if file_exists("/usr/lib/libsqlite3.so") then
-    return "/usr/lib/libsqlite3.so"
-  elseif file_exists("/usr/lib64/libsqlite3.so") then
-    return "/usr/lib64/libsqlite3.so"
-  elseif file_exists("/usr/lib/x86_64-linux-gnu/libsqlite3.so") then
-    return "/usr/lib/x86_64-linux-gnu/libsqlite3.so"
-  end
-  return nil
+  return 'libsqlite3'
 end)()
-
 local clib = ffi.load(clib_path)
 
 -- Constants
@@ -154,6 +145,13 @@ M.flags['open_sharedcache']   = 0x00020000
 M.flags['open_privatecache']  = 0x00040000
 M.flags['open_wal']           = 0x00080000
 M.flags['open_nofollow']      = 0x01000000
+
+-- Fundamental Datatypes
+M.flags['integer'] = 1
+M.flags['float']   = 2
+M.flags['text']    = 3
+M.flags['blob']    = 4
+M.flags['null']    = 5
 
 -- Types
 ffi.cdef[[
@@ -381,16 +379,6 @@ ffi.cdef[[
   int sqlite3_result_zeroblob64(sqlite3_context*, sqlite3_uint64 n);
 
   void sqlite3_result_subtype(sqlite3_context*,unsigned int);
-
-  int sqlite3_create_collation(sqlite3*, const char *zName, int eTextRep, void *pArg,
-                  int(*xCompare)(void*,int,const void*,int,const void*));
-  int sqlite3_create_collation_v2(sqlite3*, const char *zName, int eTextRep, void *pArg,
-                  int(*xCompare)(void*,int,const void*,int,const void*), void(*xDestroy)(void*));
-  int sqlite3_create_collation16(sqlite3*, const void *zName, int eTextRep, void *pArg,
-                  int(*xCompare)(void*,int,const void*,int,const void*));
-
-  int sqlite3_collation_needed(sqlite3*, void*, void(*)(void*,sqlite3*,int eTextRep,const char*));
-  int sqlite3_collation_needed16(sqlite3*, void*, void(*)(void*,sqlite3*,int eTextRep,const void*));
 
   int sqlite3_sleep(int);
 
