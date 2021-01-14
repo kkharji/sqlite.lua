@@ -506,5 +506,64 @@ describe("sql", function()
 
     db:close()
   end)
+  describe(':schema', function()
+    local db = sql.open()
+    db:eval("create test(a text, b int)")
+
+    it('gets a sql table schema', function()
+      local sch = db:schema("test")
+      eq({ a = "text", b = "int" }, sch)
+    end)
+
+    it('gets a sql table schema keys only', function()
+      local sch = db:schema("test", true)
+      eq({"a", "b"}, sch)
+    end)
+
+    db:close()
+  end)
+
+  describe(':create', function()
+    local db = sql.open()
+
+    it('create a new sqlite table, and return true', function()
+      eq(false, db:exists("test"))
+      db:create("test", {
+        id = {"integer", "primary", "key"},
+        title = "text",
+        desc = "text",
+        created = "int",
+        done = {"int", "not", "null", "default", 0},
+      })
+      eq(true, db:exists("test"))
+    end)
+
+    it("won't override the table schema if it exists", function()
+      db:create("test", {id = "not_a_type", ensure = true})
+      local sch = db:schema("test")
+      eq("text", sch.title, "should not be nil")
+    end)
+    db:close()
+  end)
+
+  describe(':drop', function()
+    local db = sql.open()
+
+    it('should drop empty tables.', function()
+      db:create("test", { a = "text", b = "int" })
+      eq(true, db:exists("test"), "should exists")
+      db:drop("test")
+      eq(true, not db:exists("test"), "shout be dropped")
+    end)
+
+    it('should drop non-empty tables.', function()
+      db:create("test", { a = "text", b = "int" })
+      db:eval("insert into test(a,b) values(?,?)", {"a", 3})
+      eq(true, db:exists("test"), "should exists")
+      db:drop("test")
+      eq(true, not db:exists("test"), "shout be dropped")
+    end)
+    db:close()
+  end)
 
 end)

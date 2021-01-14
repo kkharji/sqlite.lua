@@ -287,7 +287,7 @@ end
 ---@param tbl string: table name
 ---@return string: the drop sql statement.
 M.drop  = function(tbl)
-  return string.format("drop %s", tbl)
+  return string.format("drop table %s", tbl)
 end
 
 return M

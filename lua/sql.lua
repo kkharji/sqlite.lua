@@ -235,10 +235,49 @@ function sql:isclose() return self.closed end
 function sql:status() return { msg = self:__last_errmsg(), code = self:__last_errcode() } end
 
 --- Check if a table with {name} exists in sqlite db
+---@param name string: the table name.
+---@return boolean
 function sql:exists(name)
   local q = self:eval("select name from sqlite_master where name= ?", name)
   return type(q) == "table" and true or false
 end
+
+--- get sql table {name} schema.
+---@param tbl string: the table name
+---@param onlykeys boolean: whether to return a table of keys and their types. default false.
+---@return table: list of keys or keys and their type.
+function sql:schema(tbl, onlykeys)
+  local tbl_sch = self:eval(string.format("pragma table_info(%s)",  tbl))
+  if type(tbl_sch) == "boolean" then return end
+  if onlykeys then
+    local keys = {}
+    for _, v in ipairs(tbl_sch) do
+      table.insert(keys, v.name)
+    end
+    return keys
+  else
+    local key_types = {}
+    for _, v in ipairs(tbl_sch) do
+      key_types[v.name] = v.type
+    end
+    return key_types
+  end
+end
+
+--- Create a new sqlite db table with {name} based on {schema}. if {schema.ensure} then
+--- create only when it doesn't exists. similar to 'create if not exists'
+---@param name string: table name
+---@param schema table: the table keys/column and their types
+---@usage `db:create("todos", {id = {"int", "primary", "key"}, title = "text"})`
+---@return boolean
+function sql:create(name, schema) return self:eval(P.create(name, schema)) end
+
+--- Create a new sqlite db table with {name} based on {schema}. if {schema.ensure} then
+--- create only when it doesn't exists. similar to 'create if not exists'
+---@param name string: table name
+---@usage `db:drop("todos")`
+---@return boolean
+function sql:drop(name) return self:eval(P.drop(name)) end
 
 --- Insert to lua table into sqlite database table.
 ---@params tbl string: the table name
@@ -249,13 +288,8 @@ end
 ---@todo handle inconflict case
 function sql:insert(tbl, rows)
   assert_tbl(self, tbl, "insert")
-  local tbl_sch = self:eval(string.format("pragma table_info(%s)",  tbl))
-  local tbl_keys = {}
+  local tbl_keys = self:schema(tbl)
   local succ
-
-  for _, v in ipairs(tbl_sch) do
-    tbl_keys[v.name] = 'null'
-  end
 
   self:__wrap_stmts(function()
     local s = self:__parse(P.insert(tbl, { values = tbl_keys }))
