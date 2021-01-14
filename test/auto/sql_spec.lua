@@ -506,9 +506,10 @@ describe("sql", function()
 
     db:close()
   end)
+
   describe(':schema', function()
     local db = sql.open()
-    db:eval("create test(a text, b int)")
+    db:eval("create table test(a text, b int)")
 
     it('gets a sql table schema', function()
       local sch = db:schema("test")
