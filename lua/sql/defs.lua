@@ -165,8 +165,6 @@ ffi.cdef[[
   typedef sqlite_int64 sqlite3_int64;
   typedef sqlite_uint64 sqlite3_uint64;
 
-  typedef int (*sqlite3_callback)(void*,int,char**, char**);
-
   typedef struct sqlite3_file sqlite3_file;
   typedef struct sqlite3_stmt sqlite3_stmt;
 
@@ -174,7 +172,6 @@ ffi.cdef[[
   typedef struct sqlite3_context sqlite3_context;
 
   typedef struct sqlite3_vtab sqlite3_vtab;
-  typedef struct sqlite3_index_info sqlite3_index_info;
   typedef struct sqlite3_vtab_cursor sqlite3_vtab_cursor;
 
   typedef struct sqlite3_blob sqlite3_blob;
@@ -222,18 +219,6 @@ ffi.cdef[[
 
   int sqlite3_get_table(sqlite3 *db, const char *zSql, char ***pazResult, int *pnRow, int *pnColumn, char **pzErrmsg);
   void sqlite3_free_table(char **result);
-
-  char *sqlite3_mprintf(const char*,...);
-  char *sqlite3_vmprintf(const char*, va_list);
-  char *sqlite3_snprintf(int,char*,const char*, ...);
-  char *sqlite3_vsnprintf(int,char*,const char*, va_list);
-
-  void *sqlite3_malloc(int);
-  void *sqlite3_malloc64(sqlite3_uint64);
-  void *sqlite3_realloc(void*, int);
-  void *sqlite3_realloc64(void*, sqlite3_uint64);
-  void sqlite3_free(void*);
-  sqlite3_uint64 sqlite3_msize(void*);
 
   sqlite3_int64 sqlite3_memory_used(void);
   sqlite3_int64 sqlite3_memory_highwater(int resetFlag);
@@ -341,21 +326,6 @@ ffi.cdef[[
 
   int sqlite3_finalize(sqlite3_stmt *pStmt);
   int sqlite3_reset(sqlite3_stmt *pStmt);
-
-  int sqlite3_create_function(sqlite3 *db, const char *zFunctionName, int nArg, int eTextRep, void *pApp,
-                  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
-                  void (*xStep)(sqlite3_context*,int,sqlite3_value**), void (*xFinal)(sqlite3_context*));
-  int sqlite3_create_function16(sqlite3 *db, const void *zFunctionName, int nArg, int eTextRep, void *pApp,
-                  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
-                  void (*xStep)(sqlite3_context*,int,sqlite3_value**), void (*xFinal)(sqlite3_context*));
-  int sqlite3_create_function_v2(sqlite3 *db, const char *zFunctionName, int nArg, int eTextRep, void *pApp,
-                  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
-                  void (*xStep)(sqlite3_context*,int,sqlite3_value**), void (*xFinal)(sqlite3_context*),
-                  void(*xDestroy)(void*));
-  int sqlite3_create_window_function(sqlite3 *db, const char *zFunctionName, int nArg, int eTextRep, void *pApp,
-                  void (*xStep)(sqlite3_context*,int,sqlite3_value**), void (*xFinal)(sqlite3_context*),
-                  void (*xValue)(sqlite3_context*), void (*xInverse)(sqlite3_context*,int,sqlite3_value**),
-                  void(*xDestroy)(void*));
 
   const void *sqlite3_value_blob(sqlite3_value*);
   double sqlite3_value_double(sqlite3_value*);
