@@ -170,9 +170,6 @@ ffi.cdef[[
   typedef struct sqlite3_file sqlite3_file;
   typedef struct sqlite3_io_methods sqlite3_io_methods;
 
-  typedef struct sqlite3_api_routines sqlite3_api_routines;
-
-  typedef struct sqlite3_vfs sqlite3_vfs;
   typedef void (*sqlite3_syscall_ptr)(void);
 
   typedef struct sqlite3_mem_methods sqlite3_mem_methods;
@@ -486,10 +483,6 @@ ffi.cdef[[
   int sqlite3_blob_bytes(sqlite3_blob *);
   int sqlite3_blob_read(sqlite3_blob *, void *Z, int N, int iOffset);
   int sqlite3_blob_write(sqlite3_blob *, const void *z, int n, int iOffset);
-
-  sqlite3_vfs *sqlite3_vfs_find(const char *zVfsName);
-  int sqlite3_vfs_register(sqlite3_vfs*, int makeDflt);
-  int sqlite3_vfs_unregister(sqlite3_vfs*);
 
   int sqlite3_file_control(sqlite3*, const char *zDbName, int op, void*);
   int sqlite3_test_control(int op, ...);
