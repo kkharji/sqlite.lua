@@ -92,8 +92,8 @@ end
 --- closes sqlite db connection.
 ---@usage `db:close()`
 ---@return boolean: true if closed, error otherwise.
----@todo: add checks for db connection status and statement status before closing.
 function sql:close()
+  if self.closed then return true end
   self.closed = clib.close(self.conn) == 0
   assert(self.closed, string.format(
     "sql.nvim: database connection didn't get closed, ERRMSG: %s",
