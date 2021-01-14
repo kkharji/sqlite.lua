@@ -367,7 +367,7 @@ describe("sql", function()
       })
       db:delete('todos')
       local results = db:eval("select * from todos")
-      eq(false, type(results) == "table", "It should be inserted.")
+      eq(false, type(results) == "table", "It should be deleted.")
     end)
 
     it('works with table_name being and where', function()
@@ -375,7 +375,8 @@ describe("sql", function()
         {
           title = "TODO 1",
           desc = "................",
-        }, {
+        },
+        {
           title = "TODO 2",
           desc = "................",
         }
@@ -387,7 +388,7 @@ describe("sql", function()
       eq("................", results[1].desc)
     end)
 
-    it('delete multiple keys', function()
+    it('delete multiple keys with list of ors', function()
       db:insert("todos", {
         {
           title = "TODO 1",
@@ -398,17 +399,12 @@ describe("sql", function()
           desc = "................",
         }
       })
-      db:delete{
-        todos = {
-          { where = { title = "TODO 1" } },
-          { where = { title = "TODO 2" } }
-        }
-      }
+      db:delete("todos", { { where = { title = {"TODO 1", "TODO 2"} } } })
       local results = db:eval("select * from todos")
       eq(false, type(results) == "table")
     end)
 
-    it('delete multiple keys (with tbl_name being first param)', function()
+    it('delete multiple keys with dict for each conditions.', function()
       db:insert("todos", {
         {
           title = "TODO 1",

@@ -234,6 +234,12 @@ function sql:isclose() return self.closed end
 ---@return table: msg,code,closed
 function sql:status() return { msg = self:__last_errmsg(), code = self:__last_errcode() } end
 
+--- Check if a table with {name} exists in sqlite db
+function sql:exists(name)
+  local q = self:eval("select name from sqlite_master where name= ?", name)
+  return type(q) == "table" and true or false
+end
+
 --- Insert to lua table into sqlite database table.
 ---@params tbl string: the table name
 ---@params rows table: rows to insert to the table.
@@ -266,158 +272,83 @@ function sql:insert(tbl, rows)
   return succ
 end
 
---- Equivalent to |sql:insert|
-function sql:add(...) return sql:insert(...) end
-
---- Update table row under certine
----@varargs if {[1]} == table/content else table_name as {args[1]} and table to insert as {args[2]}.
----@return boolean: true incase the table was inserted successfully.
----@usage db:update("todos", { where = { id = "1" }, values = { action = "DONE" }})
----@usage db:update{ "todos" = { where = { deadline = "2021" }, values = { status = "overdue" }}}
----@todo support unnamed or anonymous args
-function sql:update(...)
-  local args = {...}
+--- Update table row with where closure and list of values
+---@param tbl string: the name of the db table.
+---@param specs table: a {spec} or a list of {specs} with where and values key.
+---@return boolean: true incase the table was updated successfully.
+---@usage `db:update("todos", { where = { id = "1" }, values = { action = "DONE" }})`
+function sql:update(tbl, specs)
+  assert_tbl(self, tbl, "update")
   local ret_vals = {}
-  local istbl = function(tbl)
-    return assert_tbl(self, tbl, "update")
-  end
+  if not specs then return false end
+  specs = u.is_nested(specs) and specs or {specs}
 
-  local inner_eval = function(tbl, p)
-    local sqlstmt = P.update(tbl, {
-      set = p.values,
-      where = p.where,
-      named = true,
-    })
-    return self:eval(sqlstmt, p and p.values)
-  end
-
-  local unwrap_params = function(tbl, params)
-    if not params then return end
-    if params[1] then
-      for _, p in ipairs(params) do
-        table.insert(ret_vals, inner_eval(tbl, p))
-      end
-    else
-      table.insert(ret_vals, inner_eval(tbl, params))
+  self:__wrap_stmts(function()
+    for _, v in ipairs(specs) do
+      local s = self:__parse(P.update(tbl, { set = v.values, where = v.where }))
+      s:bind(v.values)
+      s:step()
+      s:reset()
+      s:bind_clear()
+      table.insert(ret_vals, s:finalize())
     end
-  end
+  end)
 
-  if u.is_str(args[1]) then
-    local tbl = args[1]
-    local params = args[2]
-    istbl(tbl)
-    unwrap_params(tbl, params)
-  elseif u.is_str(args[1][1]) then
-    local tbls = args[1]
-    for k, tbl in ipairs(tbls) do
-      istbl(tbl)
-      local params = args[k + 1]
-      unwrap_params(tbl, params)
-    end
-  elseif args[1][2] == nil then
-    local tbls = u.keys(args[1])
-    for _, tbl in ipairs(tbls) do
-      istbl(tbl)
-      local params = args[1][tbl]
-      unwrap_params(tbl, params)
-    end
-  end
-
-  -- fail_on_wrong_input(ret_vals)
+  fail_on_wrong_input(ret_vals)
   return u.all(ret_vals, function(_, v) return v end)
 end
 
---- same as insert but, mutates the sql_table with the new changes
----@varargs if {[1]} == table/content else table_name as {args[1]} and table with where to delete as {args[2]}.
----@return boolean: true incase the table was inserted successfully.
+--- Delete a {tbl} row/rows based on the {specs} given. if no spec was given,
+--- then all the {tbl} content will be deleted.
+---@param tbl string: the name of the db table.
+---@param specs table: a {spec} or a list of {specs} with where and values key.
+---@return boolean: true if operation is successfully, false otherwise.
 ---@usage db:delete("todos")
 ---@usage db:delete("todos", { where = { id = 1 })
----@usage db:delete{ todos = { where = { id = 1 } }}
-function sql:delete(...)
-  local args = {...}
+---@usage db:delete("todos", { where = { id = {1,2,3} })
+function sql:delete(tbl, specs)
+  assert_tbl(self, tbl, "delete")
   local ret_vals = {}
-  local istbl = function(tbl)
-    return assert_tbl(self, tbl, "delete")
-  end
-  local inner_eval = function(tbl, p)
-    local sqlstmt = P.delete(tbl, {
-      where = p and p.where or nil,
-      named = true,
-    })
-    return self:eval(sqlstmt)
+  if not specs then
+    return self:__exec(P.delete(tbl)) == 0 and true or self:__last_errmsg()
   end
 
-  if u.is_str(args[1]) then
-    local tbl = args[1]
-    istbl(tbl)
-    local params = args[2]
-    table.insert(ret_vals, inner_eval(tbl, params))
-  elseif u.is_str(args[1][1]) then
-    local tbls = args[1]
-    for k, tbl in ipairs(tbls) do
-      istbl(tbl)
-      local params = args[k + 1]
-      table.insert(ret_vals, inner_eval(tbl, params))
+  specs = u.is_nested(specs) and specs or {specs}
+  self:__wrap_stmts(function()
+    for _, spec in ipairs(specs) do
+      local s = self:__parse(P.delete(tbl, { where = spec and spec.where or nil}))
+      s:step()
+      s:reset()
+      table.insert(ret_vals, s:finalize())
     end
-  elseif args[1][2] == nil then
-    local tbls = u.keys(args[1])
-    for _, tbl in ipairs(tbls) do
-      istbl(tbl)
-      local params = args[1][tbl]
-      table.insert(ret_vals, inner_eval(tbl, params))
-    end
-  end
+  end)
 
-  fail_on_wrong_input(ret_vals)
   return u.all(ret_vals, function(_, v) return v end)
 end
 
 --- Query from a table with where and join options
 ---@usage db:get("todos") -- everything
 ---@usage db:get("todos", { where = { id = 1 })
----@usage db:get{ todos = { where = { id = 1 } }}
 -- @return lua list of matching rows
-function sql:select(...)
-  local args = {...}
-  local ret_vals = {}
-  local istbl = function(tbl)
-    return assert_tbl(self, tbl, "select")
+function sql:select(tbl, spec)
+  assert_tbl(self, tbl, "select")
+  local ret = {}
+  if not spec then
+    return self:eval(P.select(tbl))
   end
 
-  local inner_eval = function(tbl, p)
-    local sqlstmt = P.select(tbl, {
-      select = p and p.select or nil,
-      where = p and p.where or nil,
-      join = p and p.join or nil,
-      named = true,
-    })
-    return self:eval(sqlstmt)
-  end
+  self:__wrap_stmts(function()
+    local s = self:__parse(P.select(tbl, {
+      select = spec and spec.select or nil,
+      where = spec and spec.where or nil,
+      join = spec and spec.join or nil,
+    }))
+    ret = s:kvrows()
+    s:reset()
+    s:finalize()
+  end)
 
-  if u.is_str(args[1]) then
-    local tbl = args[1]
-    istbl(tbl)
-    local params = args[2]
-    table.insert(ret_vals, inner_eval(tbl, params))
-  elseif u.is_tbl(args[1]) then
-    local tbl = u.keys(args[1])[1]
-    istbl(tbl)
-    local params = args[1][tbl]
-    table.insert(ret_vals, inner_eval(tbl, params))
-  end
-
-  fail_on_wrong_input(ret_vals)
-  if ret_vals[2] == nil and u.is_nested(ret_vals[1]) then
-    return ret_vals[1]
-  else
-    return ret_vals
-  end
-end
-
---- Check if a table with {name} exists in sqlite db
-function sql:exists(name)
-  local q = self:eval("select name from sqlite_master where name= ?", name)
-  return type(q) == "table" and true or false
+  return ret
 end
 
 return sql
