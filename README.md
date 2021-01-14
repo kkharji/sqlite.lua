@@ -30,10 +30,7 @@ welcomed. Issues, feature and suggestions are encouraged.
 - docs
 - better boolean interop.
 - better join support.
-- interface for creating and defining schemas.
-- interface for droping tables.
-- support opening db with readonly, and other options.
-- improve existing interfaces.
+- sql table object see https://github.com/tami5/sql.nvim/issues/18.
 
 Installation
 -----------------
@@ -49,10 +46,19 @@ add to sql.nvim lookup paths for `libsqlite3.so`.
 
 Usage
 -----------------
-> For more usage example, please review test/auto/ and docs/sql.txt.
+For more usage example, please review test/auto/ and docs/sql.txt.
 
+- [Connect to sqlite db]
+- [Open execute and close connection]
+- [Evaluate statements]
+- [Connection status]
+- [Tables]
+- [Query from a table]
+- [Insert into a table]
+- [Update rows in a table]
+- [Delete rows from a table]
 
-#### Create new db connection
+#### Connect to sqlite db
 
 ```lua
 local sql = require'sql'
@@ -62,22 +68,10 @@ local db = sql.open('/to/prexiting-db.sqlite3') -- pre-exiting sqlite database.
 local db = sql.new(...) 
 -- new creates new sql.nvim object but without opening/connect to the sqlite db, 
 -- i.e. requires `db:open()`
+db:close() -- closes connection 
 ```
 
-#### Check db connection status
-
-```lua
-db:isopen() -- return true if the db connection is active
-db:isclose() -- return true if the db connection is deactivated
-```
-
-#### Close db connection 
-
-```lua 
-db:close()
-```
-
-#### Open connection, execute a set of command then close
+#### Open execute and close connection 
 
 ```lua
 db:with_open(function(db) 
@@ -88,9 +82,11 @@ sql.with_open("/path/to/file", function(db)
   -- commands
 end)
 ```
-#### Evaluate sqlite statements.
+
+#### Evaluate statements
 
 ```lua
+-- Evaluate any valid sql statement.
 db:eval([[create table if not exists todos (
     id integer primary key, 
     action text, 
@@ -98,114 +94,123 @@ db:eval([[create table if not exists todos (
     project_id integer
 )]])
 
-db:eval([[create table if not exists projects (
-    id integer primary key, 
-    title text, due_date integer
-  )]])
+-- bind to unnamed values
+db:eval("select * from todos where id = ?", { 1 })
+db:eval("select * from todos where title = ?",  1)
 
-db:eval("/path/to/schema.sqlite3") -- WIP
+-- bind to named values
+db:eval("update todos set desc = :desc where id = :id", {
+  id = 1,
+  desc = "..."
+})
+
+-- WIP: evaluate a file with sql statements
+db:eval("/path/to/schema.sql")
+```
+
+#### Connection status
+
+```lua
+db:isopen() -- return true if the db connection is active
+db:isclose() -- return true if the db connection is deactivated
+db:status() -- returns last error msg and last error code
+```
+
+#### Tables
+
+```lua 
+-- create new table with schema
+db:create("tbl_name", {
+  id = {"integer", "primary", "key"},
+  title = "text",
+  desc = "text",
+  created = "int",
+  -- ensure = true --:> if you like to create the table if it doesn't exist
+  done = {"int", "not", "null", "default", 0},
+})
+
+-- return true if `tbl_name` is an existing database
+db:exists("tbl_name")
+
+-- return a table of `tbl_name` keys and their sqlite type
+db:schema("tbl_name")
+
+-- return a list of `tbl_name` keys
+db:schema("tbl_name", true)
+
+-- remove a table and all their data
+db:drop("tbl_name")
 ```
 
 
-#### find (get) rows in tables
+#### Query from a table
 
 ```lua
- db:get{
-        posts = {
-          where  = {
-            id = 1
-          },
-          join = {
-           posts = "userId",
-           users = "id"
-          }
-        }
-      }
-      
-db:find{
-        posts = {
-          where  = {
-            id = 1
-          }
-        }
-      }
-      
-db:get("posts", {
+-- Get all rows from posts table
+db:select("posts")
+
+-- Get rows that matches where clause
+db:select("posts", {
   where  = {
     id = 1
   }
 }
-db:get("posts") -- everything
+
+-- Get and inner join 
+db:get("posts", {
+  where  = { id = {1,2,3,4} }, -- any of provided ids
+  join = { posts = "userId", users = "id" } -- see inner join.
+})
 ```
 
-#### Insert (add) rows to tables
+#### Insert into a table
 
 ```lua
+-- insert a single row to todos
 db:insert("todos", {
   title = "TODO 1",
   desc = "................",
 })
 
-db:insert {
-  todos = {
-    title = "TODO 1",
-    desc = " .......... ",
-  }
-}
-
--- multiple rows
-db:insert{
-  todos = {
+-- insert multiple rows to todos
+db:insert("todos", {
     {
       title = "todo 3",
       desc = "...",
     },
     {
       title = "todo 2",
-      desc = "...",
     },
     {
       title = "todo 1",
-      desc = "...",
+      deadline = 2025,
     },
-  }
-}
--- :add is alternative name to :insert
-db:add("todos", {
-  title = "TODO 1",
-  desc = "................",
 })
 ```
 
-#### Update rows in tables
+#### Update rows in a table
 
 ```lua
-
 db:update("todos", {
-  where = { deadline = "2021" },
-  values = { status = "overdue" }
+  where = { deadline = "2021" }, -- where clause.
+  values = { status = "overdue" } -- the new values
 })
 
-db:update{
-  todos = {
-    where = {id = 1},
-    values = {action = "DONE"}
-  }
-}
+db:update("todos", {
+  where = { status = {"later", "not_done", "maybe"} }, -- later or not_done or maybe
+  values = { status = "trash" } -- the new values
+})
 ```
 
 #### Delete rows in tables
 
 ```lua
-db:delete("todos") -- delete everything in a table.
+-- delete everything in a table.
+db:delete("todos") 
 
-db:delete("todos", {id = 1})
-
-db:delete{
-  todos =  {
-    where = {id = 1}
-  } 
-}
+-- delete with where clause
+db:delete("todos", {where =  {id = 1, title = {"a", "b", "c"}}})
+db:delete("todos", {where =  {id = 88}})
 ```
 
 
@@ -223,3 +228,12 @@ Credit
 [tree-sitter-lua]: https://github.com/tjdevries/tree-sitter-lua
 [@tjdevries]: https://github.com/tjdevries
 [@Conni2461]: https://github.com/Conni2461
+[Connect to sqlite db]: #connect-to-sqlite-db
+[Open execute and close connection]: #open-execute-and-close-connection
+[Evaluate statements]: #evaluate-statements
+[Connection status]: #connection-status
+[Tables]: #tables
+[Query from a table]: #query-from-a-table
+[Insert into a table]: #insert-into-a-table
+[Update rows in a table]: #update-rows-in-a-table
+[Delete rows from a table]: #delete-rows-from-a-table
