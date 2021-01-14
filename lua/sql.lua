@@ -42,7 +42,7 @@ function sql:__connect()
   end
 end
 
---- wrapper around stmt module for convenience.
+--- Wrapper around stmt module for convenience.
 ---@param statement string: statement to be parsed.
 ---@return table: stmt object
 function sql:__parse(statement) return stmt:parse(self.conn, statement) end
@@ -163,81 +163,68 @@ function sql:isclose() return self.closed end
 ---@return table: msg,code,closed
 function sql:status() return { msg = self:__last_errmsg(), code = self:__last_errcode() } end
 
---- Evaluate {statement} and returns true if successful else error-out.
---- Optionally it accept {params} which can be a dict of values corresponding
+--- Main sqlite interface. This function evaluates {statement} and if there are
+--- results from evaluating it then the function returns list of row(s). Else, it
+--- returns a boolean indecating whether the evaluation was successful - or not-
+--- Optionally, the function accept {params} which can be a dict of values corresponding
 --- to the sql statement or a list of unamed values.
 ---@param statement string or table: string representing the {statement} or a list of {statements}
 ---@param params table: params to be bind to {statement}, it can be a list or dict
 ---@usage db:eval("drop table if exists todos")
 ---@usage db:eval("select * from todos where id = ?", 1)
 ---@usage db:eval("insert into t(a, b) values(:a, :b)", {a = "1", b = 2021})
----@return boolean: if the evaluation is successful then return true.
----@todo: support bolb binding.
----@todo: support varags for unamed params
+---@return boolean or table
 function sql:eval(statement, params)
   local res = {}
+  local s = self:__parse(statement)
 
-  self:__exec("BEGIN")
-  if type(statement) == "table" then
-    u.map(statement, function(v)
-      local s = self:__parse(v)
-      s:each(function(stm)
-        table.insert(res, stm:kv())
-      end)
-      s:reset()
-      s:finalize()
+  -- when the user provide simple sql statements
+  if not params then
+    s:each(function()
+      table.insert(res, s:kv())
     end)
-  else
+    s:reset()
 
-    local s = self:__parse(statement)
+  -- when the user run eval("select * from ?", "tbl")
+  elseif type(params) ~= "table" and statement:match('%?') then
+    local value = booleansql(params)
+    s:bind({value})
+    s:each(function(stm)
+      table.insert(res, stm:kv())
+    end)
+    s:reset()
+    s:bind_clear()
 
-    if params == nil then
-      s:each(function(stm)
-        table.insert(res, stm:kv())
-      end)
-      s:reset()
-
-    elseif params and type(params) ~= "table" and statement:match('%?') then
-      local value = booleansql(params)
-      s:bind({value})
+  -- when the user provided named keys
+  elseif params and type(params) == "table" then
+    params = type(params[1]) == "table" and params or {params}
+    for _, v in ipairs(params) do
+      s:bind(v)
       s:each(function(stm)
         table.insert(res, stm:kv())
       end)
       s:reset()
       s:bind_clear()
-
-    elseif params and type(params) == "table" then
-      params = type(params[1]) == "table" and params or {params}
-      for _, v in ipairs(params) do
-        s:bind(v)
-        s:each(function(stm)
-          table.insert(res, stm:kv())
-        end)
-        s:reset()
-        s:bind_clear()
-      end
     end
-    s:finalize()
   end
-  self:__exec("COMMIT")
+  -- clear out the parsed statement.
+  s:finalize()
 
-  local ret = rawequal(next(res), nil) and self:__last_errcode() == flags.ok or res
+  -- if no rows is returned, then check return the result of errcode == flags.ok
+  res = rawequal(next(res), nil) and self:__last_errcode() == flags.ok or res
 
-  if type(ret) == "table" and ret[2] == nil and u.is_nested(ret[1]) then
-    ret = ret[1]
+  -- fix res of its table, so that select all doesn't return { [1] = {[1] = { row }} }
+  if type(res) == "table" and res[2] == nil and u.is_nested(res[1]) then
+    res = res[1]
   end
 
   assert(self:__last_errcode() == flags.ok , string.format(
-  "sql.nvim: database connection didn't get closed, ERRMSG: %s",
+  "sql.nvim: :eval has failed to execute statement, ERRMSG: %s",
     self:__last_errmsg()
   ))
 
-  return ret
+  return res
 end
-
-------------------------------------------------------------
--- Sugur over eval function.
-------------------------------------------------------------
 
 local assert_tbl = function(self, tbl, method)
   assert(self:exists(tbl),
@@ -429,12 +416,6 @@ function sql:select(...)
     return ret_vals
   end
 end
-
---- Equivalent to |sql:insert|
-function sql:find(...) return self:select(...) end
-
---- Equivalent to |sql:insert|
-function sql:get(...) return self:select(...) end
 
 --- Check if a table with {name} exists in sqlite db
 function sql:exists(name)

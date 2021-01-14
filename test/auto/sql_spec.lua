@@ -159,18 +159,9 @@ describe("sql", function()
     it('It evaluate should basic sqlite statement', function()
       eq(true, db:eval("create table people(id integer primary key, name text, age  integer)"))
     end)
-    it('execute multiple statements', function()
-      eq(true, db:eval({
-        "create table todos(id integer primary key, title text, desc text, created int);",
-        "create table projects(id integer primary key, name text);",
-      }))
-
-      eq(true, db:exists("todos"), "it should exists")
-      eq(true, db:exists("projects"), "it should exists")
-    end)
 
     it('returns true if the operation is successful', function()
-      eq(true, db:eval("create table if not exists todos(title text, desc text, created int)"))
+      eq(true, db:eval("create table if not exists todos(id, title text, desc text, created int)"))
     end)
 
     local row = {
@@ -435,7 +426,7 @@ describe("sql", function()
     db:close()
   end)
 
-  describe(':get', function()
+  describe(':select', function()
     local db = sql.open(path)
     local posts = vim.fn.json_decode(curl.get("https://jsonplaceholder.typicode.com/posts").body)
     local users = vim.fn.json_decode(curl.get("https://jsonplaceholder.typicode.com/users").body)
@@ -453,11 +444,11 @@ describe("sql", function()
     end)
 
     it('return everything with no params', function()
-      eq(posts, db:get("posts"))
+      eq(posts, db:select("posts"))
     end)
 
-    it('return everything that matches where closure (form 1)', function()
-      local res = db:get("posts", {
+    it('return everything that matches where closure', function()
+      local res = db:select("posts", {
         where  = {
           id = 1
         }
@@ -473,37 +464,14 @@ describe("sql", function()
       eq(expected, res[1])
     end)
 
-    it('return everything that matches where closure (form 2)', function()
-      local res = db:get{
-        posts = {
-          where  = {
-            id = 1
-          }
-        }
-      }
-      local expected = (function()
-        for _, post in ipairs(posts) do
-          if post["id"] == 1 then
-            return post
-          end
-        end
-      end)()
-
-      eq(expected, res[1])
-    end)
-
     it('join tables.', function()
-      local res = db:get{
-        posts = {
-          where  = {
-            id = 1
-          },
-          join = {
-           posts = "userId",
-           users = "id"
-          }
+      local res = db:select("posts", {
+        where  = { id = 1 },
+        join = {
+          posts = "userId",
+          users = "id"
         }
-      }
+      })
       local expected = (function()
         for _, post in ipairs(posts) do
           if post["id"] == 1 then
@@ -522,17 +490,10 @@ describe("sql", function()
     end)
 
     it('return selected keys only', function()
-      local res = db:get{
-        posts = {
-          where  = {
-            id = 1
-          },
-          select = {
-            "userId",
-            "posts.body"
-          }
-        }
-      }
+      local res = db:select("posts", {
+        where  = { id = 1 },
+        select = { "userId", "posts.body" }
+      })
       local expected = (function()
         for _, post in ipairs(posts) do
           if post["id"] == 1 then
