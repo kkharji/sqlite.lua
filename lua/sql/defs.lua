@@ -168,12 +168,6 @@ ffi.cdef[[
   typedef int (*sqlite3_callback)(void*,int,char**, char**);
 
   typedef struct sqlite3_file sqlite3_file;
-  typedef struct sqlite3_io_methods sqlite3_io_methods;
-
-  typedef void (*sqlite3_syscall_ptr)(void);
-
-  typedef struct sqlite3_mem_methods sqlite3_mem_methods;
-
   typedef struct sqlite3_stmt sqlite3_stmt;
 
   typedef struct sqlite3_value sqlite3_value;
@@ -182,17 +176,10 @@ ffi.cdef[[
   typedef struct sqlite3_vtab sqlite3_vtab;
   typedef struct sqlite3_index_info sqlite3_index_info;
   typedef struct sqlite3_vtab_cursor sqlite3_vtab_cursor;
-  typedef struct sqlite3_module sqlite3_module;
 
   typedef struct sqlite3_blob sqlite3_blob;
 
-
   typedef struct sqlite3_str sqlite3_str;
-
-  typedef struct sqlite3_pcache sqlite3_pcache;
-  typedef struct sqlite3_pcache_page sqlite3_pcache_page;
-  typedef struct sqlite3_pcache_methods2 sqlite3_pcache_methods2;
-  typedef struct sqlite3_pcache_methods sqlite3_pcache_methods;
   typedef struct sqlite3_backup sqlite3_backup;
 ]]
 
@@ -466,12 +453,6 @@ ffi.cdef[[
   int sqlite3_auto_extension(void(*xEntryPoint)(void));
   int sqlite3_cancel_auto_extension(void(*xEntryPoint)(void));
   void sqlite3_reset_auto_extension(void);
-
-  int sqlite3_create_module(sqlite3 *db, const char *zName, const sqlite3_module *p, void *pClientData);
-  int sqlite3_create_module_v2(sqlite3 *db, const char *zName, const sqlite3_module *p, void *pClientData,
-                  void(*xDestroy)(void*));
-
-  int sqlite3_drop_modules(sqlite3 *db, const char **azKeep);
 
   int sqlite3_declare_vtab(sqlite3*, const char *zSQL);
   int sqlite3_overload_function(sqlite3*, const char *zFuncName, int nArg);
