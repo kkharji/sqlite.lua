@@ -170,7 +170,6 @@ ffi.cdef[[
   typedef struct sqlite3_file sqlite3_file;
   typedef struct sqlite3_io_methods sqlite3_io_methods;
 
-  typedef struct sqlite3_mutex sqlite3_mutex;
   typedef struct sqlite3_api_routines sqlite3_api_routines;
 
   typedef struct sqlite3_vfs sqlite3_vfs;
@@ -190,7 +189,6 @@ ffi.cdef[[
 
   typedef struct sqlite3_blob sqlite3_blob;
 
-  typedef struct sqlite3_mutex_methods sqlite3_mutex_methods;
 
   typedef struct sqlite3_str sqlite3_str;
 
@@ -492,14 +490,6 @@ ffi.cdef[[
   sqlite3_vfs *sqlite3_vfs_find(const char *zVfsName);
   int sqlite3_vfs_register(sqlite3_vfs*, int makeDflt);
   int sqlite3_vfs_unregister(sqlite3_vfs*);
-
-  sqlite3_mutex *sqlite3_mutex_alloc(int);
-  void sqlite3_mutex_free(sqlite3_mutex*);
-  void sqlite3_mutex_enter(sqlite3_mutex*);
-  int sqlite3_mutex_try(sqlite3_mutex*);
-  void sqlite3_mutex_leave(sqlite3_mutex*);
-
-  sqlite3_mutex *sqlite3_db_mutex(sqlite3*);
 
   int sqlite3_file_control(sqlite3*, const char *zDbName, int op, void*);
   int sqlite3_test_control(int op, ...);
