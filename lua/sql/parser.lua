@@ -11,7 +11,7 @@ local M = {}
 ---@tag parser.lua
 
 --- handle sqlite datatype interop
-local sqlvalue = function(v)
+M.sqlvalue = function(v)
   if type(v) == "boolean" then
     return v == true and 1 or 0
   else
@@ -41,13 +41,13 @@ local bind = function(o)
   o = o or {}
   o.s = o.s or ", "
   if not o.kv then
-    o.v = o.v ~= nil and sqlvalue(o.v) or "?"
+    o.v = o.v ~= nil and M.sqlvalue(o.v) or "?"
     return string.format("%s = " .. specifier(o.v), o.k, o.v)
   else
     local res = {}
     for k, v in u.opairs(o.kv) do
       k = o.k ~= nil and o.k or k
-      v = sqlvalue(v)
+      v = M.sqlvalue(v)
       v = o.nonbind and ":" .. k or v
       table.insert(res, string.format(
         "%s" .. (o.nonbind and nil or " = ") .. specifier(v, o.nonbind), k, v
@@ -64,7 +64,7 @@ local pcontains = function(defs)
   for k,v in u.opairs(defs) do
     if type(v) == "table" then
       table.insert(items, table.concat(u.map(v, function(_v)
-        return string.format("%s glob " .. specifier(k), k, sqlvalue(_v))
+        return string.format("%s glob " .. specifier(k), k, M.sqlvalue(_v))
       end), " or "))
     else
       table.insert(items, string.format("%s glob " .. specifier(k), k, v))

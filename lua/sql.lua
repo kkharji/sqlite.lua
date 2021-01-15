@@ -6,19 +6,7 @@ local flags = clib.flags
 local sql = {}
 sql.__index = sql
 
-local booleansql = function(value) -- TODO: should be done a clib level
-  if type(value) == "boolean" then
-    value = (value == true) and 1 or 0
-  end
-  return value
-end
-
-local fail_on_wrong_input = function(ret_vals)
-  assert(#ret_vals > 0, 'sql.nvim: can\'t parse your input. Make sure it use that function correct')
-end
-
--- TODO: should move to utils?
-local assert_tbl = function(self, tbl, method)
+function sql:__assert_tbl(tbl, method)
   assert(self:exists(tbl),
   string.format("sql.nvim: %s table doesn't exists. %s failed.",
   tbl, method
@@ -153,7 +141,7 @@ function sql:eval(statement, params)
 
   -- when the user run eval("select * from ?", "tbl")
   elseif type(params) ~= "table" and statement:match('%?') then
-    local value = booleansql(params)
+    local value = P.sqlvalue(params)
     s:bind({value})
     s:each(function(stm)
       table.insert(res, stm:kv())
@@ -279,6 +267,11 @@ function sql:create(name, schema) return self:eval(P.create(name, schema)) end
 ---@return boolean
 function sql:drop(name) return self:eval(P.drop(name)) end
 
+
+local fail_on_wrong_input = function(ret_vals)
+  assert(#ret_vals > 0, 'sql.nvim: can\'t parse your input. Make sure it use that function correct')
+end
+
 --- Insert to lua table into sqlite database table.
 ---@params tbl string: the table name
 ---@params rows table: rows to insert to the table.
@@ -287,7 +280,7 @@ function sql:drop(name) return self:eval(P.drop(name)) end
 ---@todo support unnamed or anonymous args
 ---@todo handle inconflict case
 function sql:insert(tbl, rows)
-  assert_tbl(self, tbl, "insert")
+  self:__assert_tbl(tbl, "insert")
   local tbl_keys = self:schema(tbl)
   local succ
 
@@ -312,7 +305,7 @@ end
 ---@return boolean: true incase the table was updated successfully.
 ---@usage `db:update("todos", { where = { id = "1" }, values = { action = "DONE" }})`
 function sql:update(tbl, specs)
-  assert_tbl(self, tbl, "update")
+  self:__assert_tbl(tbl, "update")
   local ret_vals = {}
   if not specs then return false end
   specs = u.is_nested(specs) and specs or {specs}
@@ -341,7 +334,7 @@ end
 ---@usage db:delete("todos", { where = { id = 1 })
 ---@usage db:delete("todos", { where = { id = {1,2,3} })
 function sql:delete(tbl, specs)
-  assert_tbl(self, tbl, "delete")
+  self:__assert_tbl(tbl, "delete")
   local ret_vals = {}
   if not specs then
     return self:__exec(P.delete(tbl)) == 0 and true or self:__last_errmsg()
@@ -365,7 +358,7 @@ end
 ---@usage db:get("todos", { where = { id = 1 })
 -- @return lua list of matching rows
 function sql:select(tbl, spec)
-  assert_tbl(self, tbl, "select")
+  self:__assert_tbl(tbl, "select")
   local ret = {}
   if not spec then
     return self:eval(P.select(tbl))
