@@ -71,18 +71,6 @@ local db = sql.new(...)
 db:close() -- closes connection 
 ```
 
-#### Open execute and close connection 
-
-```lua
-db:with_open(function(db) 
-  -- commands
-end)
-
-sql.with_open("/path/to/file", function(db) 
-  -- commands
-end)
-```
-
 #### Evaluate statements
 
 ```lua
@@ -108,6 +96,25 @@ db:eval("update todos set desc = :desc where id = :id", {
 db:eval("/path/to/schema.sql")
 ```
 
+#### Open execute and close connection 
+
+```lua
+db:with_open(function(db) 
+  -- commands
+end)
+
+sql.with_open("/path/to/file", function(db) 
+  -- commands
+end)
+
+-- return something from with_open 
+local res = sql.with_open("/path/to/db", function(db)
+  db:eval("create table if not exists todo(title text, desc text)")
+  db:eval("insert into todo(title, desc) values('title1', 'desc1')")
+  return db:eval("select * from todo")
+end)
+
+```
 #### Connection status
 
 ```lua

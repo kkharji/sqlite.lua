@@ -124,9 +124,9 @@ function sql:with_open(...)
     self:open()
   end
 
-  func(self)
+  local res = func(self)
   self:close()
-  return self
+  return res
 end
 
 --- Main sqlite interface. This function evaluates {statement} and if there are
