@@ -4,20 +4,11 @@ local bit = require'bit'
 local M = {}
 
 local clib_path = vim.g.sql_clib_path or (function()
-  local file_exists = function(path)
-    return vim.loop.fs_stat(path) ~= nil
+  if vim.loop.os_uname().sysname == 'Darwin' then
+    return '/usr/local/opt/sqlite3/lib/libsqlite3.dylib'
   end
-
-  if file_exists("/usr/lib/libsqlite3.so") then
-    return "/usr/lib/libsqlite3.so"
-  elseif file_exists("/usr/lib64/libsqlite3.so") then
-    return "/usr/lib64/libsqlite3.so"
-  elseif file_exists("/usr/lib/x86_64-linux-gnu/libsqlite3.so") then
-    return "/usr/lib/x86_64-linux-gnu/libsqlite3.so"
-  end
-  return nil
+  return 'libsqlite3'
 end)()
-
 local clib = ffi.load(clib_path)
 
 -- Constants
@@ -155,205 +146,6 @@ M.flags['open_privatecache']  = 0x00040000
 M.flags['open_wal']           = 0x00080000
 M.flags['open_nofollow']      = 0x01000000
 
--- Device Characteristics
-M.flags['iocap_atomic']                = 0x00000001
-M.flags['iocap_atomic512']             = 0x00000002
-M.flags['iocap_atomic1k']              = 0x00000004
-M.flags['iocap_atomic2k']              = 0x00000008
-M.flags['iocap_atomic4k']              = 0x00000010
-M.flags['iocap_atomic8k']              = 0x00000020
-M.flags['iocap_atomic16k']             = 0x00000040
-M.flags['iocap_atomic32k']             = 0x00000080
-M.flags['iocap_atomic64k']             = 0x00000100
-M.flags['iocap_safe_append']           = 0x00000200
-M.flags['iocap_sequential']            = 0x00000400
-M.flags['iocap_undeletable_when_open'] = 0x00000800
-M.flags['iocap_powersafe_overwrite']   = 0x00001000
-M.flags['iocap_immutable']             = 0x00002000
-M.flags['iocap_batch_atomic']          = 0x00004000
-
--- File Locking levels
-M.flags['lock_none']      = 0
-M.flags['lock_shared']    = 1
-M.flags['lock_reserved']  = 2
-M.flags['lock_pending']   = 3
-M.flags['lock_exclusive'] = 4
-
--- Synchronization Type Flags
-M.flags['sync_normal']   = 0x00002
-M.flags['sync_full']     = 0x00003
-M.flags['sync_dataonly'] = 0x00010
-
--- Standard File Control Opcodes
-M.flags['fcntl_lockstate']             = 1
-M.flags['fcntl_get_lockproxyfile']     = 2
-M.flags['fcntl_set_lockproxyfile']     = 3
-M.flags['fcntl_last_errno']            = 4
-M.flags['fcntl_size_hint']             = 5
-M.flags['fcntl_chunk_size']            = 6
-M.flags['fcntl_file_pointer']          = 7
-M.flags['fcntl_sync_omitted']          = 8
-M.flags['fcntl_win32_av_retry']        = 9
-M.flags['fcntl_persist_wal']           = 10
-M.flags['fcntl_overwrite']             = 11
-M.flags['fcntl_vfsname']               = 12
-M.flags['fcntl_powersafe_overwrite']   = 13
-M.flags['fcntl_pragma']                = 14
-M.flags['fcntl_busyhandler']           = 15
-M.flags['fcntl_tempfilename']          = 16
-M.flags['fcntl_mmap_size']             = 18
-M.flags['fcntl_trace']                 = 19
-M.flags['fcntl_has_moved']             = 20
-M.flags['fcntl_sync']                  = 21
-M.flags['fcntl_commit_phasetwo']       = 22
-M.flags['fcntl_win32_set_handle']      = 23
-M.flags['fcntl_wal_block']             = 24
-M.flags['fcntl_zipvfs']                = 25
-M.flags['fcntl_rbu']                   = 26
-M.flags['fcntl_vfs_pointer']           = 27
-M.flags['fcntl_journal_pointer']       = 28
-M.flags['fcntl_win32_get_handle']      = 29
-M.flags['fcntl_pdb']                   = 30
-M.flags['fcntl_begin_atomic_write']    = 31
-M.flags['fcntl_commit_atomic_write']   = 32
-M.flags['fcntl_rollback_atomic_write'] = 33
-M.flags['fcntl_lock_timeout']          = 34
-M.flags['fcntl_data_version']          = 35
-M.flags['fcntl_size_limit']            = 36
-M.flags['fcntl_ckpt_done']             = 37
-M.flags['fcntl_reserve_bytes']         = 38
-M.flags['fcntl_ckpt_start']            = 39
-
--- Flags for the xAccess VFS method
-M.flags['access_exists']    = 0
-M.flags['access_readwrite'] = 1
-M.flags['access_read']      = 2
-
--- Flags for the xShmLick VFS method
-M.flags['shm_unlock']    = 1
-M.flags['shm_lock']      = 2
-M.flags['shm_shared']    = 4
-M.flags['shm_exclusive'] = 8
-
--- Maximum xShmLock index
-M.flags['shm_nlock'] = 8
-
--- Configuration Options
-M.flags['config_singlethread']        = 1
-M.flags['config_multithread']         = 2
-M.flags['config_serialized']          = 3
-M.flags['config_malloc']              = 4
-M.flags['config_getmalloc']           = 5
-M.flags['config_scratch']             = 6
-M.flags['config_pagecache']           = 7
-M.flags['config_heap']                = 8
-M.flags['config_memstatus']           = 9
-M.flags['config_mutex']               = 10
-M.flags['config_getmutex']            = 11
-M.flags['config_lookaside']           = 13
-M.flags['config_pcache']              = 14
-M.flags['config_getpcache']           = 15
-M.flags['config_log']                 = 16
-M.flags['config_uri']                 = 17
-M.flags['config_pcache2']             = 18
-M.flags['config_getpcache2']          = 19
-M.flags['config_covering_index_scan'] = 20
-M.flags['config_sqllog']              = 21
-M.flags['config_mmap_size']           = 22
-M.flags['config_win32_heapsize']      = 23
-M.flags['config_pcache_hdrsz']        = 24
-M.flags['config_pmasz']               = 25
-M.flags['config_stmtjrnl_spill']      = 26
-M.flags['config_small_malloc']        = 27
-M.flags['config_sorterref_size']      = 28
-M.flags['config_memdb_maxsize']       = 29
-
--- Database Connection Configuration Options
-M.flags['dbconfig_maindbname']            = 1000
-M.flags['dbconfig_lookaside']             = 1001
-M.flags['dbconfig_enable_fkey']           = 1002
-M.flags['dbconfig_enable_trigger']        = 1003
-M.flags['dbconfig_enable_fts3_tokenizer'] = 1004
-M.flags['dbconfig_enable_load_extension'] = 1005
-M.flags['dbconfig_no_ckpt_on_close']      = 1006
-M.flags['dbconfig_enable_qpsg']           = 1007
-M.flags['dbconfig_trigger_eqp']           = 1008
-M.flags['dbconfig_reset_database']        = 1009
-M.flags['dbconfig_defensive']             = 1010
-M.flags['dbconfig_writable_schema']       = 1011
-M.flags['dbconfig_legacy_alter_table']    = 1012
-M.flags['dbconfig_dqs_dml']               = 1013
-M.flags['dbconfig_dqs_ddl']               = 1014
-M.flags['dbconfig_enable_view']           = 1015
-M.flags['dbconfig_legacy_file_format']    = 1016
-M.flags['dbconfig_trusted_schema']        = 1017
-M.flags['dbconfig_max']                   = 1017
-
--- Authorizer Return Codes
-M.flags['deny']   = 1
-M.flags['ignore'] = 2
-
--- Authorizer Action Codes
-M.flags['create_index']        = 1
-M.flags['create_table']        = 2
-M.flags['create_temp_index']   = 3
-M.flags['create_temp_table']   = 4
-M.flags['create_temp_trigger'] = 5
-M.flags['create_temp_view']    = 6
-M.flags['create_trigger']      = 7
-M.flags['create_view']         = 8
-M.flags['delete']              = 9
-M.flags['drop_index']          = 10
-M.flags['drop_table']          = 11
-M.flags['drop_temp_index']     = 12
-M.flags['drop_temp_table']     = 13
-M.flags['drop_temp_trigger']   = 14
-M.flags['drop_temp_view']      = 15
-M.flags['drop_trigger']        = 16
-M.flags['drop_view']           = 17
-M.flags['insert']              = 18
-M.flags['pragma']              = 19
-M.flags['read']                = 20
-M.flags['select']              = 21
-M.flags['transaction']         = 22
-M.flags['update']              = 23
-M.flags['attach']              = 24
-M.flags['detach']              = 25
-M.flags['alter_table']         = 26
-M.flags['reindex']             = 27
-M.flags['analyze']             = 28
-M.flags['create_vtable']       = 29
-M.flags['drop_vtable']         = 30
-M.flags['function']            = 31
-M.flags['savepoint']           = 32
-M.flags['copy']                = 0
-M.flags['recursive']           = 33
-
--- SQL Trace Event Codes
-M.flags['trace_stmt']    = 0x01
-M.flags['trace_profile'] = 0x02
-M.flags['trace_row']     = 0x04
-M.flags['trace_close']   = 0x08
-
--- Run-Time Limit Categories
-M.flags['limit_length']              = 0
-M.flags['limit_sql_length']          = 1
-M.flags['limit_column']              = 2
-M.flags['limit_expr_depth']          = 3
-M.flags['limit_compound_select']     = 4
-M.flags['limit_vdbe_op']             = 5
-M.flags['limit_function_arg']        = 6
-M.flags['limit_attached']            = 7
-M.flags['limit_like_pattern_length'] = 8
-M.flags['limit_variable_number']     = 9
-M.flags['limit_trigger_depth']       = 10
-M.flags['limit_worker_threads']      = 11
-
--- Prepare Flags
-M.flags['prepare_persistent'] = 0x01
-M.flags['prepare_normalize']  = 0x02
-M.flags['prepare_no_vtab']    = 0x04
-
 -- Fundamental Datatypes
 M.flags['integer'] = 1
 M.flags['float']   = 2
@@ -361,210 +153,28 @@ M.flags['text']    = 3
 M.flags['blob']    = 4
 M.flags['null']    = 5
 
--- Text Encodings
-M.flags['utf8']          = 1
-M.flags['utf16le']       = 2
-M.flags['utf16be']       = 3
-M.flags['utf16']         = 4
-M.flags['any']           = 5
-M.flags['utf16_aligned'] = 8
-
--- Function Flags
-M.flags['deterministic'] =    0x000000800
-M.flags['directonly'] =       0x000080000
-M.flags['subtype'] =          0x000100000
-M.flags['innocuous'] =        0x000200000
-
--- Allowed return values from sqlite3_txn_state
-M.flags['txn_none'] =  0
-M.flags['txn_read'] =  1
-M.flags['txn_write'] = 2
-
--- Virtual Table Scan Flags
-M.flags['index_scan_unique'] =      1
-
--- Virtual Table Constraint Operator Codes
-M.flags['index_constraint_eq']        = 2
-M.flags['index_constraint_gt']        = 4
-M.flags['index_constraint_le']        = 8
-M.flags['index_constraint_lt']        = 16
-M.flags['index_constraint_ge']        = 32
-M.flags['index_constraint_match']     = 64
-M.flags['index_constraint_like']      = 65
-M.flags['index_constraint_glob']      = 66
-M.flags['index_constraint_regexp']    = 67
-M.flags['index_constraint_ne']        = 68
-M.flags['index_constraint_isnot']     = 69
-M.flags['index_constraint_isnotnull'] = 70
-M.flags['index_constraint_isnull']    = 71
-M.flags['index_constraint_is']        = 72
-M.flags['index_constraint_function']  = 150
-
--- Mutex Types
-M.flags['mutex_fast']        = 0
-M.flags['mutex_recursive']   = 1
-M.flags['mutex_static_main'] = 2
-M.flags['mutex_static_mem']  = 3
-M.flags['mutex_static_mem2'] = 4
-M.flags['mutex_static_open'] = 4
-M.flags['mutex_static_prng'] = 5
-M.flags['mutex_static_lru']  = 6
-M.flags['mutex_static_lru2'] = 7
-M.flags['mutex_static_pmem'] = 7
-M.flags['mutex_static_app1'] = 8
-M.flags['mutex_static_app2'] = 9
-M.flags['mutex_static_app3'] = 10
-M.flags['mutex_static_vfs1'] = 11
-M.flags['mutex_static_vfs2'] = 12
-M.flags['mutex_static_vfs3'] = 13
-
--- Testing interface control codes
-M.flags['testctrl_first']                = 5
-M.flags['testctrl_prng_save']            = 5
-M.flags['testctrl_prng_restore']         = 6
-M.flags['testctrl_prng_reset']           = 7
-M.flags['testctrl_bitvec_test']          = 8
-M.flags['testctrl_fault_install']        = 9
-M.flags['testctrl_benign_malloc_hooks']  = 10
-M.flags['testctrl_pending_byte']         = 11
-M.flags['testctrl_assert']               = 12
-M.flags['testctrl_always']               = 13
-M.flags['testctrl_reserve']              = 14
-M.flags['testctrl_optimizations']        = 15
-M.flags['testctrl_iskeyword']            = 16
-M.flags['testctrl_scratchmalloc']        = 17
-M.flags['testctrl_internal_functions']   = 17
-M.flags['testctrl_localtime_fault']      = 18
-M.flags['testctrl_explain_stmt']         = 19
-M.flags['testctrl_once_reset_threshold'] = 19
-M.flags['testctrl_never_corrupt']        = 20
-M.flags['testctrl_vdbe_coverage']        = 21
-M.flags['testctrl_byteorder']            = 22
-M.flags['testctrl_isinit']               = 23
-M.flags['testctrl_sorter_mmap']          = 24
-M.flags['testctrl_imposter']             = 25
-M.flags['testctrl_parser_coverage']      = 26
-M.flags['testctrl_result_intreal']       = 27
-M.flags['testctrl_prng_seed']            = 28
-M.flags['testctrl_extra_schema_checks']  = 29
-M.flags['testctrl_seek_count']           = 30
-M.flags['testctrl_last']                 = 30
-
--- Status Parameters
-M.flags['status_memory_used']        = 0
-M.flags['status_pagecache_used']     = 1
-M.flags['status_pagecache_overflow'] = 2
-M.flags['status_scratch_used']       = 3
-M.flags['status_scratch_overflow']   = 4
-M.flags['status_malloc_size']        = 5
-M.flags['status_parser_stack']       = 6
-M.flags['status_pagecache_size']     = 7
-M.flags['status_scratch_size']       = 8
-M.flags['status_malloc_count']       = 9
-
--- Status Parameters for database connections
-M.flags['dbstatus_lookaside_used']      = 0
-M.flags['dbstatus_cache_used']          = 1
-M.flags['dbstatus_schema_used']         = 2
-M.flags['dbstatus_stmt_used']           = 3
-M.flags['dbstatus_lookaside_hit']       = 4
-M.flags['dbstatus_lookaside_miss_size'] = 5
-M.flags['dbstatus_lookaside_miss_full'] = 6
-M.flags['dbstatus_cache_hit']           = 7
-M.flags['dbstatus_cache_miss']          = 8
-M.flags['dbstatus_cache_write']         = 9
-M.flags['dbstatus_deferred_fks']        = 10
-M.flags['dbstatus_cache_used_shared']   = 11
-M.flags['dbstatus_cache_spill']         = 12
-M.flags['dbstatus_max']                 = 12
-
--- Status Parameters for prepared statements
-M.flags['stmtstatus_fullscan_step'] = 1
-M.flags['stmtstatus_sort']          = 2
-M.flags['stmtstatus_autoindex']     = 3
-M.flags['stmtstatus_vm_step']       = 4
-M.flags['stmtstatus_reprepare']     = 5
-M.flags['stmtstatus_run']           = 6
-M.flags['stmtstatus_memused']       = 99
-
--- Checkpoint Mode Values
-M.flags['checkpoint_passive']  = 0
-M.flags['checkpoint_full']     = 1
-M.flags['checkpoint_restart']  = 2
-M.flags['checkpoint_truncate'] = 3
-
--- Virtual Table Configuration Options
-M.flags['vtab_constraint_support'] = 1
-M.flags['vtab_innocuous']          = 2
-M.flags['vtab_directonly']         = 3
-
--- Conflict resolution modes
-M.flags['rollback'] = 1
-M.flags['fail']     = 3
-M.flags['replace']  = 5
-
--- Prepared Statement Scan Status Opcodes
-M.flags['scanstat_nloop']    = 0
-M.flags['scanstat_nvisit']   = 1
-M.flags['scanstat_est']      = 2
-M.flags['scanstat_name']     = 3
-M.flags['scanstat_explain']  = 4
-M.flags['scanstat_selectid'] = 5
-
--- Flags for sqlite3_serialize
-M.flags['serialize_nocopy'] = 0x001
-
--- Flags for sqlite3_deserialize
-M.flags['deserialize_freeonclose'] = 1
-M.flags['deserialize_resizeable']  = 2
-M.flags['deserialize_readonly']    = 4
-
 -- Types
 ffi.cdef[[
   typedef struct sqlite3 sqlite3;
 
-  /* TODO(conni2461): We need to check if we need those types at the end */
   typedef __int64 sqlite_int64;
   typedef unsigned __int64 sqlite_uint64;
 
   typedef sqlite_int64 sqlite3_int64;
   typedef sqlite_uint64 sqlite3_uint64;
 
-  typedef int (*sqlite3_callback)(void*,int,char**, char**);
-
-  /* TODO(conni2461): We need to restructure this. Currently its based on where its found in the header */
-  /* TODO(conni2461): Maybe we don't need them at all */
   typedef struct sqlite3_file sqlite3_file;
-  typedef struct sqlite3_io_methods sqlite3_io_methods;
-
-  typedef struct sqlite3_mutex sqlite3_mutex;
-  typedef struct sqlite3_api_routines sqlite3_api_routines;
-
-  typedef struct sqlite3_vfs sqlite3_vfs;
-  typedef void (*sqlite3_syscall_ptr)(void);
-
-  typedef struct sqlite3_mem_methods sqlite3_mem_methods;
-
   typedef struct sqlite3_stmt sqlite3_stmt;
 
   typedef struct sqlite3_value sqlite3_value;
   typedef struct sqlite3_context sqlite3_context;
 
   typedef struct sqlite3_vtab sqlite3_vtab;
-  typedef struct sqlite3_index_info sqlite3_index_info;
   typedef struct sqlite3_vtab_cursor sqlite3_vtab_cursor;
-  typedef struct sqlite3_module sqlite3_module;
 
   typedef struct sqlite3_blob sqlite3_blob;
 
-  typedef struct sqlite3_mutex_methods sqlite3_mutex_methods;
-
   typedef struct sqlite3_str sqlite3_str;
-
-  typedef struct sqlite3_pcache sqlite3_pcache;
-  typedef struct sqlite3_pcache_page sqlite3_pcache_page;
-  typedef struct sqlite3_pcache_methods2 sqlite3_pcache_methods2;
-  typedef struct sqlite3_pcache_methods sqlite3_pcache_methods;
   typedef struct sqlite3_backup sqlite3_backup;
 ]]
 
@@ -577,16 +187,9 @@ ffi.cdef[[
   int sqlite3_threadsafe(void);
 
   int sqlite3_close(sqlite3*);
-  int sqlite3_close_v2(sqlite3*); /* Do we need that one? */
+  int sqlite3_close_v2(sqlite3*);
 
-  /* TODO(conni2461): We might wanna delete comments. I just copy and paste right now from /usr/include/sqlite3.h */
-  int sqlite3_exec(
-    sqlite3*,                                  /* An open database */
-    const char *sql,                           /* SQL to be evaluated */
-    int (*callback)(void*,int,char**,char**),  /* Callback function */
-    void *,                                    /* 1st argument to callback */
-    char **errmsg                              /* Error msg written here */
-  );
+  int sqlite3_exec(sqlite3*, const char *sql, int (*callback)(void*,int,char**,char**), void *, char **errmsg);
 
   int sqlite3_initialize(void);
   int sqlite3_shutdown(void);
@@ -612,62 +215,24 @@ ffi.cdef[[
   int sqlite3_busy_handler(sqlite3*,int(*)(void*,int),void*);
   int sqlite3_busy_timeout(sqlite3*, int ms);
 
-  int sqlite3_get_table(
-    sqlite3 *db,          /* An open database */
-    const char *zSql,     /* SQL to be evaluated */
-    char ***pazResult,    /* Results of the query */
-    int *pnRow,           /* Number of result rows written here */
-    int *pnColumn,        /* Number of result columns written here */
-    char **pzErrmsg       /* Error msg written here */
-  );
+  int sqlite3_get_table(sqlite3 *db, const char *zSql, char ***pazResult, int *pnRow, int *pnColumn, char **pzErrmsg);
   void sqlite3_free_table(char **result);
-
-  char *sqlite3_mprintf(const char*,...);
-  char *sqlite3_vmprintf(const char*, va_list);
-  char *sqlite3_snprintf(int,char*,const char*, ...);
-  char *sqlite3_vsnprintf(int,char*,const char*, va_list);
-
-  void *sqlite3_malloc(int);
-  void *sqlite3_malloc64(sqlite3_uint64);
-  void *sqlite3_realloc(void*, int);
-  void *sqlite3_realloc64(void*, sqlite3_uint64);
-  void sqlite3_free(void*);
-  sqlite3_uint64 sqlite3_msize(void*);
 
   sqlite3_int64 sqlite3_memory_used(void);
   sqlite3_int64 sqlite3_memory_highwater(int resetFlag);
 
   void sqlite3_randomness(int N, void *P);
 
-  int sqlite3_set_authorizer(
-    sqlite3*,
-    int (*xAuth)(void*,int,const char*,const char*,const char*,const char*),
-    void *pUserData
-  );
+  int sqlite3_set_authorizer(sqlite3*, int (*xAuth)(void*,int,const char*,const char*,const char*,const char*),
+                  void *pUserData);
 
-  int sqlite3_trace_v2(
-    sqlite3*,
-    unsigned uMask,
-    int(*xCallback)(unsigned,void*,void*,void*),
-    void *pCtx
-  );
+  int sqlite3_trace_v2(sqlite3*, unsigned uMask, int(*xCallback)(unsigned,void*,void*,void*), void *pCtx);
 
   void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
 
-  int sqlite3_open(
-    const char *filename,   /* Database filename (UTF-8) */
-    sqlite3 **ppDb          /* OUT: SQLite db handle */
-  );
-  int sqlite3_open16(
-    const void *filename,   /* Database filename (UTF-16) */
-    sqlite3 **ppDb          /* OUT: SQLite db handle */
-  );
-  int sqlite3_open_v2(
-    const char *filename,   /* Database filename (UTF-8) */
-    sqlite3 **ppDb,         /* OUT: SQLite db handle */
-    int flags,              /* Flags */
-    const char *zVfs        /* Name of VFS module to use */
-  );
+  int sqlite3_open(const char *filename, sqlite3 **ppDb);
+  int sqlite3_open16(const void *filename, sqlite3 **ppDb);
+  int sqlite3_open_v2(const char *filename, sqlite3 **ppDb, int flags, const char *zVfs);
 
   const char *sqlite3_uri_parameter(const char *zFilename, const char *zParam);
   int sqlite3_uri_boolean(const char *zFile, const char *zParam, int bDefault);
@@ -680,13 +245,8 @@ ffi.cdef[[
 
   sqlite3_file *sqlite3_database_file_object(const char*);
 
-  char *sqlite3_create_filename(
-    const char *zDatabase,
-    const char *zJournal,
-    const char *zWal,
-    int nParam,
-    const char **azParam
-  );
+  char *sqlite3_create_filename(const char *zDatabase, const char *zJournal, const char *zWal, int nParam,
+                  const char **azParam);
   void sqlite3_free_filename(char*);
 
   int sqlite3_errcode(sqlite3 *db);
@@ -697,50 +257,14 @@ ffi.cdef[[
 
   int sqlite3_limit(sqlite3*, int id, int newVal);
 
-  int sqlite3_prepare(
-    sqlite3 *db,            /* Database handle */
-    const char *zSql,       /* SQL statement, UTF-8 encoded */
-    int nByte,              /* Maximum length of zSql in bytes. */
-    sqlite3_stmt **ppStmt,  /* OUT: Statement handle */
-    const char **pzTail     /* OUT: Pointer to unused portion of zSql */
-  );
-  int sqlite3_prepare_v2(
-    sqlite3 *db,            /* Database handle */
-    const char *zSql,       /* SQL statement, UTF-8 encoded */
-    int nByte,              /* Maximum length of zSql in bytes. */
-    sqlite3_stmt **ppStmt,  /* OUT: Statement handle */
-    const char **pzTail     /* OUT: Pointer to unused portion of zSql */
-  );
-  int sqlite3_prepare_v3(
-    sqlite3 *db,            /* Database handle */
-    const char *zSql,       /* SQL statement, UTF-8 encoded */
-    int nByte,              /* Maximum length of zSql in bytes. */
-    unsigned int prepFlags, /* Zero or more SQLITE_PREPARE_ flags */
-    sqlite3_stmt **ppStmt,  /* OUT: Statement handle */
-    const char **pzTail     /* OUT: Pointer to unused portion of zSql */
-  );
-  int sqlite3_prepare16(
-    sqlite3 *db,            /* Database handle */
-    const void *zSql,       /* SQL statement, UTF-16 encoded */
-    int nByte,              /* Maximum length of zSql in bytes. */
-    sqlite3_stmt **ppStmt,  /* OUT: Statement handle */
-    const void **pzTail     /* OUT: Pointer to unused portion of zSql */
-  );
-  int sqlite3_prepare16_v2(
-    sqlite3 *db,            /* Database handle */
-    const void *zSql,       /* SQL statement, UTF-16 encoded */
-    int nByte,              /* Maximum length of zSql in bytes. */
-    sqlite3_stmt **ppStmt,  /* OUT: Statement handle */
-    const void **pzTail     /* OUT: Pointer to unused portion of zSql */
-  );
-  int sqlite3_prepare16_v3(
-    sqlite3 *db,            /* Database handle */
-    const void *zSql,       /* SQL statement, UTF-16 encoded */
-    int nByte,              /* Maximum length of zSql in bytes. */
-    unsigned int prepFlags, /* Zero or more SQLITE_PREPARE_ flags */
-    sqlite3_stmt **ppStmt,  /* OUT: Statement handle */
-    const void **pzTail     /* OUT: Pointer to unused portion of zSql */
-  );
+  int sqlite3_prepare(sqlite3 *db, const char *zSql, int nByte, sqlite3_stmt **ppStmt, const char **pzTail);
+  int sqlite3_prepare_v2(sqlite3 *db, const char *zSql, int nByte, sqlite3_stmt **ppStmt, const char **pzTail);
+  int sqlite3_prepare_v3(sqlite3 *db, const char *zSql, int nByte, unsigned int prepFlags, sqlite3_stmt **ppStmt,
+                  const char **pzTail);
+  int sqlite3_prepare16(sqlite3 *db, const void *zSql, int nByte, sqlite3_stmt **ppStmt, const void **pzTail);
+  int sqlite3_prepare16_v2(sqlite3 *db, const void *zSql, int nByte, sqlite3_stmt **ppStmt, const void **pzTail);
+  int sqlite3_prepare16_v3(sqlite3 *db, const void *zSql, int nByte, unsigned int prepFlags, sqlite3_stmt **ppStmt,
+                  const void **pzTail);
 
   const char *sqlite3_sql(sqlite3_stmt *pStmt);
   char *sqlite3_expanded_sql(sqlite3_stmt *pStmt);
@@ -752,7 +276,7 @@ ffi.cdef[[
 
   int sqlite3_bind_blob(sqlite3_stmt*, int, const void*, int n, void(*)(void*));
   int sqlite3_bind_blob64(sqlite3_stmt*, int, const void*, sqlite3_uint64,
-               void(*)(void*));
+                  void(*)(void*));
   int sqlite3_bind_double(sqlite3_stmt*, int, double);
   int sqlite3_bind_int(sqlite3_stmt*, int, int);
   int sqlite3_bind_int64(sqlite3_stmt*, int, sqlite3_int64);
@@ -760,7 +284,7 @@ ffi.cdef[[
   int sqlite3_bind_text(sqlite3_stmt*,int,const char*,int,void(*)(void*));
   int sqlite3_bind_text16(sqlite3_stmt*, int, const void*, int, void(*)(void*));
   int sqlite3_bind_text64(sqlite3_stmt*, int, const char*, sqlite3_uint64,
-                void(*)(void*), unsigned char encoding);
+                  void(*)(void*), unsigned char encoding);
   int sqlite3_bind_value(sqlite3_stmt*, int, const sqlite3_value*);
   int sqlite3_bind_pointer(sqlite3_stmt*, int, void*, const char*,void(*)(void*));
   int sqlite3_bind_zeroblob(sqlite3_stmt*, int, int n);
@@ -801,50 +325,6 @@ ffi.cdef[[
   int sqlite3_finalize(sqlite3_stmt *pStmt);
   int sqlite3_reset(sqlite3_stmt *pStmt);
 
-  int sqlite3_create_function(
-    sqlite3 *db,
-    const char *zFunctionName,
-    int nArg,
-    int eTextRep,
-    void *pApp,
-    void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
-    void (*xStep)(sqlite3_context*,int,sqlite3_value**),
-    void (*xFinal)(sqlite3_context*)
-  );
-  int sqlite3_create_function16(
-    sqlite3 *db,
-    const void *zFunctionName,
-    int nArg,
-    int eTextRep,
-    void *pApp,
-    void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
-    void (*xStep)(sqlite3_context*,int,sqlite3_value**),
-    void (*xFinal)(sqlite3_context*)
-  );
-  int sqlite3_create_function_v2(
-    sqlite3 *db,
-    const char *zFunctionName,
-    int nArg,
-    int eTextRep,
-    void *pApp,
-    void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
-    void (*xStep)(sqlite3_context*,int,sqlite3_value**),
-    void (*xFinal)(sqlite3_context*),
-    void(*xDestroy)(void*)
-  );
-  int sqlite3_create_window_function(
-    sqlite3 *db,
-    const char *zFunctionName,
-    int nArg,
-    int eTextRep,
-    void *pApp,
-    void (*xStep)(sqlite3_context*,int,sqlite3_value**),
-    void (*xFinal)(sqlite3_context*),
-    void (*xValue)(sqlite3_context*),
-    void (*xInverse)(sqlite3_context*,int,sqlite3_value**),
-    void(*xDestroy)(void*)
-  );
-
   const void *sqlite3_value_blob(sqlite3_value*);
   double sqlite3_value_double(sqlite3_value*);
   int sqlite3_value_int(sqlite3_value*);
@@ -875,13 +355,6 @@ ffi.cdef[[
   void *sqlite3_get_auxdata(sqlite3_context*, int N);
   void sqlite3_set_auxdata(sqlite3_context*, int N, void*, void (*)(void*));
 
-  /* Most definitly useless for us:
-     Constants Defining Special Destructor Behavior
-  typedef void (*sqlite3_destructor_type)(void*);
-  #define SQLITE_STATIC      ((sqlite3_destructor_type)0)
-  #define SQLITE_TRANSIENT   ((sqlite3_destructor_type)-1)
-  */
-
   void sqlite3_result_blob(sqlite3_context*, const void*, int, void(*)(void*));
   void sqlite3_result_blob64(sqlite3_context*,const void*,
                   sqlite3_uint64,void(*)(void*));
@@ -907,54 +380,7 @@ ffi.cdef[[
 
   void sqlite3_result_subtype(sqlite3_context*,unsigned int);
 
-  int sqlite3_create_collation(
-    sqlite3*,
-    const char *zName,
-    int eTextRep,
-    void *pArg,
-    int(*xCompare)(void*,int,const void*,int,const void*)
-  );
-  int sqlite3_create_collation_v2(
-    sqlite3*,
-    const char *zName,
-    int eTextRep,
-    void *pArg,
-    int(*xCompare)(void*,int,const void*,int,const void*),
-    void(*xDestroy)(void*)
-  );
-  int sqlite3_create_collation16(
-    sqlite3*,
-    const void *zName,
-    int eTextRep,
-    void *pArg,
-    int(*xCompare)(void*,int,const void*,int,const void*)
-  );
-
-  int sqlite3_collation_needed(
-    sqlite3*,
-    void*,
-    void(*)(void*,sqlite3*,int eTextRep,const char*)
-  );
-  int sqlite3_collation_needed16(
-    sqlite3*,
-    void*,
-    void(*)(void*,sqlite3*,int eTextRep,const void*)
-  );
-
   int sqlite3_sleep(int);
-
-  /* TODO(conni2461): Windows specific. Which we support */
-  int sqlite3_win32_set_directory(
-    unsigned long type, /* Identifier for directory being set or reset */
-    void *zValue        /* New value for directory being set or reset */
-  );
-  int sqlite3_win32_set_directory8(unsigned long type, const char *zValue);
-  int sqlite3_win32_set_directory16(unsigned long type, const void *zValue);
-
-  /* Win32 Directory Types
-  #define SQLITE_WIN32_DATA_DIRECTORY_TYPE  1
-  #define SQLITE_WIN32_TEMP_DIRECTORY_TYPE  2
-  */
 
   int sqlite3_get_autocommit(sqlite3*);
   sqlite3 *sqlite3_db_handle(sqlite3_stmt*);
@@ -967,11 +393,7 @@ ffi.cdef[[
   void *sqlite3_commit_hook(sqlite3*, int(*)(void*), void*);
   void *sqlite3_rollback_hook(sqlite3*, void(*)(void *), void*);
 
-  void *sqlite3_update_hook(
-    sqlite3*,
-    void(*)(void *,int ,char const *,char const *,sqlite3_int64),
-    void*
-  );
+  void *sqlite3_update_hook(sqlite3*, void(*)(void *,int ,char const *,char const *,sqlite3_int64), void*);
 
   int sqlite3_enable_shared_cache(int);
   int sqlite3_release_memory(int);
@@ -980,81 +402,28 @@ ffi.cdef[[
   sqlite3_int64 sqlite3_soft_heap_limit64(sqlite3_int64 N);
   sqlite3_int64 sqlite3_hard_heap_limit64(sqlite3_int64 N);
 
-  int sqlite3_table_column_metadata(
-    sqlite3 *db,                /* Connection handle */
-    const char *zDbName,        /* Database name or NULL */
-    const char *zTableName,     /* Table name */
-    const char *zColumnName,    /* Column name */
-    char const **pzDataType,    /* OUTPUT: Declared data type */
-    char const **pzCollSeq,     /* OUTPUT: Collation sequence name */
-    int *pNotNull,              /* OUTPUT: True if NOT NULL constraint exists */
-    int *pPrimaryKey,           /* OUTPUT: True if column part of PK */
-    int *pAutoinc               /* OUTPUT: True if column is auto-increment */
-  );
+  int sqlite3_table_column_metadata(sqlite3 *db, const char *zDbName, const char *zTableName, const char *zColumnName,
+                  char const **pzDataType, char const **pzCollSeq, int *pNotNull, int *pPrimaryKey, int *pAutoinc);
 
-  int sqlite3_load_extension(
-    sqlite3 *db,          /* Load the extension into this database connection */
-    const char *zFile,    /* Name of the shared library containing extension */
-    const char *zProc,    /* Entry point.  Derived from zFile if 0 */
-    char **pzErrMsg       /* Put error message here if not 0 */
-  );
+  int sqlite3_load_extension(sqlite3 *db, const char *zFile, const char *zProc, char **pzErrMsg);
 
   int sqlite3_enable_load_extension(sqlite3 *db, int onoff);
   int sqlite3_auto_extension(void(*xEntryPoint)(void));
   int sqlite3_cancel_auto_extension(void(*xEntryPoint)(void));
   void sqlite3_reset_auto_extension(void);
 
-  int sqlite3_create_module(
-    sqlite3 *db,               /* SQLite connection to register module with */
-    const char *zName,         /* Name of the module */
-    const sqlite3_module *p,   /* Methods for the module */
-    void *pClientData          /* Client data for xCreate/xConnect */
-  );
-  int sqlite3_create_module_v2(
-    sqlite3 *db,               /* SQLite connection to register module with */
-    const char *zName,         /* Name of the module */
-    const sqlite3_module *p,   /* Methods for the module */
-    void *pClientData,         /* Client data for xCreate/xConnect */
-    void(*xDestroy)(void*)     /* Module destructor function */
-  );
-
-  int sqlite3_drop_modules(
-    sqlite3 *db,                /* Remove modules from this connection */
-    const char **azKeep         /* Except, do not remove the ones named here */
-  );
-
   int sqlite3_declare_vtab(sqlite3*, const char *zSQL);
   int sqlite3_overload_function(sqlite3*, const char *zFuncName, int nArg);
 
-  int sqlite3_blob_open(
-    sqlite3*,
-    const char *zDb,
-    const char *zTable,
-    const char *zColumn,
-    sqlite3_int64 iRow,
-    int flags,
-    sqlite3_blob **ppBlob
-  );
+  int sqlite3_blob_open(sqlite3*, const char *zDb, const char *zTable, const char *zColumn, sqlite3_int64 iRow,
+                  int flags, sqlite3_blob **ppBlob);
   int sqlite3_blob_reopen(sqlite3_blob *, sqlite3_int64);
   int sqlite3_blob_close(sqlite3_blob *);
   int sqlite3_blob_bytes(sqlite3_blob *);
   int sqlite3_blob_read(sqlite3_blob *, void *Z, int N, int iOffset);
   int sqlite3_blob_write(sqlite3_blob *, const void *z, int n, int iOffset);
 
-  sqlite3_vfs *sqlite3_vfs_find(const char *zVfsName);
-  int sqlite3_vfs_register(sqlite3_vfs*, int makeDflt);
-  int sqlite3_vfs_unregister(sqlite3_vfs*);
-
-  sqlite3_mutex *sqlite3_mutex_alloc(int);
-  void sqlite3_mutex_free(sqlite3_mutex*);
-  void sqlite3_mutex_enter(sqlite3_mutex*);
-  int sqlite3_mutex_try(sqlite3_mutex*);
-  void sqlite3_mutex_leave(sqlite3_mutex*);
-
-  sqlite3_mutex *sqlite3_db_mutex(sqlite3*);
-
   int sqlite3_file_control(sqlite3*, const char *zDbName, int op, void*);
-
   int sqlite3_test_control(int op, ...);
 
   int sqlite3_keyword_count(void);
@@ -1076,32 +445,18 @@ ffi.cdef[[
   char *sqlite3_str_value(sqlite3_str*);
 
   int sqlite3_status(int op, int *pCurrent, int *pHighwater, int resetFlag);
-  int sqlite3_status64(
-    int op,
-    sqlite3_int64 *pCurrent,
-    sqlite3_int64 *pHighwater,
-    int resetFlag
-  );
+  int sqlite3_status64(int op, sqlite3_int64 *pCurrent, sqlite3_int64 *pHighwater, int resetFlag);
 
   int sqlite3_db_status(sqlite3*, int op, int *pCur, int *pHiwtr, int resetFlg);
   int sqlite3_stmt_status(sqlite3_stmt*, int op,int resetFlg);
 
-  sqlite3_backup *sqlite3_backup_init(
-    sqlite3 *pDest,                        /* Destination database handle */
-    const char *zDestName,                 /* Destination database name */
-    sqlite3 *pSource,                      /* Source database handle */
-    const char *zSourceName                /* Source database name */
-  );
+  sqlite3_backup *sqlite3_backup_init(sqlite3 *pDest, const char *zDestName, sqlite3 *pSource, const char *zSourceName);
   int sqlite3_backup_step(sqlite3_backup *p, int nPage);
   int sqlite3_backup_finish(sqlite3_backup *p);
   int sqlite3_backup_remaining(sqlite3_backup *p);
   int sqlite3_backup_pagecount(sqlite3_backup *p);
 
-  int sqlite3_unlock_notify(
-    sqlite3 *pBlocked,                          /* Waiting connection */
-    void (*xNotify)(void **apArg, int nArg),    /* Callback function to invoke */
-    void *pNotifyArg                            /* Argument to pass to xNotify */
-  );
+  int sqlite3_unlock_notify(sqlite3 *pBlocked, void (*xNotify)(void **apArg, int nArg), void *pNotifyArg);
 
   int sqlite3_stricmp(const char *, const char *);
   int sqlite3_strnicmp(const char *, const char *, int);
@@ -1112,55 +467,27 @@ ffi.cdef[[
 
   void sqlite3_log(int iErrCode, const char *zFormat, ...);
 
-  void *sqlite3_wal_hook(
-    sqlite3*,
-    int(*)(void *,sqlite3*,const char*,int),
-    void*
-  );
+  void *sqlite3_wal_hook(sqlite3*, int(*)(void *,sqlite3*,const char*,int), void*);
 
   int sqlite3_wal_autocheckpoint(sqlite3 *db, int N);
   int sqlite3_wal_checkpoint(sqlite3 *db, const char *zDb);
 
-  int sqlite3_wal_checkpoint_v2(
-    sqlite3 *db,                    /* Database handle */
-    const char *zDb,                /* Name of attached database (or NULL) */
-    int eMode,                      /* SQLITE_CHECKPOINT_* value */
-    int *pnLog,                     /* OUT: Size of WAL log in frames */
-    int *pnCkpt                     /* OUT: Total number of frames checkpointed */
-  );
+  int sqlite3_wal_checkpoint_v2(sqlite3 *db, const char *zDb, int eMode, int *pnLog, int *pnCkpt);
 
   int sqlite3_vtab_config(sqlite3*, int op, ...);
 
   int sqlite3_vtab_on_conflict(sqlite3 *);
   int sqlite3_vtab_nochange(sqlite3_context*);
 
-  int sqlite3_stmt_scanstatus(
-    sqlite3_stmt *pStmt,      /* Prepared statement for which info desired */
-    int idx,                  /* Index of loop to report on */
-    int iScanStatusOp,        /* Information desired.  SQLITE_SCANSTAT_* */
-    void *pOut                /* Result written here */
-  );
+  int sqlite3_stmt_scanstatus(sqlite3_stmt *pStmt, int idx, int iScanStatusOp, void *pOut);
 
   void sqlite3_stmt_scanstatus_reset(sqlite3_stmt*);
-
   int sqlite3_db_cacheflush(sqlite3*);
-
   int sqlite3_system_errno(sqlite3*);
 
-  unsigned char *sqlite3_serialize(
-    sqlite3 *db,           /* The database connection */
-    const char *zSchema,   /* Which DB to serialize. ex: "main", "temp", ... */
-    sqlite3_int64 *piSize, /* Write size of the DB here, if not NULL */
-    unsigned int mFlags    /* Zero or more SQLITE_SERIALIZE_* flags */
-  );
-  int sqlite3_deserialize(
-    sqlite3 *db,            /* The database connection */
-    const char *zSchema,    /* Which DB to reopen with the deserialization */
-    unsigned char *pData,   /* The serialized database content */
-    sqlite3_int64 szDb,     /* Number bytes in the deserialization */
-    sqlite3_int64 szBuf,    /* Total size of buffer pData[] */
-    unsigned mFlags         /* Zero or more SQLITE_DESERIALIZE_* flags */
-  );
+  unsigned char *sqlite3_serialize(sqlite3 *db, const char *zSchema, sqlite3_int64 *piSize, unsigned int mFlags);
+  int sqlite3_deserialize(sqlite3 *db, const char *zSchema, unsigned char *pData, sqlite3_int64 szDb,
+                  sqlite3_int64 szBuf, unsigned mFlags);
 ]]
 
 M.to_str = function(ptr, len)
@@ -1185,10 +512,10 @@ M.get_new_blob_ptr = function()
   return ffi.new('sqlite3_blob*[1]')
 end
 
-M.type_of_db_ptr = ffi.typeof("sqlite3*[1]")
-M.type_of_stmt_ptr = ffi.typeof("sqlite3_stmt*[1]")
+M.type_of_db_ptr = ffi.typeof("sqlite3*")
+M.type_of_stmt_ptr = ffi.typeof("sqlite3_stmt*")
 M.type_of_exec_ptr = ffi.typeof("int (*)(void*,int,char**,char**)")
-M.type_of_blob_ptr = ffi.typeof("sqlite3_blob*[1]")
+M.type_of_blob_ptr = ffi.typeof("sqlite3_blob*")
 
 M = setmetatable(M, {
   __index = function(_, k)

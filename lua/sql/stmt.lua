@@ -29,7 +29,7 @@ Stmt.__index = Stmt
 ---@see Stmt:__parse()
 ---@usage local stmt = Stmt:parse(db, "insert into todos (title,desc) values(:title, :desc)")
 function Stmt:parse(conn, stmt)
-  assert(type(conn) == "cdata", "Invalid connection passed to stmt:parse")
+  assert(sqlite.type_of(conn) == sqlite.type_of_db_ptr, "Invalid connection passed to stmt:parse")
   assert(type(stmt) == "string", "Invalid second argument passed to stmt:parse")
   local o = {
     str = stmt,
