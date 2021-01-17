@@ -43,6 +43,10 @@ NOTE: To make sure that sql.nvim work as expected, it is sometimes required
 that you set `g:sql_clib_path` or `vim.g.sql_clib_path` to where
 `libsqlite3.so` is located, and if that the case, pr or issue are welcomed to
 add to sql.nvim lookup paths for `libsqlite3.so`.
+If you're on Windows, you'll be looking for `sqlite3.dll` instead of
+`libsqlite3.so`, be careful to also use `/` in the path you specify (Windows's
+paths usually use `\`). You can get sqlite3 precompiled binaries for Windows
+[here](https://www.sqlite.org/download.html).
 
 Usage
 -----------------
