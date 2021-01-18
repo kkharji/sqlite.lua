@@ -22,15 +22,16 @@ welcomed. Issues, feature and suggestions are encouraged.
 
 - Connect, reconnect, close sql db connections `sql:open/sql:close`
 - Evaluate any sqlite statement and return result if any `sql:eval`
-- helper function over `sql:eval` to do all sort of operation. 
+- Helper function over `sql:eval` to do all sort of operation. 
+- High level API with `sql:table` for better experience
 - 90% test coverage.
 
 #### WIP: 
 
-- docs
-- better boolean interop.
-- better join support.
-- sql table object see https://github.com/tami5/sql.nvim/issues/18.
+- Docs
+- Better boolean interop.
+- Better join support.
+- Serialization of lua tables to json so that lua tables can be inserted. (or byte code)
 
 Installation
 -----------------
