@@ -171,4 +171,27 @@ M.flatten = function(tbl)
   return result
 end
 
+-- taken from: https://github.com/neovim/neovim/blob/master/runtime/lua/vim/shared.lua
+M.is_list = function(t)
+  if type(t) ~= 'table' then
+    return false
+  end
+
+  local count = 0
+
+  for k, _ in pairs(t) do
+    if type(k) == "number" then
+      count = count + 1
+    else
+      return false
+    end
+  end
+
+  if count > 0 then
+    return true
+  else
+    return getmetatable(t) ~= {}
+  end
+end
+
 return M

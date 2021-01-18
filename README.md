@@ -49,15 +49,32 @@ Usage
 For more usage example, please review test/auto/ and docs/sql.txt.
 
 - [Connect to sqlite db]
-- [Open execute and close connection]
-- [Evaluate statements]
-- [Connection status]
-- [Tables]
-- [Query from a table]
-- [Insert into a table]
-- [Update rows in a table]
-- [Delete rows from a table]
-
+- [Low level API]
+  - [Open execute and close connection]
+  - [Evaluate statements]
+  - [Connection status]
+  - [Create a table]
+  - [Check if a table exists]
+  - [Get a table schema]
+  - [Drop a table]
+  - [Query from a table]
+  - [Insert into a table]
+  - [Update rows in a table]
+  - [Delete rows from a table]
+- [High level API]
+  - [Table New]
+  - [Table schema]
+  - [Table exists]
+  - [Table empty]
+  - [Table insert]
+  - [Table update]
+  - [Table remove]
+  - [Table replace]
+  - [Table get]
+  - [Table each]
+  - [Table map]
+  - [Table sort]
+  
 #### Connect to sqlite db
 
 ```lua
@@ -70,6 +87,8 @@ local db = sql.new(...)
 -- i.e. requires `db:open()`
 db:close() -- closes connection 
 ```
+
+### Low Level API
 
 #### Evaluate statements
 
@@ -123,8 +142,7 @@ db:isclose() -- return true if the db connection is deactivated
 db:status() -- returns last error msg and last error code
 ```
 
-#### Tables
-
+#### Create a table
 ```lua 
 -- create new table with schema
 db:create("tbl_name", {
@@ -135,20 +153,28 @@ db:create("tbl_name", {
   -- ensure = true --:> if you like to create the table if it doesn't exist
   done = {"int", "not", "null", "default", 0},
 })
+```
 
+#### Check if a table exists
+```lua 
 -- return true if `tbl_name` is an existing database
 db:exists("tbl_name")
+```
 
+#### Get a table schema
+```lua 
 -- return a table of `tbl_name` keys and their sqlite type
 db:schema("tbl_name")
 
 -- return a list of `tbl_name` keys
 db:schema("tbl_name", true)
+```
 
+#### Drop a table
+```lua 
 -- remove a table and all their data
 db:drop("tbl_name")
 ```
-
 
 #### Query from a table
 
@@ -220,6 +246,204 @@ db:delete("todos", {where =  {id = 1, title = {"a", "b", "c"}}})
 db:delete("todos", {where =  {id = 88}})
 ```
 
+### High Level API
+
+- Easier to deal with sql-tables.
+- No need to check for connection status. If db connection is open, then it
+  will stay open, otherwise, it will stay closed
+- No need to run the queries twice, for now cache is cleared out if the db file
+  mtime is changes or `t:insert/t:delete/t:update/t:replace/db:eval` was called.
+
+#### New table 
+[Table New]: #table_new
+
+```lua 
+-- Initialize the sql table object, it can be non existing or new table.
+local t = db:table("todos")
+```
+
+#### Table schema
+[Table schema]: #table_schema
+
+Create or change schema of the table. If the schema doesn't have ensure key,
+then the table will be dropped and created with the new schema. Unless, the
+table already has data, then the it should error out.
+ 
+```lua 
+-- create the table with the provided schema
+t:schema{
+  id = {"integer", "not", "null"},
+  name = "text",
+  age = "integer"
+}
+-- return the table schema or empty table if the table isn't created yet
+t:schema()
+
+-- drop the old schema and table content an create new one with the following schema
+t:schema{
+  id = {"integer", "not", "null"},
+  name = "text",
+}
+
+-- don't even bother to read the schema if the table already exists, otherwise
+-- create it. safe to run multiple time
+t:schema{
+  id = {"integer", "not", "null"},
+  name = "text",
+  ensure = true
+}
+```
+#### Table drop 
+[Table drop]: #table_drop
+
+```lua 
+-- same as sql:drop(tbl_name)
+t:drop()
+```
+
+#### Table exists
+[Table exists]: #table_exists
+
+```lua 
+-- return true if table exists
+t:exists()
+```
+
+#### Table empty
+[Table empty]: #table_empty
+
+```lua 
+-- returns `not t.has_content`
+t:empty()
+```
+
+#### Table count
+[Table empty]: #table_count
+
+```lua 
+-- returns the number of rows in a table
+t:count()
+```
+#### Table insert
+[Table insert]: #table_insert
+
+```lua 
+-- same functionalities as `sql.insert(tbl_name, ...)`
+t:insert{ 
+  id = 1, 
+  name = "a" 
+}
+
+t:insert{ 
+  {id = 1, name = "b" }, 
+  {id = 3, name = "c", age = 19} 
+}
+```
+
+#### Table update
+[Table update]: #table_update
+
+```lua 
+-- same functionalities as `sql.update(tbl_name, ...)`
+
+t:update{
+  where = { .. }
+  values = { .. },
+}
+
+t:update{
+  {where = { .. } values = { .. }},
+  {where = { .. } values = { .. }},
+  {where = { .. } values = { .. }},
+}
+```
+#### Table remove
+[Table remove]: #table_remove
+
+```lua 
+-- same functionalities as `sql.delete`. if no arguments is
+-- provided then it should remove all rows.
+
+t:remove() -- remove everything
+t:remove{ where = {id = 1, name = "a"} }
+t:remove{ where = {id = {1,2,3,4}, name = "a"} }
+```
+
+#### Table replace
+[Table replace]: #table_remove
+
+```lua 
+-- same functionalities as `sql.insert`, but delete the
+-- content of table and replaced with the content.
+
+t:replace{
+  -- rows
+}
+```
+
+#### Table get
+[Table get]: #table_get
+
+```lua 
+-- same functionalities as `sql.select`
+t:get() -- return everything
+
+
+t:get{ -- Get rows that matches where clause
+  where = { id = 1 }
+}
+
+t:get{ -- Get and inner join 
+  where  = { id = {1,2,3,4} }, -- any of provided ids
+  join = { posts = "userId", users = "id" } -- see inner join.
+}
+```
+
+#### Table each
+[Table each]: #table_each
+
+```lua
+-- Iterates over a table rows of with a function that get
+-- execute on each row.
+
+t:each({
+  where = { .. }
+  contains = { .. },
+}, function(row) 
+  -- execute stuff
+end)
+```
+
+#### Table map
+[Table map]: #table_map
+
+```lua
+-- produce a new table by a function that accept row.
+local modified = t:map({
+  where = { .. }
+  contains = { .. },
+}, function(row) 
+  -- execute stuff
+  -- return modified a new row or nothing
+end)
+```
+
+#### Table sort
+[Table sort]: #table_sort
+
+```lua
+-- Returns sorted rows based on transform and comparison function,
+
+-- return a rows sort by a key
+t1:sort({where = {id = {32,12,35}}}, "age")
+
+-- return a rows sort by id
+t1:sort({where = {id = {32,12,35}}})
+
+-- return a rows sort by custom function
+local comp = function(a, b) return a > b end
+t1:sort({where = {a = { 32,12,35 }}}, "age", comp)
+```
 
 Credit 
 -------------------
@@ -228,7 +452,7 @@ Credit
 
 [Installation]: #installation
 [Status]: #status
-[Usage]: #status
+[Usage]: #usage
 [SQLite]: https://www.sqlite.org/index.html
 [LuaJIT]: https://luajit.org
 [sql.nvim]: https://github.com/tami5/sql.nvim
@@ -236,11 +460,16 @@ Credit
 [@tjdevries]: https://github.com/tjdevries
 [@Conni2461]: https://github.com/Conni2461
 [Connect to sqlite db]: #connect-to-sqlite-db
+[Low level API]: #low_level_api
 [Open execute and close connection]: #open-execute-and-close-connection
 [Evaluate statements]: #evaluate-statements
 [Connection status]: #connection-status
-[Tables]: #tables
+[Create a table]: #create_a_table
+[Check if a table exists]: #check_if_a_table_exists
+[Get a table schema]: #get_a_table_schema
+[Drop a table]: #drop_a_table
 [Query from a table]: #query-from-a-table
 [Insert into a table]: #insert-into-a-table
 [Update rows in a table]: #update-rows-in-a-table
 [Delete rows from a table]: #delete-rows-from-a-table
+[High level API]: #high_level_api

@@ -1,6 +1,7 @@
 local clib = require'sql.defs'
 local stmt = require'sql.stmt'
 local u = require'sql.utils'
+local t = require'sql.table'
 local P = require'sql.parser'
 local flags = clib.flags
 local sql = {}
@@ -8,8 +9,8 @@ sql.__index = sql
 
 function sql:__assert_tbl(tbl, method)
   assert(self:exists(tbl),
-  string.format("sql.nvim: %s table doesn't exists. %s failed.",
-  tbl, method
+  string.format("sql.nvim: can not execute %s, %s doesn't exists.",
+  method, tbl
   ))
 end
 
@@ -36,6 +37,7 @@ function sql:__connect()
     self.conn = conn[0]
     self.closed = false
     clib.exec(self.conn,"pragma synchronous = off", nil, nil, nil)
+    -- TODO should be optional or incase of bulk insert
     clib.exec(self.conn,"pragma journal_mode = wal", nil, nil, nil)
   else
     error(string.format("sql.nvim: couldn't connect to sql database, ERR:", code))
@@ -73,6 +75,7 @@ function sql:open(uri, noconn)
     o.closed = true
     return o
   end
+  o.modified = false
   o:__connect()
   return o
 end
@@ -176,7 +179,7 @@ function sql:eval(statement, params)
   "sql.nvim: :eval has failed to execute statement, ERRMSG: %s",
     self:__last_errmsg()
   ))
-
+  self.modified = true
   return res
 end
 
@@ -230,13 +233,13 @@ function sql:exists(name)
   return type(q) == "table" and true or false
 end
 
---- get sql table {name} schema.
+--- get sql table {name} schema, if table doesn't exist then return empty table.
 ---@param tbl string: the table name
 ---@param onlykeys boolean: whether to return a table of keys and their types. default false.
 ---@return table: list of keys or keys and their type.
 function sql:schema(tbl, onlykeys)
   local tbl_sch = self:eval(string.format("pragma table_info(%s)",  tbl))
-  if type(tbl_sch) == "boolean" then return end
+  if type(tbl_sch) == "boolean" then return {} end
   if onlykeys then
     local keys = {}
     for _, v in ipairs(tbl_sch) do
@@ -295,7 +298,9 @@ function sql:insert(tbl, rows)
     end
     succ = s:finalize()
   end)
-
+  if succ then
+    self.modified = true
+  end
   return succ
 end
 
@@ -322,7 +327,11 @@ function sql:update(tbl, specs)
   end)
 
   fail_on_wrong_input(ret_vals)
-  return u.all(ret_vals, function(_, v) return v end)
+  local succ = u.all(ret_vals, function(_, v) return v end)
+  if succ then
+    self.modified = true
+  end
+  return succ
 end
 
 --- Delete a {tbl} row/rows based on the {specs} given. if no spec was given,
@@ -350,7 +359,9 @@ function sql:delete(tbl, specs)
     end
   end)
 
-  return u.all(ret_vals, function(_, v) return v end)
+  local succ = u.all(ret_vals, function(_, v) return v end)
+  if succ then self.modified = true end
+  return succ
 end
 
 --- Query from a table with where and join options
@@ -365,6 +376,7 @@ function sql:select(tbl, spec)
   end
 
   self:__wrap_stmts(function()
+    if spec.keys then spec.select = spec.keys end
     local s = self:__parse(P.select(tbl, {
       select = spec and spec.select or nil,
       where = spec and spec.where or nil,
@@ -374,8 +386,15 @@ function sql:select(tbl, spec)
     s:reset()
     s:finalize()
   end)
-
+  self.modified = false
   return ret
+end
+
+--- Create new sql-table object.
+---@param tbl_name string: the name of the table. can be new or existing one.
+---@return table
+function sql:table(tbl_name)
+  return t:new(self, tbl_name)
 end
 
 return sql
