@@ -255,7 +255,7 @@ db:delete("todos", {where =  {id = 88}})
   mtime is changes or `t:insert/t:delete/t:update/t:replace/db:eval` was called.
 
 #### New table 
-[Table New]: #table_new
+[Table New]: #table-new
 
 ```lua 
 -- Initialize the sql table object, it can be non existing or new table.
@@ -263,7 +263,7 @@ local t = db:table("todos")
 ```
 
 #### Table schema
-[Table schema]: #table_schema
+[Table schema]: #table-schema
 
 Create or change schema of the table. If the schema doesn't have ensure key,
 then the table will be dropped and created with the new schema. Unless, the
@@ -294,7 +294,7 @@ t:schema{
 }
 ```
 #### Table drop 
-[Table drop]: #table_drop
+[Table drop]: #table-drop
 
 ```lua 
 -- same as sql:drop(tbl_name)
@@ -302,7 +302,7 @@ t:drop()
 ```
 
 #### Table exists
-[Table exists]: #table_exists
+[Table exists]: #table-exists
 
 ```lua 
 -- return true if table exists
@@ -310,7 +310,7 @@ t:exists()
 ```
 
 #### Table empty
-[Table empty]: #table_empty
+[Table empty]: #table-empty
 
 ```lua 
 -- returns `not t.has_content`
@@ -318,14 +318,14 @@ t:empty()
 ```
 
 #### Table count
-[Table empty]: #table_count
+[Table empty]: #table-count
 
 ```lua 
 -- returns the number of rows in a table
 t:count()
 ```
 #### Table insert
-[Table insert]: #table_insert
+[Table insert]: #table-insert
 
 ```lua 
 -- same functionalities as `sql.insert(tbl_name, ...)`
@@ -341,7 +341,7 @@ t:insert{
 ```
 
 #### Table update
-[Table update]: #table_update
+[Table update]: #table-update
 
 ```lua 
 -- same functionalities as `sql.update(tbl_name, ...)`
@@ -358,7 +358,7 @@ t:update{
 }
 ```
 #### Table remove
-[Table remove]: #table_remove
+[Table remove]: #table-remove
 
 ```lua 
 -- same functionalities as `sql.delete`. if no arguments is
@@ -370,7 +370,7 @@ t:remove{ where = {id = {1,2,3,4}, name = "a"} }
 ```
 
 #### Table replace
-[Table replace]: #table_remove
+[Table replace]: #table-remove
 
 ```lua 
 -- same functionalities as `sql.insert`, but delete the
@@ -382,7 +382,7 @@ t:replace{
 ```
 
 #### Table get
-[Table get]: #table_get
+[Table get]: #table-get
 
 ```lua 
 -- same functionalities as `sql.select`
@@ -400,7 +400,7 @@ t:get{ -- Get and inner join
 ```
 
 #### Table each
-[Table each]: #table_each
+[Table each]: #table-each
 
 ```lua
 -- Iterates over a table rows of with a function that get
@@ -415,7 +415,7 @@ end)
 ```
 
 #### Table map
-[Table map]: #table_map
+[Table map]: #table-map
 
 ```lua
 -- produce a new table by a function that accept row.
@@ -429,7 +429,7 @@ end)
 ```
 
 #### Table sort
-[Table sort]: #table_sort
+[Table sort]: #table-sort
 
 ```lua
 -- Returns sorted rows based on transform and comparison function,
@@ -460,16 +460,16 @@ Credit
 [@tjdevries]: https://github.com/tjdevries
 [@Conni2461]: https://github.com/Conni2461
 [Connect to sqlite db]: #connect-to-sqlite-db
-[Low level API]: #low_level_api
+[Low level API]: #low-level-api
 [Open execute and close connection]: #open-execute-and-close-connection
 [Evaluate statements]: #evaluate-statements
 [Connection status]: #connection-status
-[Create a table]: #create_a_table
-[Check if a table exists]: #check_if_a_table_exists
-[Get a table schema]: #get_a_table_schema
-[Drop a table]: #drop_a_table
+[Create a table]: #create-a-table
+[Check if a table exists]: #check-if-a-table-exists
+[Get a table schema]: #get-a-table-schema
+[Drop a table]: #drop-a-table
 [Query from a table]: #query-from-a-table
 [Insert into a table]: #insert-into-a-table
 [Update rows in a table]: #update-rows-in-a-table
 [Delete rows from a table]: #delete-rows-from-a-table
-[High level API]: #high_level_api
+[High level API]: #high-level-api
