@@ -48,8 +48,11 @@ that you set `g:sql_clib_path` or `vim.g.sql_clib_path` to where
 add to sql.nvim lookup paths for `libsqlite3.so`.
 
 #### Ubuntu
-You might need to install `libsqlite3-dev`, in order for
-this package to work
+Ensure you have `sqlite3` and `libsqlite3-dev` installed
+
+```
+sudo apt-get install sqlite3 libsqlite3-dev
+```
 
 
 Usage
