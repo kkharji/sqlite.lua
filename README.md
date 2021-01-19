@@ -36,6 +36,8 @@ welcomed. Issues, feature and suggestions are encouraged.
 Installation
 -----------------
 
+#### Neovim
+
 To install or take advantage of sql.nvim correctly, simply add sql.nvim to
 your lua `package.path`, neovim `/**/start/` or use your favorite
 vim package manager.
@@ -44,6 +46,23 @@ NOTE: To make sure that sql.nvim work as expected, it is sometimes required
 that you set `g:sql_clib_path` or `vim.g.sql_clib_path` to where
 `libsqlite3.so` is located, and if that the case, pr or issue are welcomed to
 add to sql.nvim lookup paths for `libsqlite3.so`.
+
+#### Ubuntu
+Ensure you have `sqlite3` and `libsqlite3-dev` installed
+
+```
+sudo apt-get install sqlite3 libsqlite3-dev
+```
+
+#### Arch 
+Coming soon.
+
+#### MacOS
+Coming soon.
+
+#### Windows 
+Coming soon.
+
 
 Usage
 -----------------
