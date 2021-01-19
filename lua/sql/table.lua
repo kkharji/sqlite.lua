@@ -205,6 +205,9 @@ function t:insert(rows)
   return self:__run(function()
     local succ = self.db:insert(self.tbl, rows)
     self:__clear_cache(succ, rows)
+    if succ then
+      self.has_content = self:count() ~= 0 or false
+    end
     return succ
   end)
 end
