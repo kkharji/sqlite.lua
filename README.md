@@ -4,14 +4,16 @@ sql.nvim
 
 [sql.nvim] is [SQLite]/[LuaJIT] binding, as well as a highly opinionated
 wrapper targeted towards a number of use-cases, e.g. storing, retrieving,
-caching, persisting, querying, and connecting to [SQLite] databases. 
-
-While its tailored to neovim environment, it can work in any lua environment with
-luajit support.
+caching, persisting, querying, and connecting to [SQLite] databases.  While
+[sql.nvim] is tailored to Neovim environment, ~~it can work in any lua
+environment with luajit support.~~ see #29
 
 - [Status]
 - [Installation]
 - [Usage]
+  - [Low Level API]
+  - [High Level API]
+- [Credit]
 
 Status
 ------------------
@@ -36,39 +38,47 @@ welcomed. Issues, feature and suggestions are encouraged.
 Installation
 -----------------
 
-#### Neovim
+Add sql.nvim to your lua `package.path`, neovim `/**/start/` or use your
+favorite vim package manager, and ensure you have `sqlite3` installed locally.
 
-To install or take advantage of sql.nvim correctly, simply add sql.nvim to
-your lua `package.path`, neovim `/**/start/` or use your favorite
-vim package manager.
+##### Arch 
+```
+sudo pacman -S sqlite
+```
 
-NOTE: To make sure that sql.nvim work as expected, it is sometimes required
-that you set `g:sql_clib_path` or `vim.g.sql_clib_path` to where
-`libsqlite3.so` is located, and if that the case, pr or issue are welcomed to
-add to sql.nvim lookup paths for `libsqlite3.so`.
+##### MacOS
+```
+brew install sqlite
+```
 
-#### Ubuntu
-Ensure you have `sqlite3` and `libsqlite3-dev` installed
-
+##### Ubuntu
 ```
 sudo apt-get install sqlite3 libsqlite3-dev
 ```
 
-#### Arch 
-Coming soon.
+##### Windows 
+> Coming soon.
 
-#### MacOS
-Coming soon.
 
-#### Windows 
-Coming soon.
-
+_NOTE: it is "sometimes" required that you set
+`g:sql_clib_path`/`vim.g.sql_clib_path` to where libsqlite3.so is located, and
+if that the case, pr or issue are welcomed to added in order to make it work regardless._ 
 
 Usage
 -----------------
 For more usage example, please review test/auto/ and docs/sql.txt.
 
-- [Connect to sqlite db]
+```lua
+local sql = require'sql'
+local db = sql.open() -- new in-memory 
+local db = sql.open('/to/new/file') -- new sqlite database
+local db = sql.open('/to/prexiting-db.sqlite3') -- pre-exiting sqlite database.
+local db = sql.new(...) 
+-- new creates new sql.nvim object but without opening/connect to the sqlite db, 
+-- i.e. requires `db:open()`
+db:close() -- closes connection 
+```
+
 - [Low level API]
   - [Open execute and close connection]
   - [Evaluate statements]
@@ -95,18 +105,6 @@ For more usage example, please review test/auto/ and docs/sql.txt.
   - [Table map]
   - [Table sort]
   
-#### Connect to sqlite db
-
-```lua
-local sql = require'sql'
-local db = sql.open() -- new in-memory 
-local db = sql.open('/to/new/file') -- new sqlite database
-local db = sql.open('/to/prexiting-db.sqlite3') -- pre-exiting sqlite database.
-local db = sql.new(...) 
--- new creates new sql.nvim object but without opening/connect to the sqlite db, 
--- i.e. requires `db:open()`
-db:close() -- closes connection 
-```
 
 ### Low Level API
 
@@ -278,7 +276,9 @@ db:delete("todos", {where =  {id = 88}})
 [Table New]: #table-new
 
 ```lua 
--- Initialize the sql table object, it can be non existing or new table.
+local db = sql:new(dbpath or nil) -- db:open/db:close is optional and not required
+
+-- Initialize the sql table object. it can be non existing or new table.
 local t = db:table("todos")
 ```
 
@@ -454,19 +454,21 @@ end)
 ```lua
 -- Returns sorted rows based on transform and comparison function,
 
--- return a rows sort by a key
-t1:sort({where = {id = {32,12,35}}}, "age")
+-- return rows sort by a key
+local res = t1:sort({where = {id = {32,12,35}}}, "age")
 
--- return a rows sort by id
-t1:sort({where = {id = {32,12,35}}})
+-- return rows sort by id
+local res = t1:sort({where = {id = {32,12,35}}})
 
--- return a rows sort by custom function
+-- return rows sort by custom function
 local comp = function(a, b) return a > b end
-t1:sort({where = {a = { 32,12,35 }}}, "age", comp)
+local res = t1:sort({where = {id = { 32,12,35 }}}, "age", comp)
 ```
 
 Credit 
 -------------------
+[Credit]: #credit
+
 - All contributors making this tool stable and reliable for us to depend on.
 - docs powered by [tree-sitter-lua]
 
