@@ -63,7 +63,9 @@ function t:new(db, tbl)
   o.cache = {}
   o.db = db
   o.tbl = tbl
-  o.mtime = vim.loop.fs_stat(o.db.uri).mtime.sec -- db:close/open changes this value, not sql:change commands
+  o.mtime = vim.loop.fs_stat(o.db.uri)
+  o.mtime = o.mtime and o.mtime.mtime.sec
+  -- db:close/open changes this value, not sql:change commands
 
   setmetatable(o, self)
 
