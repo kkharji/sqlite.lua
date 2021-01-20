@@ -301,22 +301,19 @@ t:schema{
   name = "text",
   age = "integer"
 }
+
 -- return the table schema or empty table if the table isn't created yet
 t:schema()
 
--- drop the old schema and table content an create new one with the following schema
+-- DROP the old schema and TABLE CONTENT. Then create new empty table with the following schema.
+-- This behavior not desired, add ensure = true
 t:schema{
   id = {"integer", "not", "null"},
   name = "text",
+  -- ensure = true, If table already exists, then don't even bother reading the schema, otherwise
+-- create it. with ensure = true, t:schema{schema} is safe to run multiple times.
 }
 
--- don't even bother to read the schema if the table already exists, otherwise
--- create it. safe to run multiple time
-t:schema{
-  id = {"integer", "not", "null"},
-  name = "text",
-  ensure = true
-}
 ```
 #### Table drop 
 [Table drop]: #table-drop
