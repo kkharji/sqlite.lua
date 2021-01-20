@@ -139,6 +139,17 @@ describe('parse', function()
       local passed = p.select("people", defs)
       eq(expected, passed, "should be identical")
     end)
+    it('works with [select] = "a single string"', function()
+      local defs = {
+        select = "id",
+        order_by = {
+          asc = {"name", "age"}
+        }
+      }
+      local expected = "select id from people order by name asc, age asc"
+      local passed = p.select("people", defs)
+      eq(expected, passed, "should be identical")
+    end)
   end)
   describe('[distinct]', function()
     -- remove duplicate from result set

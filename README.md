@@ -207,6 +207,11 @@ db:select("posts", {
   }
 }
 
+-- Get specific keys
+db:select("posts", {
+  keys = "title", -- or keys = {"id", "title"}
+}
+
 -- Get and inner join 
 db:get("posts", {
   where  = { id = {1,2,3,4} }, -- any of provided ids
@@ -411,6 +416,11 @@ t:get() -- return everything
 
 t:get{ -- Get rows that matches where clause
   where = { id = 1 }
+}
+
+-- Get specific keys
+db:get {
+  keys = "title", -- or keys = {"id", "title"}
 }
 
 t:get{ -- Get and inner join 

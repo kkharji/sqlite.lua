@@ -226,7 +226,14 @@ end
 M.select = function(tbl, opts)
   opts = opts or {}
   local cmd = opts.unique and "select distinct %s" or "select %s"
-  local select = u.is_tbl(opts.select) and table.concat(opts.select, ", ") or "*"
+  local select
+  if u.is_tbl(opts.select) then
+    select = table.concat(opts.select, ", ")
+  elseif type(opts.select) == "string" then
+    select = opts.select
+  else
+    select = "*"
+  end
   local stmt = string.format(cmd .. " from %s", select, tbl)
   local method = opts.join and stmt .. " " .. pjoin(opts.join, tbl) or stmt
   return partial(method, tbl, opts)

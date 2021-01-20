@@ -486,7 +486,7 @@ describe("sql", function()
     it('return selected keys only', function()
       local res = db:select("posts", {
         where  = { id = 1 },
-        select = { "userId", "posts.body" }
+        keys = { "userId", "posts.body" }
       })
       local expected = (function()
         for _, post in ipairs(posts) do

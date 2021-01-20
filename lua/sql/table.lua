@@ -12,26 +12,29 @@ function t:__run(func)
   end
 end
 
-local get_key = function(query)
+local get_key = function(query) -- TODO: refactor / move to utils
   local items = {}
   for k, v in u.opairs(query) do
-    table.insert(items, string.format("%s=%s", k, table.concat((function()
-      if not u.is_list(v) then
-        local tmp = {}
-        for _k,_v in u.opairs(v) do
-          if type(_v) == "table" then
-            table.insert(tmp, string.format("%s=%s", _k, table.concat(_v, ",")))
+    if type(v) == "table" then
+      table.insert(items, string.format("%s=%s", k, table.concat((function()
+        if not u.is_list(v) and type(v) ~= "string" then
+          local tmp = {}
+          for _k,_v in u.opairs(v) do
+            if type(_v) == "table" then
+              table.insert(tmp, string.format("%s=%s", _k, table.concat(_v, ",")))
             else
-          table.insert(tmp, string.format("%s=%s", _k, _v))
+              table.insert(tmp, string.format("%s=%s", _k, _v))
+            end
           end
+          return tmp
+        else
+          return v
         end
-        return tmp
-      else
-        return v
-      end
-    end)(), "")))
+      end)(), "")))
+    else
+      table.insert(items, k .. "=" .. v)
+    end
   end
-
   return table.concat(items, ",")
 end
 
