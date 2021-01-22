@@ -393,8 +393,8 @@ end
 --- Create new sql-table object.
 ---@param tbl_name string: the name of the table. can be new or existing one.
 ---@return table
-function sql:table(tbl_name)
-  return t:new(self, tbl_name)
+function sql:table(tbl_name, opts)
+  return t:new(self, tbl_name, opts)
 end
 
 return sql

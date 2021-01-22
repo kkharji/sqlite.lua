@@ -267,6 +267,12 @@ describe("sql", function()
       end
       db:eval("delete from todos")
     end)
+    -- it("inserts lua table in sql column", function()
+    --   db:insert("todos", {
+    --     {title = "TODO 1", desc = {"list", "of", "lines"}},
+    --     {title = "TODO 2", desc = { key = "value", pair = true}}
+    --   })
+    -- end)
 
     db:close()
   end)

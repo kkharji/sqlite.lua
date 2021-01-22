@@ -33,8 +33,8 @@ describe('table', function()
     it('create new object with sql.table methods.', function()
       eq("table", type(t1))
     end)
-    it('registers table name in self.tbl.', function()
-      eq("T", t1.tbl)
+    it('registers table name in self.name.', function()
+      eq("T", t1.name)
     end)
     it('registers whether the table exists in self.tbl_exists.', function()
       eq(true, t1.tbl_exists)
@@ -48,6 +48,30 @@ describe('table', function()
     it("doesn't fail if table isn't created yat.", function()
       eq("table", type(t2))
     end)
+
+    local opts = {
+      schema = {
+        id = "int",
+        name = "text"
+      }
+    }
+    local new = db:table("newtbl", opts)
+
+    it("initalizes db with schema", function()
+      eq(opts.schema, new:schema(), "should be identical" )
+      eq(opts.schema, new.__schema, "should be identical" )
+    end)
+    it("should not rewrite schema.", function()
+
+      local new2 = db:table("newtbl")
+      eq(opts.schema, new2:schema(), "should be identical" )
+      eq(opts.schema, new2.__schema, "should be identical" )
+
+      local new3 = db:table("newtbl", { schema = { id = "string" } })
+      eq(opts.schema, new3:schema(), "should be identical" )
+      eq(opts.schema, new3.__schema, "should be identical" )
+    end)
+
   end)
 
   describe(':schema', function()
