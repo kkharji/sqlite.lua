@@ -118,11 +118,15 @@ end
 
 --- Predicate that returns true if the table is empty
 ---@return boolean
-function t:empty() return not self.has_content end
+function t:empty()
+  return self:exists() and self:count() == 0 or false
+end
 
 --- Predicate that returns true if the table exists
 ---@return boolean
-function t:exists() return self.tbl_exists end
+function t:exists()
+  return self:__run(function() return self.db:exists(self.tbl) end)
+end
 
 --- The count of the rows in {self.tbl}.
 ---@return number: number of rows in {self.tbl}
