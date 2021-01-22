@@ -52,7 +52,10 @@ function t:__fill_cache(query, res)
 end
 
 function t:__get_from_cache(query)
-  if self.db.modified or vim.loop.fs_stat(self.db.uri).mtime.sec ~= self.mtime then
+  local stat = vim.loop.fs_stat(self.db.uri)
+  local mtime = stat and stat.mtime.sec
+
+  if self.db.modified or mtime ~= self.mtime then
     self.__clear_cache(true, nil)
     self.db.modified = false
     return nil
