@@ -2,13 +2,21 @@ local u = require'sql.utils'
 local t = {}
 t.__index = t
 
+function t:__ensure_table()
+  if not self.db:exists(self.name) and self.__schema then
+    return self.db:create(self.name, self.__schema)
+  end
+end
+
 function t:__run(func)
   if self.db.closed then
     return self.db:with_open(function()
+      self:__ensure_table()
       return func() -- shoud pass tbl name?
     end)
   else
-   return func()
+    self:__ensure_table()
+    return func()
   end
 end
 
@@ -64,40 +72,56 @@ function t:__get_from_cache(query)
 end
 
 
-function t:new(db, tbl)
+function t:new(db, name, opts)
   local o = {}
   o.cache = {}
   o.db = db
-  o.tbl = tbl
+  o.name = name
   o.mtime = vim.loop.fs_stat(o.db.uri)
   o.mtime = o.mtime and o.mtime.mtime.sec
+  o.__schema = opts and opts.schema or nil
   -- db:close/open changes this value, not sql:change commands
 
   setmetatable(o, self)
 
   o:__run(function()
-    o.tbl_exists = o.db:exists(o.tbl)
+    if o.__schema then
+      o.__schema.ensure = true
+      o.db:create(o.name, o.__schema)
+    end
+    o.tbl_exists = o.db:exists(o.name)
     o.has_content = o.tbl_exists and o:count() ~= 0 or false
   end)
   return o
 end
 
---- Create or change {self.tbl} schema. If no {schema} is given,
+--- Create or change {self.name} schema. If no {schema} is given,
 --- then it return current the used schema.
 ---@param schema table: table schema definition
 ---@return table: list of keys or keys and their type.
 function t:schema(schema)
   local res
   return self:__run(function()
+    local exists = self.db:exists(self.name)
+
     if not schema then -- TODO: or table is empty
-      return self.tbl_exists and self.db:schema(self.tbl) or {}
-    elseif not self.tbl_exists or schema.ensure then
-      res = self.db:create(self.tbl, schema)
+      if exists then
+        self.__schema = self.db:schema(self.name)
+        return self.__schema
+      else
+        return {}
+      end
+
+    -- if not schema then -- TODO: or table is empty
+    --   return exists and self.db:schema(self.name) or {}
+    elseif not exists or schema.ensure then
+      res = self.db:create(self.name, schema)
       self.tbl_exists = res
       return res
-    else -- maybe better to use alter
-      res = self.db:drop(self.tbl)
-      res = res and self.db:create(self.tbl, schema) or false
+    elseif not schema.ensure then -- maybe better to use alter
+      res = exists and self.db:drop(self.name) or true
+      res = res and self.db:create(self.name, schema) or false
+      self._schema = self.db:schema(self.name)
       return res
     end
   end)
@@ -107,10 +131,14 @@ end
 --- then it returns false
 ---@return boolean
 function t:drop()
-  if not self.tbl_exists then return false end
   return self:__run(function()
-    local res = self.db:drop(self.tbl)
-    if res then self.tbl_exists = false end
+    if not self.db:exists(self.name) then return false end
+
+    local res = self.db:drop(self.name)
+    if res then
+      self.tbl_exists = false
+      self.__schema = nil
+    end
     return res
   end)
 end
@@ -125,15 +153,15 @@ end
 --- Predicate that returns true if the table exists
 ---@return boolean
 function t:exists()
-  return self:__run(function() return self.db:exists(self.tbl) end)
+  return self:__run(function() return self.db:exists(self.name) end)
 end
 
---- The count of the rows in {self.tbl}.
----@return number: number of rows in {self.tbl}
+--- The count of the rows in {self.name}.
+---@return number: number of rows in {self.name}
 function t:count()
-  if not self.tbl_exists then return end
   return self:__run(function()
-    local res = self.db:eval("select count(*) from " .. self.tbl)
+    if not self.db:exists(self.name) then return 0 end
+    local res = self.db:eval("select count(*) from " .. self.name)
     return res[1]["count(*)"]
   end)
 end
@@ -150,13 +178,13 @@ function t:get(query)
   if cache then return cache end
 
   return self:__run(function()
-    local res = self.db:select(self.tbl, query)
+    local res = self.db:select(self.name, query)
     if res then self:__fill_cache(query, res) end
     return res
   end)
 end
 
---- Iterate over {self.tbl} rows and execute {func}.
+--- Iterate over {self.name} rows and execute {func}.
 ---@param query table: query.where, query.keys, query.join
 ---@param func function: a function that expects a row
 ---@return boolean: true if rows ~= empty table
@@ -164,7 +192,7 @@ function t:each(query, func)
   assert(type(func) == "function", "required a function as second params")
   local cache = self:__get_from_cache(query)
   local rows = cache and cache or (function()
-    local res = self.db:select(self.tbl, query)
+    local res = self.db:select(self.name, query)
     if res then self:__fill_cache(query, res) end
     return res
   end)()
@@ -175,7 +203,7 @@ function t:each(query, func)
   return rows ~= {} or type(rows) ~= "boolean"
 end
 
---- create a new table from iterating over {self.tbl} rows with {func}.
+--- create a new table from iterating over {self.name} rows with {func}.
 ---@param query table: query.where, query.keys, query.join
 ---@param func function: a function that expects a row
 ---@return boolean: true if rows ~= empty table
@@ -213,7 +241,7 @@ end
 ---@return boolean
 function t:insert(rows)
   return self:__run(function()
-    local succ = self.db:insert(self.tbl, rows)
+    local succ = self.db:insert(self.name, rows)
     self:__clear_cache(succ, rows)
     if succ then
       self.has_content = self:count() ~= 0 or false
@@ -229,7 +257,7 @@ end
 ---@return boolean
 function t:remove(specs)
   return self:__run(function()
-    local succ = self.db:delete(self.tbl, specs)
+    local succ = self.db:delete(self.name, specs)
     self:__clear_cache(succ, specs)
     return succ
   end)
@@ -242,13 +270,13 @@ end
 ---@return boolean
 function t:update(specs)
   return self:__run(function()
-    local succ = self.db:update(self.tbl, specs)
+    local succ = self.db:update(self.name, specs)
     self:__clear_cache(succ, specs)
     return succ
   end)
 end
 
---- Same functionalities as |t:add()|, but replaces {self.tbl} content with {rows}
+--- Same functionalities as |t:add()|, but replaces {self.name} content with {rows}
 ---@param rows table: a row or a group of rows
 ---@see t:__run()
 ---@see sql:delete()
@@ -256,8 +284,8 @@ end
 ---@return boolean
 function t:replace(rows)
   return self:__run(function()
-    self.db:delete(self.tbl)
-    local succ = self.db:insert(self.tbl, rows)
+    self.db:delete(self.name)
+    local succ = self.db:insert(self.name, rows)
     self:__clear_cache(succ, rows)
     return succ
   end)
