@@ -302,10 +302,10 @@ function sql:pre_insert(rows, info)
     end
 
     for k, v in pairs(row) do
-      local typ = type(v)
-      if typ == "table" then
+      if info.types[k] == "luatable" or info.types[k] == "json"  then
         row[k] = json.encode(v)
-      elseif typ == "boolean" then
+      end
+      if type(v) == "boolean" then
         row[k] = v == true and 1 or 0
       end
     end
@@ -406,19 +406,28 @@ end
 -- @return lua list of matching rows
 function sql:select(tbl, spec)
   self:__assert_tbl(tbl, "select")
+  spec = spec or {}
   local ret = {}
-  if not spec then
-    return self:eval(P.select(tbl))
-  end
+  local types = self:schema(tbl)
 
   self:__wrap_stmts(function()
     if spec.keys then spec.select = spec.keys end
-    local s = self:__parse(P.select(tbl, {
-      select = spec and spec.select or nil,
-      where = spec and spec.where or nil,
-      join = spec and spec.join or nil,
-    }))
-    ret = s:kvrows()
+    local s = spec and self:__parse(P.select(tbl, {
+      select = spec.select,
+      where = spec.where,
+      join = spec.join,
+    })) or self:__parse(P.select(tbl))
+
+    s:each(function()
+      local row = s:kv()
+      for k, v in pairs(row) do
+        if types[k] == "luatable" or types[k] == "json" then
+          row[k] = json.decode(v)
+        end
+      end
+      table.insert(ret, row)
+    end)
+
     s:reset()
     s:finalize()
   end)

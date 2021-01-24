@@ -318,12 +318,13 @@ describe("sql", function()
     end)
 
     it("serialize lua table in sql column", function()
-      db:insert("todos", {
-        {title = "TODO 1", desc = {"list", "of", "lines"}},
-        {title = "TODO 2", desc = { key = "value", pair = true}}
-      })
-      local res = db:eval[[select * from todos]]
-      eq('["list","of","lines"]',res[1].desc)
+      db:eval("drop table test")
+      db:eval("create table test(id integer, data luatable)")
+      db:insert("test", {id = 1, data = {"list", "of", "lines"}})
+
+      local res = db:eval[[select * from test]]
+      eq('["list","of","lines"]',res[1].data)
+      db:eval("drop table test")
     end)
     db:close()
   end)
@@ -555,6 +556,13 @@ describe("sql", function()
       end)()
 
       eq(expected, res[1])
+    end)
+    it("it serialize json if the schema key datatype is json", function()
+      db:eval("create table test(id integer, data luatable)")
+      db:eval("insert into test(id,data) values(1, '[\"list\",\"of\",\"lines\"]')")
+      eq({
+        { id = 1, data = {"list", "of", "lines"} }
+      }, db:select("test"), "they should be identical")
     end)
 
     db:close()
