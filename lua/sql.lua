@@ -333,7 +333,7 @@ function sql:insert(tbl, rows)
   local ret_vals = {}
   local info = self:schema(tbl, true)
   local items = self:pre_insert(rows, info)
-
+  local succ
   self:__wrap_stmts(function()
     local s = self:__parse(P.insert(tbl, { values = info.types }))
 
@@ -342,11 +342,11 @@ function sql:insert(tbl, rows)
       s:step()
       s:reset()
       s:bind_clear()
-      table.insert(ret_vals, s:finalize())
     end
+    succ = s:finalize()
   end)
 
-  local succ = u.all(ret_vals, function(_, v) return v end)
+  -- local succ = u.all(ret_vals, function(_, v) return v end)
   if succ then self.modified = true end
   return succ
 end
