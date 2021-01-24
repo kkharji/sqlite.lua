@@ -234,7 +234,7 @@ describe("sql", function()
     local db = sql:open()
     assert(db:eval("create table todos(title text, desc text)"))
 
-    it('works with table_name being as the first argument', function()
+    it('inserts a single row', function()
       db:insert("todos", {
         title = "TODO 1",
         desc = "................",
@@ -246,7 +246,7 @@ describe("sql", function()
       db:eval("delete from todos")
     end)
 
-    it('inserts multiple rows in a sql_table (with tbl_name being first param)', function()
+    it('inserts multiple rows', function()
       db:insert("todos", {
         {
           title = "todo 3",
@@ -268,13 +268,61 @@ describe("sql", function()
       end
       db:eval("delete from todos")
     end)
+
+    assert(db:eval[[
+    create table if not exists test(
+    id integer primary key,
+    title text,
+    name text not null,
+    created integer default 'today',
+    current timestamp default current_date,
+    num integer default 0)
+    ]])
+
+    it("respects string defaults", function()
+      db:insert("test", {
+        { title = "A", name = "B" },
+        { title = "C", name = "D" }
+      })
+      local res = db:eval[[ select * from test]]
+      eq("today", res[1].created) -- FIXME
+      eq("today", res[2].created) -- FIXME
+    end)
+
+    it("respects number defaults", function()
+      db:insert("test", {
+        { title = "A", name = "B" },
+        { title = "C", name = "D" }
+      })
+      local res = db:eval[[ select * from test]]
+      eq(0, res[1].num)
+      eq(0, res[2].num)
+    end)
+
+    it("respects sqlvalues defaults", function()
+      db:insert("test", {
+        { title = "A", name = "B" },
+        { title = "C", name = "D" }
+      })
+      local res = db:eval[[ select * from test]]
+      eq(os.date("%Y-%m-%d"), res[1].current)
+      eq(os.date("%Y-%m-%d"), res[2].current)
+    end)
+
+
+    it("respects fails if a key is null", function()
+      local ok, _ = pcall(function()
+        return db:insert("test", { title = "A"})
+      end)
+      eq(false, ok, "should fail")
+    end)
+
     -- it("inserts lua table in sql column", function()
     --   db:insert("todos", {
     --     {title = "TODO 1", desc = {"list", "of", "lines"}},
     --     {title = "TODO 2", desc = { key = "value", pair = true}}
     --   })
     -- end)
-
     db:close()
   end)
 
@@ -512,16 +560,43 @@ describe("sql", function()
 
   describe(':schema', function()
     local db = sql.open()
-    db:eval("create table test(a text, b int)")
+    db:eval("create table test(a text, b int, c int not null, d text default def)")
 
     it('gets a sql table schema', function()
       local sch = db:schema("test")
-      eq({ a = "text", b = "int" }, sch)
+      eq({ a = "text", b = "int", c = "int", d = "text" }, sch)
     end)
 
-    it('gets a sql table schema keys only', function()
-      local sch = db:schema("test", true)
-      eq({"a", "b"}, sch)
+    it('gets a sql table schema info', function()
+      local sch = db:schema("test", true).info
+      eq({
+        a = {
+          cid = 0,
+          primary = false,
+          required = false,
+          type = 'text',
+        },
+        b = {
+          cid = 1,
+          primary = false,
+          required = false,
+          type = 'int',
+        },
+        c = {
+          cid = 2,
+          primary = false,
+          required = true,
+          type = "int"
+        },
+        d = {
+          cid = 3,
+          primary = false,
+          required = false,
+          type = "text",
+          default = 'def'
+        }
+
+      }, sch)
     end)
 
     db:close()
