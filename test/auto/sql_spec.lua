@@ -317,12 +317,14 @@ describe("sql", function()
       eq(false, ok, "should fail")
     end)
 
-    -- it("inserts lua table in sql column", function()
-    --   db:insert("todos", {
-    --     {title = "TODO 1", desc = {"list", "of", "lines"}},
-    --     {title = "TODO 2", desc = { key = "value", pair = true}}
-    --   })
-    -- end)
+    it("serialize lua table in sql column", function()
+      db:insert("todos", {
+        {title = "TODO 1", desc = {"list", "of", "lines"}},
+        {title = "TODO 2", desc = { key = "value", pair = true}}
+      })
+      local res = db:eval[[select * from todos]]
+      eq('["list","of","lines"]',res[1].desc)
+    end)
     db:close()
   end)
 

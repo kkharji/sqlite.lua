@@ -3,6 +3,7 @@ local stmt = require'sql.stmt'
 local u = require'sql.utils'
 local t = require'sql.table'
 local P = require'sql.parser'
+local json = require'sql.json'
 local flags = clib.flags
 local sql = {}
 sql.__index = sql
@@ -300,14 +301,14 @@ function sql:pre_insert(rows, info)
       end
     end
 
-    -- TODO: do value interop here.
-    -- for k, v in pairs(info.def) do
-    --   if not row[k] then
-    --     row[k] = v
-    --   elseif row[k] == "null" then
-    --     row[k] = nil
-    --   end
-    -- end
+    for k, v in pairs(row) do
+      local typ = type(v)
+      if typ == "table" then
+        row[k] = json.encode(v)
+      elseif typ == "boolean" then
+        row[k] = v == true and 1 or 0
+      end
+    end
   end
   return rows
 end
