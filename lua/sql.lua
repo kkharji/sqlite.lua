@@ -238,46 +238,37 @@ end
 ---@param info boolean: whether to return table info. default false.
 ---@return table: list of keys or keys and their type.
 function sql:schema(tbl, info)
-  local tbl_sch = self:eval(string.format("pragma table_info(%s)",  tbl))
-  if type(tbl_sch) == "boolean" then return {} end
-  if info then
-    local tbl_info = {}
-    local req = {}
-    local def = {}
-    local types = {}
+  local sch = self:eval(string.format("pragma table_info(%s)",  tbl))
+  if type(sch) == "boolean" then return {} end
 
-    for _, v in ipairs(tbl_sch) do
-      tbl_info[v.name] = {
-        required = v.notnull == 1,
-        primary = v.ok == 1,
-        type = v.type,
-        cid = v.cid,
-        default = v.dflt_value
-      }
-    end
+  local tbl_info = {}
+  local req = {}
+  local def = {}
+  local types = {}
 
-    for k, v in pairs(tbl_info) do
-      if v.required then
-        req[k] = v
-      elseif v.default then
-        def[k] = v.default
-      end
-      types[k] = v.type
-    end
+  for _, v in ipairs(sch) do
+    if v.notnull == 1 then req[v.name] = v end
+    if v.dflt_value then def[v.name] = v.dflt_value end
 
-    return {
-      info = tbl_info,
-      req = req == {} and nil or req,
-      def = def == {} and nil or def,
-      types = types
+    tbl_info[v.name] = {
+      required = v.notnull == 1,
+      primary = v.ok == 1,
+      type = v.type,
+      cid = v.cid,
+      default = v.dflt_value
     }
-  else
-    local key_types = {}
-    for _, v in ipairs(tbl_sch) do
-      key_types[v.name] = v.type
-    end
-    return key_types
+
+    types[v.name] = v.type
   end
+
+  local obj = {
+    info = tbl_info,
+    req = req == {} and nil or req,
+    def = def == {} and nil or def,
+    types = types
+  }
+
+  return info and obj or obj.types
 end
 
 --- Create a new sqlite db table with {name} based on {schema}. if {schema.ensure} then
@@ -309,6 +300,7 @@ function sql:pre_insert(rows, info)
       end
     end
 
+    -- TODO: do value interop here.
     -- for k, v in pairs(info.def) do
     --   if not row[k] then
     --     row[k] = v
@@ -317,7 +309,6 @@ function sql:pre_insert(rows, info)
     --   end
     -- end
   end
-  -- TODO: do value interop here.
   return rows
 end
 
@@ -342,7 +333,6 @@ function sql:insert(tbl, rows)
       s:bind_clear()
       table.insert(ret_vals, s:finalize())
     end
-    -- succ = s:finalize()
   end)
 
   local succ = u.all(ret_vals, function(_, v) return v end)
@@ -359,12 +349,13 @@ function sql:update(tbl, specs)
   self:__assert_tbl(tbl, "update")
   local ret_vals = {}
   if not specs then return false end
+  local info = self:schema(tbl, true)
   specs = u.is_nested(specs) and specs or {specs}
 
   self:__wrap_stmts(function()
     for _, v in ipairs(specs) do
       local s = self:__parse(P.update(tbl, { set = v.values, where = v.where }))
-      s:bind(v.values)
+      s:bind(self:pre_insert(v.values, info)[1])
       s:step()
       s:reset()
       s:bind_clear()
@@ -374,9 +365,7 @@ function sql:update(tbl, specs)
 
   fail_on_wrong_input(ret_vals)
   local succ = u.all(ret_vals, function(_, v) return v end)
-  if succ then
-    self.modified = true
-  end
+  if succ then self.modified = true end
   return succ
 end
 
