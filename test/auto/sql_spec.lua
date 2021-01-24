@@ -539,16 +539,43 @@ describe("sql", function()
 
   describe(':schema', function()
     local db = sql.open()
-    db:eval("create table test(a text, b int)")
+    db:eval("create table test(a text, b int, c int not null, d text default def)")
 
     it('gets a sql table schema', function()
       local sch = db:schema("test")
-      eq({ a = "text", b = "int" }, sch)
+      eq({ a = "text", b = "int", c = "int", d = "text" }, sch)
     end)
 
-    it('gets a sql table schema keys only', function()
+    it('gets a sql table schema info', function()
       local sch = db:schema("test", true)
-      eq({"a", "b"}, sch)
+      eq({
+        a = {
+          cid = 0,
+          primary = false,
+          required = false,
+          type = 'text',
+        },
+        b = {
+          cid = 1,
+          primary = false,
+          required = false,
+          type = 'int',
+        },
+        c = {
+          cid = 2,
+          primary = false,
+          required = true,
+          type = "int"
+        },
+        d = {
+          cid = 3,
+          primary = false,
+          required = false,
+          type = "text",
+          default = 'def'
+        }
+
+      }, sch)
     end)
 
     db:close()

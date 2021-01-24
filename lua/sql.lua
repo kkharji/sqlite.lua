@@ -235,17 +235,23 @@ end
 
 --- get sql table {name} schema, if table doesn't exist then return empty table.
 ---@param tbl string: the table name
----@param onlykeys boolean: whether to return a table of keys and their types. default false.
+---@param info boolean: whether to return table info. default false.
 ---@return table: list of keys or keys and their type.
-function sql:schema(tbl, onlykeys)
+function sql:schema(tbl, info)
   local tbl_sch = self:eval(string.format("pragma table_info(%s)",  tbl))
   if type(tbl_sch) == "boolean" then return {} end
-  if onlykeys then
-    local keys = {}
+  if info then
+    info = {}
     for _, v in ipairs(tbl_sch) do
-      table.insert(keys, v.name)
+      info[v.name] = {
+        required = v.notnull == 1,
+        primary = v.ok == 1,
+        type = v.type,
+        cid = v.cid,
+        default = v.dflt_value
+      }
     end
-    return keys
+    return info
   else
     local key_types = {}
     for _, v in ipairs(tbl_sch) do
