@@ -183,9 +183,21 @@ describe('table', function()
 
       eq(res, {1,2,3}, "should be identical") -- this might fail at some point because of the ordering.
     end)
+
+    it("should not return from cache.", function()
+      t1.nocache = true
+      local res = {}
+      t1:each({where = {a = {12,99,32}}}, function(row)
+        table.insert(res, row.a)
+      end)
+
+      eq(res, {99,32,12}, "should be identical")
+    end)
+
   end)
 
 
+  t1.nocache = false
   t1.cache = {}
 
   describe(":map", function()

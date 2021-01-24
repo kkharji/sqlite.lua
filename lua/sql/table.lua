@@ -60,6 +60,7 @@ function t:__fill_cache(query, res)
 end
 
 function t:__get_from_cache(query)
+  if self.nocache then return end
   local stat = vim.loop.fs_stat(self.db.uri)
   local mtime = stat and stat.mtime.sec
 
@@ -73,13 +74,15 @@ end
 
 
 function t:new(db, name, opts)
+  opts = opts or {}
   local o = {}
   o.cache = {}
   o.db = db
   o.name = name
   o.mtime = vim.loop.fs_stat(o.db.uri)
   o.mtime = o.mtime and o.mtime.mtime.sec
-  o.__schema = opts and opts.schema or nil
+  o.__schema = opts.schema
+  o.nocache = opts.nocache
   -- db:close/open changes this value, not sql:change commands
 
   setmetatable(o, self)
@@ -179,7 +182,7 @@ function t:get(query)
 
   return self:__run(function()
     local res = self.db:select(self.name, query)
-    if res then self:__fill_cache(query, res) end
+    if res and not self.nocache then self:__fill_cache(query, res) end
     return res
   end)
 end
@@ -193,7 +196,7 @@ function t:each(query, func)
   local cache = self:__get_from_cache(query)
   local rows = cache and cache or (function()
     local res = self.db:select(self.name, query)
-    if res then self:__fill_cache(query, res) end
+    if res and not self.nocache then self:__fill_cache(query, res) end
     return res
   end)()
   if not rows then return end
