@@ -241,9 +241,13 @@ function sql:schema(tbl, info)
   local tbl_sch = self:eval(string.format("pragma table_info(%s)",  tbl))
   if type(tbl_sch) == "boolean" then return {} end
   if info then
-    info = {}
+    local tbl_info = {}
+    local req = {}
+    local def = {}
+    local types = {}
+
     for _, v in ipairs(tbl_sch) do
-      info[v.name] = {
+      tbl_info[v.name] = {
         required = v.notnull == 1,
         primary = v.ok == 1,
         type = v.type,
@@ -251,7 +255,22 @@ function sql:schema(tbl, info)
         default = v.dflt_value
       }
     end
-    return info
+
+    for k, v in pairs(tbl_info) do
+      if v.required then
+        req[k] = v
+      elseif v.default then
+        def[k] = v.default
+      end
+      types[k] = v.type
+    end
+
+    return {
+      info = tbl_info,
+      req = req == {} and nil or req,
+      def = def == {} and nil or def,
+      types = types
+    }
   else
     local key_types = {}
     for _, v in ipairs(tbl_sch) do
@@ -281,6 +300,27 @@ local fail_on_wrong_input = function(ret_vals)
   assert(#ret_vals > 0, 'sql.nvim: can\'t parse your input. Make sure it use that function correct')
 end
 
+function sql:pre_insert(rows, info)
+  rows = u.is_nested(rows) and rows or { rows }
+  for _, row in ipairs(rows) do
+    for k, _ in pairs(info.req) do
+      if not row[k] then
+        error("sql.nvim: (insert) missing a required key: " .. k)
+      end
+    end
+
+    for k, v in pairs(info.def) do
+      if not row[k] then
+        row[k] = v
+      elseif row[k] == "null" then
+        row[k] = nil
+      end
+    end
+  end
+  -- TODO: do value interop here.
+  return rows
+end
+
 --- Insert to lua table into sqlite database table.
 ---@params tbl string: the table name
 ---@params rows table: rows to insert to the table.
@@ -290,23 +330,24 @@ end
 ---@todo handle inconflict case
 function sql:insert(tbl, rows)
   self:__assert_tbl(tbl, "insert")
-  local succ
-  local tbl_keys = self:schema(tbl)
+  local ret_vals = {}
+  local info = self:schema(tbl, true)
+  local items = self:pre_insert(rows, info)
 
   self:__wrap_stmts(function()
-    local s = self:__parse(P.insert(tbl, { values = tbl_keys }))
-    rows = u.is_nested(rows) and rows or {rows}
-    for _, v in ipairs(rows) do
+    local s = self:__parse(P.insert(tbl, { values = info.types }))
+
+    for _, v in ipairs(items) do
       s:bind(v)
       s:step()
       s:reset()
       s:bind_clear()
+      table.insert(ret_vals, s:finalize())
     end
-    succ = s:finalize()
   end)
-  if succ then
-    self.modified = true
-  end
+
+  local succ = u.all(ret_vals, function(_, v) return v end)
+  if succ then self.modified = true end
   return succ
 end
 
