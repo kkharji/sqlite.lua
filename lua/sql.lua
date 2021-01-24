@@ -284,8 +284,8 @@ end
 ---@todo handle inconflict case
 function sql:insert(tbl, rows)
   self:__assert_tbl(tbl, "insert")
-  local tbl_keys = self:schema(tbl)
   local succ
+  local tbl_keys = self:schema(tbl)
 
   self:__wrap_stmts(function()
     local s = self:__parse(P.insert(tbl, { values = tbl_keys }))

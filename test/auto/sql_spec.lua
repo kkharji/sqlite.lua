@@ -268,12 +268,39 @@ describe("sql", function()
       end
       db:eval("delete from todos")
     end)
+
     -- it("inserts lua table in sql column", function()
     --   db:insert("todos", {
     --     {title = "TODO 1", desc = {"list", "of", "lines"}},
     --     {title = "TODO 2", desc = { key = "value", pair = true}}
     --   })
     -- end)
+
+    assert(db:eval[[
+    create table if not exists test(
+      id integer primary key,
+      title text,
+      name text not null,
+      created integer default 'today')
+    ]])
+
+
+    it("respects defaults", function()
+      db:insert("test", {
+        { title = "A", name = "B" },
+        { title = "C", desc = "D" }
+      })
+      local res = db:eval[[ select * from test]]
+
+      eq("today", res[1].created)
+      eq("today", res[2].created)
+    end)
+
+    it("respects fails if a key is null", function()
+      db:insert("test", { title = "A"})
+      local res = db:eval[[ select * from test]]
+      -- How to catching error thrown?
+    end)
 
     db:close()
   end)
