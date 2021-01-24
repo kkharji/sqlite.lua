@@ -26,14 +26,13 @@ welcomed. Issues, feature and suggestions are encouraged.
 - Evaluate any sqlite statement and return result if any `sql:eval`
 - Helper function over `sql:eval` to do all sort of operation. 
 - High level API with `sql:table` for better experience
+- lua tables deserialization/serialization (in helper functions and high level api)
 - 90% test coverage.
 
 #### WIP: 
 
 - Docs
-- Better boolean interop.
 - Better join support.
-- Serialization of lua tables to json so that lua tables can be inserted. (or byte code)
 
 Installation
 -----------------
@@ -167,6 +166,7 @@ db:create("tbl_name", {
   id = {"integer", "primary", "key"},
   title = "text",
   desc = "text",
+  data = "json" or "luatable", -- will be auto serialized and deserialized
   created = "int",
   -- ensure = true --:> if you like to create the table if it doesn't exist
   done = {"int", "not", "null", "default", 0},
@@ -284,7 +284,7 @@ db:delete("todos", {where =  {id = 88}})
 local db = sql:new(dbpath or nil) -- db:open/db:close is optional and not required
 
 -- Initialize the sql table object. it can be non existing or new table.
-local t = db:table("todos")
+local t = db:table("todos", {schema = {}, nocache = true})
 ```
 
 #### Table schema
@@ -299,6 +299,7 @@ table already has data, then the it should error out.
 t:schema{
   id = {"integer", "not", "null"},
   name = "text",
+  data = "json" or "luatable", -- will be auto serialized and deserialized
   age = "integer"
 }
 
