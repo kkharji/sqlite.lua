@@ -21,7 +21,7 @@ describe("sql", function()
       eq(true, db:eval("insert into a(title) values('new')"), "should be insert stuff")
       eq("table", type(db:eval("select * from a")), "should be have content")
       eq(true, db:close(), "should close")
-      eq(true, db:isclose("select * from a"), "should close")
+      eq(true, db:isclose(), "should close")
       eq(true, P.exists(P.new(tmp)), "It should created the file")
       vim.loop.fs_unlink(tmp)
     end)
@@ -41,7 +41,7 @@ describe("sql", function()
 
       eq(true, db:eval("create table if not exists todo(title text, desc text, created int)"))
 
-      db:insert("todo", {
+      db:eval("insert into todo(title, desc, created) values(:title, :desc, :created) ", {
         { title = "1", desc = "......", created = 2021 },
         { title = "2", desc = "......", created = 2021 }
       })
@@ -81,7 +81,7 @@ describe("sql", function()
       local db = sql:open(path)
       local row = {title = "1", desc = "...."}
       db:eval("create table if not exists todo(title text, desc text)")
-      db:insert("todo", row)
+      db:eval("insert into todo(title, desc) values(:title, :desc)", row)
 
       db:close()
       eq(true, db.closed, "should be closed." )
@@ -98,9 +98,9 @@ describe("sql", function()
   describe(':open_with', function()
     it('works with initalized sql objects.', function()
       local db = sql:open(path)
-
+      local row = { title = "1", desc = "...." }
       db:eval("create table if not exists todo(title text, desc text)")
-      db:insert("todo", { title = "1", desc = "...." })
+      db:eval("insert into todo(title, desc) values(:title, :desc)", row)
       db:close()
       eq(true, db.closed, "should be closed.")
 
@@ -115,8 +115,9 @@ describe("sql", function()
 
     it('works without initalizing sql objects. (via uri)', function()
       local res = sql.with_open(path, function(db)
+        local row = { title = "1", desc = "...." }
         db:eval("create table if not exists todo(title text, desc text)")
-        db:insert("todo", { title = "1", desc = "...." })
+        db:eval("insert into todo(title, desc) values(:title, :desc)", row)
         return db:eval("select * from todo")
       end)
       eq("1", res[1].title, "should pass.")
@@ -282,10 +283,9 @@ describe("sql", function()
     assert(db:eval("create table todos(title text, desc text)"))
 
     it('works with table_name being as the first argument', function()
-      db:insert("todos", {
-        title = "TODO 1",
-        desc = "................",
-      })
+      local row = { title = "TODO 1", desc = "................" }
+      db:eval("insert into todos(title, desc) values(:title, :desc)", row)
+
       db:update("todos", {
         values = { desc = "done" },
         where = { title = "TODO 1" },
@@ -298,10 +298,8 @@ describe("sql", function()
     end)
 
     it('works with table_name being a lua table key', function()
-      db:insert("todos",{
-        title = "TODO 1",
-        desc = " .......... ",
-      })
+      local row = { title = "TODO 1", desc = " .......... " }
+      db:eval("insert into todos(title, desc) values(:title, :desc)", row)
 
       db:update("todos", {
         values = { desc = "not done" },
@@ -317,7 +315,7 @@ describe("sql", function()
 
     it('update multiple rows in a sql table', function()
       db:eval("delete from todos")
-      db:insert("todos", {
+      local rows = {
         {
           title = "todo 3",
           desc = "...",
@@ -330,7 +328,8 @@ describe("sql", function()
           title = "todo 1",
           desc = "...",
         },
-      })
+      }
+      db:eval("insert into todos(title, desc) values(:title, :desc)", rows)
       db:update("todos", {
         {
           values = { desc = "not done" },
@@ -365,26 +364,19 @@ describe("sql", function()
     assert(db:eval("create table todos(title text, desc text)"))
 
     it('works with table_name being as the first argument', function()
-      db:insert("todos", {
-        title = "TODO 1",
-        desc = "................",
-      })
+      local row  = { title = "TODO 1", desc = "................", }
+      db:eval("insert into todos(title, desc) values(:title, :desc)", row)
       db:delete('todos')
       local results = db:eval("select * from todos")
       eq(false, type(results) == "table", "It should be deleted.")
     end)
 
     it('works with table_name being and where', function()
-      db:insert("todos", {
-        {
-          title = "TODO 1",
-          desc = "................",
-        },
-        {
-          title = "TODO 2",
-          desc = "................",
-        }
-      })
+      local rows  = {
+        { title = "TODO 1", desc = "................", },
+        { title = "TODO 2", desc = "................", }
+      }
+      db:eval("insert into todos(title, desc) values(:title, :desc)", rows)
       db:delete('todos', { where = { title = "TODO 1" }})
       local results = db:eval("select * from todos")
       eq(true, type(results) == "table")
@@ -393,32 +385,22 @@ describe("sql", function()
     end)
 
     it('delete multiple keys with list of ors', function()
-      db:insert("todos", {
-        {
-          title = "TODO 1",
-          desc = "................",
-        },
-        {
-          title = "TODO 2",
-          desc = "................",
-        }
-      })
+      local rows  ={
+        { title = "TODO 1", desc = "................", },
+        { title = "TODO 2", desc = "................", }
+      }
+      db:eval("insert into todos(title, desc) values(:title, :desc)", rows)
       db:delete("todos", { { where = { title = {"TODO 1", "TODO 2"} } } })
       local results = db:eval("select * from todos")
       eq(false, type(results) == "table")
     end)
 
     it('delete multiple keys with dict for each conditions.', function()
-      db:insert("todos", {
-        {
-          title = "TODO 1",
-          desc = "................",
-        },
-        {
-          title = "TODO 2",
-          desc = "................",
-        }
-      })
+      local rows = {
+        { title = "TODO 1", desc = "................", },
+        { title = "TODO 2", desc = "................", }
+      }
+      db:eval("insert into todos(title, desc) values(:title, :desc)", rows)
       db:delete('todos', { { where = { title = "TODO 1" } }, { where = {title = "TODO 2"} } })
       local results = db:eval("select * from todos")
       eq(false, type(results) == "table")
@@ -428,19 +410,45 @@ describe("sql", function()
 
   describe(':select', function()
     local db = sql.open(path)
-    local posts = vim.fn.json_decode(curl.get("https://jsonplaceholder.typicode.com/posts").body)
-    local users = vim.fn.json_decode(curl.get("https://jsonplaceholder.typicode.com/users").body)
+    local posts, users
+
     it('.... pre', function()
+      if vim.loop.fs_stat("/tmp/posts") == nil then
+        curl.get("https://jsonplaceholder.typicode.com/posts", { output = "/tmp/posts" })
+        curl.get("https://jsonplaceholder.typicode.com/users", { output = "/tmp/users" })
+      end
+
+      posts = vim.fn.json_decode(vim.fn.join(P.readlines("/tmp/posts"), "\n"))
+
+      eq("table", type(posts), "should have been decoded")
+
+      assert(db:eval([[
+      create table posts(id int not null primary key, userId int, title text, body text);
+      ]]))
+
+      eq(true, db:eval([[
+      insert into posts(id, userId, title, body) values(:id, :userId, :title, :body)
+      ]], posts))
+
+      eq("table", type(db:eval("select * from posts")), "there should be posts")
+
+      users = vim.fn.json_decode(vim.fn.join(P.readlines("/tmp/users"), "\n"))
+      eq("table", type(users), "should have been decoded")
       for _, user in ipairs(users) do -- Not sure how to deal with nested tables now
         user["address"] = nil
         user["company"] = nil
       end
-      assert(db:eval("create table posts(id int not null primary key, userId int, title text, body text);"))
-      assert(db:eval("create table users(id int not null primary key, name text, email text, phone text, website text, username text);"))
-      eq(true, db:insert("users", users))
-      eq(true, db:insert("posts", posts))
-      eq("table", type(db:eval("select * from posts")), "there should be posts")
+
+      assert(db:eval([[
+      create table users(id int not null primary key, name text, email text, phone text, website text, username text);
+      ]]))
+
+      eq(true, db:eval([[
+      insert into users(id, name, email, phone, website, username) values(:id,:name,:email,:phone,:website,:username)
+      ]], users))
+
       eq("table", type(db:eval("select * from users")), "there should be users")
+
     end)
 
     it('return everything with no params', function()
@@ -465,13 +473,7 @@ describe("sql", function()
     end)
 
     it('join tables.', function()
-      local res = db:select("posts", {
-        where  = { id = 1 },
-        join = {
-          posts = "userId",
-          users = "id"
-        }
-      })
+      local res = db:select("posts", { where  = { id = 1 }, join = { posts = "userId", users = "id" }})
       local expected = (function()
         for _, post in ipairs(posts) do
           if post["id"] == 1 then
@@ -490,10 +492,7 @@ describe("sql", function()
     end)
 
     it('return selected keys only', function()
-      local res = db:select("posts", {
-        where  = { id = 1 },
-        keys = { "userId", "posts.body" }
-      })
+      local res = db:select("posts", { where  = { id = 1 }, keys = { "userId", "posts.body" } })
       local expected = (function()
         for _, post in ipairs(posts) do
           if post["id"] == 1 then
