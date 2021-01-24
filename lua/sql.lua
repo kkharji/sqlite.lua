@@ -330,7 +330,7 @@ end
 ---@todo handle inconflict case
 function sql:insert(tbl, rows)
   self:__assert_tbl(tbl, "insert")
-  local ret_vals = {}
+  -- local ret_vals = {}
   local info = self:schema(tbl, true)
   local items = self:pre_insert(rows, info)
   local succ

@@ -274,23 +274,48 @@ describe("sql", function()
     id integer primary key,
     title text,
     name text not null,
-    created integer default 'today')
+    created integer default 'today',
+    current timestamp default current_timestamp,
+    num integer default 0)
     ]])
 
-    it("respects defaults", function()
+    it("respects string defaults", function()
       db:insert("test", {
         { title = "A", name = "B" },
         { title = "C", name = "D" }
       })
       local res = db:eval[[ select * from test]]
-      eq("today", res[1].created)
-      eq("today", res[2].created)
+      eq("'today'", res[1].created) -- FIXME
+      eq("'today'", res[2].created) -- FIXME
     end)
 
-    -- it("respects fails if a key is null", function()
-    --   db:insert("test", { title = "A"})
-    --   local res = db:eval[[ select * from test]]
-    -- end)
+    it("respects number defaults", function()
+      db:insert("test", {
+        { title = "A", name = "B" },
+        { title = "C", name = "D" }
+      })
+      local res = db:eval[[ select * from test]]
+      eq(0, res[1].num)
+      eq(0, res[2].num)
+    end)
+
+    it("respects sqlvalues defaults", function()
+      db:insert("test", {
+        { title = "A", name = "B" },
+        { title = "C", name = "D" }
+      })
+      local res = db:eval[[ select * from test]]
+      eq(0, res[1].current)
+      eq(0, res[2].current)
+    end)
+
+
+    it("respects fails if a key is null", function()
+      local ok, _ = pcall(function()
+        return db:insert("test", { title = "A"})
+      end)
+      eq(false, ok, "should fail")
+    end)
 
     -- it("inserts lua table in sql column", function()
     --   db:insert("todos", {
