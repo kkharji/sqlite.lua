@@ -275,7 +275,7 @@ describe("sql", function()
     title text,
     name text not null,
     created integer default 'today',
-    current timestamp default current_timestamp,
+    current timestamp default current_date,
     num integer default 0)
     ]])
 
@@ -285,8 +285,8 @@ describe("sql", function()
         { title = "C", name = "D" }
       })
       local res = db:eval[[ select * from test]]
-      eq("'today'", res[1].created) -- FIXME
-      eq("'today'", res[2].created) -- FIXME
+      eq("today", res[1].created) -- FIXME
+      eq("today", res[2].created) -- FIXME
     end)
 
     it("respects number defaults", function()
@@ -305,8 +305,8 @@ describe("sql", function()
         { title = "C", name = "D" }
       })
       local res = db:eval[[ select * from test]]
-      eq(0, res[1].current)
-      eq(0, res[2].current)
+      eq(os.date("%Y-%m-%d"), res[1].current)
+      eq(os.date("%Y-%m-%d"), res[2].current)
     end)
 
 

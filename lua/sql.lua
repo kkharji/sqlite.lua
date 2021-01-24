@@ -309,13 +309,13 @@ function sql:pre_insert(rows, info)
       end
     end
 
-    for k, v in pairs(info.def) do
-      if not row[k] then
-        row[k] = v
-      elseif row[k] == "null" then
-        row[k] = nil
-      end
-    end
+    -- for k, v in pairs(info.def) do
+    --   if not row[k] then
+    --     row[k] = v
+    --   elseif row[k] == "null" then
+    --     row[k] = nil
+    --   end
+    -- end
   end
   -- TODO: do value interop here.
   return rows
@@ -330,23 +330,22 @@ end
 ---@todo handle inconflict case
 function sql:insert(tbl, rows)
   self:__assert_tbl(tbl, "insert")
-  -- local ret_vals = {}
+  local ret_vals = {}
   local info = self:schema(tbl, true)
   local items = self:pre_insert(rows, info)
-  local succ
   self:__wrap_stmts(function()
-    local s = self:__parse(P.insert(tbl, { values = info.types }))
 
     for _, v in ipairs(items) do
+      local s = self:__parse(P.insert(tbl, { values = v }))
       s:bind(v)
       s:step()
-      s:reset()
       s:bind_clear()
+      table.insert(ret_vals, s:finalize())
     end
-    succ = s:finalize()
+    -- succ = s:finalize()
   end)
 
-  -- local succ = u.all(ret_vals, function(_, v) return v end)
+  local succ = u.all(ret_vals, function(_, v) return v end)
   if succ then self.modified = true end
   return succ
 end
