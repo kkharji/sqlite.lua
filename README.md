@@ -55,6 +55,18 @@ brew install sqlite
 sudo apt-get install sqlite3 libsqlite3-dev
 ```
 
+##### Nix (home-manager)
+```nix
+programs.neovim = {
+  plugins = [
+    {
+      plugin = pkgs.vimPlugins.sql-nvim;
+      config = "let g:sql_clib_path = '${pkgs.sqlite.out}/lib/libsqlite3.so'";
+    }
+  ];
+}
+```
+
 ##### Windows 
 > Coming soon.
 
