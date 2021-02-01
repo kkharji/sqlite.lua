@@ -24,12 +24,12 @@ welcomed. Issues, feature and suggestions are encouraged.
 
 - Connect, reconnect, close sql db connections `sql:open/sql:close`
 - Evaluate any sqlite statement and return result if any `sql:eval`
-- Helper function over `sql:eval` to do all sort of operation. 
+- Helper function over `sql:eval` to do all sort of operation.
 - High level API with `sql:table` for better experience
 - lua tables deserialization/serialization (in helper functions and high level api)
 - 90% test coverage.
 
-#### WIP: 
+#### WIP:
 
 - Docs
 - Better join support.
@@ -40,7 +40,7 @@ Installation
 Add sql.nvim to your lua `package.path`, neovim `/**/start/` or use your
 favorite vim package manager, and ensure you have `sqlite3` installed locally.
 
-##### Arch 
+##### Arch
 ```
 sudo pacman -S sqlite
 ```
@@ -67,13 +67,13 @@ programs.neovim = {
 }
 ```
 
-##### Windows 
+##### Windows
 > Coming soon.
 
 
 _NOTE: it is "sometimes" required that you set
 `g:sql_clib_path`/`vim.g.sql_clib_path` to where libsqlite3.so is located, and
-if that the case, pr or issue are welcomed to added in order to make it work regardless._ 
+if that the case, pr or issue are welcomed to added in order to make it work regardless._
 
 Usage
 -----------------
@@ -81,13 +81,13 @@ For more usage example, please review test/auto/ and docs/sql.txt.
 
 ```lua
 local sql = require'sql'
-local db = sql.open() -- new in-memory 
+local db = sql.open() -- new in-memory
 local db = sql.open('/to/new/file') -- new sqlite database
 local db = sql.open('/to/prexiting-db.sqlite3') -- pre-exiting sqlite database.
-local db = sql.new(...) 
--- new creates new sql.nvim object but without opening/connect to the sqlite db, 
+local db = sql.new(...)
+-- new creates new sql.nvim object but without opening/connect to the sqlite db,
 -- i.e. requires `db:open()`
-db:close() -- closes connection 
+db:close() -- closes connection
 ```
 
 - [Low level API]
@@ -112,10 +112,11 @@ db:close() -- closes connection
   - [Table remove]
   - [Table replace]
   - [Table get]
+  - [Table where]
   - [Table each]
   - [Table map]
   - [Table sort]
-  
+
 
 ### Low Level API
 
@@ -124,9 +125,9 @@ db:close() -- closes connection
 ```lua
 -- Evaluate any valid sql statement.
 db:eval([[create table if not exists todos (
-    id integer primary key, 
-    action text, 
-    due_date integer, 
+    id integer primary key,
+    action text,
+    due_date integer,
     project_id integer
 )]])
 
@@ -144,18 +145,18 @@ db:eval("update todos set desc = :desc where id = :id", {
 db:eval("/path/to/schema.sql")
 ```
 
-#### Open execute and close connection 
+#### Open execute and close connection
 
 ```lua
-db:with_open(function(db) 
+db:with_open(function(db)
   -- commands
 end)
 
-sql.with_open("/path/to/file", function(db) 
+sql.with_open("/path/to/file", function(db)
   -- commands
 end)
 
--- return something from with_open 
+-- return something from with_open
 local res = sql.with_open("/path/to/db", function(db)
   db:eval("create table if not exists todo(title text, desc text)")
   db:eval("insert into todo(title, desc) values('title1', 'desc1')")
@@ -172,7 +173,7 @@ db:status() -- returns last error msg and last error code
 ```
 
 #### Create a table
-```lua 
+```lua
 -- create new table with schema
 db:create("tbl_name", {
   id = {"integer", "primary", "key"},
@@ -186,13 +187,13 @@ db:create("tbl_name", {
 ```
 
 #### Check if a table exists
-```lua 
+```lua
 -- return true if `tbl_name` is an existing database
 db:exists("tbl_name")
 ```
 
 #### Get a table schema
-```lua 
+```lua
 -- return a table of `tbl_name` keys and their sqlite type
 db:schema("tbl_name")
 
@@ -201,7 +202,7 @@ db:schema("tbl_name", true)
 ```
 
 #### Drop a table
-```lua 
+```lua
 -- remove a table and all their data
 db:drop("tbl_name")
 ```
@@ -224,7 +225,7 @@ db:select("posts", {
   keys = "title", -- or keys = {"id", "title"}
 }
 
--- Get and inner join 
+-- Get and inner join
 db:get("posts", {
   where  = { id = {1,2,3,4} }, -- any of provided ids
   join = { posts = "userId", users = "id" } -- see inner join.
@@ -274,7 +275,7 @@ db:update("todos", {
 
 ```lua
 -- delete everything in a table.
-db:delete("todos") 
+db:delete("todos")
 
 -- delete with where clause
 db:delete("todos", {where =  {id = 1, title = {"a", "b", "c"}}})
@@ -289,10 +290,10 @@ db:delete("todos", {where =  {id = 88}})
 - No need to run the queries twice, for now cache is cleared out if the db file
   mtime is changes or `t:insert/t:delete/t:update/t:replace/db:eval` was called.
 
-#### New table 
+#### New table
 [Table New]: #table-new
 
-```lua 
+```lua
 local db = sql:new(dbpath or nil) -- db:open/db:close is optional and not required
 
 -- Initialize the sql table object. it can be non existing or new table.
@@ -305,8 +306,8 @@ local t = db:table("todos", {schema = {}, nocache = true})
 Create or change schema of the table. If the schema doesn't have ensure key,
 then the table will be dropped and created with the new schema. Unless, the
 table already has data, then the it should error out.
- 
-```lua 
+
+```lua
 -- create the table with the provided schema
 t:schema{
   id = {"integer", "not", "null"},
@@ -328,10 +329,10 @@ t:schema{
 }
 
 ```
-#### Table drop 
+#### Table drop
 [Table drop]: #table-drop
 
-```lua 
+```lua
 -- same as sql:drop(tbl_name)
 t:drop()
 ```
@@ -339,7 +340,7 @@ t:drop()
 #### Table exists
 [Table exists]: #table-exists
 
-```lua 
+```lua
 -- return true if table exists
 t:exists()
 ```
@@ -347,7 +348,7 @@ t:exists()
 #### Table empty
 [Table empty]: #table-empty
 
-```lua 
+```lua
 -- returns `not t.has_content`
 t:empty()
 ```
@@ -355,30 +356,30 @@ t:empty()
 #### Table count
 [Table empty]: #table-count
 
-```lua 
+```lua
 -- returns the number of rows in a table
 t:count()
 ```
 #### Table insert
 [Table insert]: #table-insert
 
-```lua 
+```lua
 -- same functionalities as `sql.insert(tbl_name, ...)`
-t:insert{ 
-  id = 1, 
-  name = "a" 
+t:insert{
+  id = 1,
+  name = "a"
 }
 
-t:insert{ 
-  {id = 1, name = "b" }, 
-  {id = 3, name = "c", age = 19} 
+t:insert{
+  {id = 1, name = "b" },
+  {id = 3, name = "c", age = 19}
 }
 ```
 
 #### Table update
 [Table update]: #table-update
 
-```lua 
+```lua
 -- same functionalities as `sql.update(tbl_name, ...)`
 
 t:update{
@@ -395,7 +396,7 @@ t:update{
 #### Table remove
 [Table remove]: #table-remove
 
-```lua 
+```lua
 -- same functionalities as `sql.delete`. if no arguments is
 -- provided then it should remove all rows.
 
@@ -407,7 +408,7 @@ t:remove{ where = {id = {1,2,3,4}, name = "a"} }
 #### Table replace
 [Table replace]: #table-remove
 
-```lua 
+```lua
 -- same functionalities as `sql.insert`, but delete the
 -- content of table and replaced with the content.
 
@@ -419,7 +420,7 @@ t:replace{
 #### Table get
 [Table get]: #table-get
 
-```lua 
+```lua
 -- same functionalities as `sql.select`
 t:get() -- return everything
 
@@ -429,15 +430,24 @@ t:get{ -- Get rows that matches where clause
 }
 
 -- Get specific keys
-db:get {
+t:get {
   keys = "title", -- or keys = {"id", "title"}
 }
 
-t:get{ -- Get and inner join 
+t:get{ -- Get and inner join
   where  = { id = {1,2,3,4} }, -- any of provided ids
   join = { posts = "userId", users = "id" } -- see inner join.
 }
 ```
+
+#### Table where
+[Table where]: #table-where
+
+```lua
+--- get first match from a table based on keys
+t:where{ name = "Tim" }
+```
+
 
 #### Table each
 [Table each]: #table-each
@@ -449,7 +459,7 @@ t:get{ -- Get and inner join
 t:each({
   where = { .. }
   contains = { .. },
-}, function(row) 
+}, function(row)
   -- execute stuff
 end)
 ```
@@ -462,7 +472,7 @@ end)
 local modified = t:map({
   where = { .. }
   contains = { .. },
-}, function(row) 
+}, function(row)
   -- execute stuff
   -- return modified a new row or nothing
 end)
@@ -485,7 +495,7 @@ local comp = function(a, b) return a > b end
 local res = t1:sort({where = {id = { 32,12,35 }}}, "age", comp)
 ```
 
-Credit 
+Credit
 -------------------
 [Credit]: #credit
 
