@@ -39,7 +39,7 @@ function sql:__connect()
     if self.sqlite_opts then
       -- self.sqlite_opts = opts
       for k,v in pairs(self.sqlite_opts) do
-        if not valid_paragma_key(k) then
+        if not u.valid_paragma_key(k) then
           return error("sql.nvim:" .. k .. " is not a valid pragma")
         end
         clib.exec(self.conn, string.format("pragma %s = %s", k, v), nil, nil, nil)
@@ -87,7 +87,7 @@ function sql:open(uri, opts, noconn)
   o:__connect()
   return o
 end
-print(vim.inspect(sql:open "/tmp/dbdbdb.sql", {jfdfd = '1'}))
+print(vim.inspect(sql:open("/tmp/dbdbdb.sql", {jfdfd = '1'})))
 --- closes sqlite db connection.
 ---@usage `db:close()`
 ---@return boolean: true if closed, error otherwise.
