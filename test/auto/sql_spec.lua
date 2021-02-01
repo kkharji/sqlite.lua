@@ -29,7 +29,7 @@ describe("sql", function()
 
   describe(":open/:close", function() -- todo(tami5): change to open instead of connect.
     it('creates in memory database.', function()
-      local db = sql.open()
+      local db = sql:open()
       eq("table", type(db), "returns new main interface object.")
       eq("cdata", type(db.conn), "returns sql object.")
       assert(db:close(), "returns true if the connection is closed successfully.")
@@ -69,7 +69,7 @@ describe("sql", function()
     end)
 
     it(':open and .open work the same', function()
-      local db = sql.open()
+      local db = sql:open()
       eq("cdata", type(db.conn), "returns sql object.")
       eq(true, db:close(), "it should closes")
       local db2 = sql:open()
@@ -460,7 +460,7 @@ describe("sql", function()
   end)
 
   describe(':select', function()
-    local db = sql.open(path)
+    local db = sql:open(path)
     local posts, users
 
     it('.... pre', function()
@@ -569,7 +569,7 @@ describe("sql", function()
   end)
 
   describe(':schema', function()
-    local db = sql.open()
+    local db = sql:open()
     db:eval("create table test(a text, b int, c int not null, d text default def)")
 
     it('gets a sql table schema', function()
@@ -613,7 +613,7 @@ describe("sql", function()
   end)
 
   describe(':create', function()
-    local db = sql.open()
+    local db = sql:open()
 
     it('create a new sqlite table, and return true', function()
       eq(false, db:exists("test"))
@@ -636,7 +636,7 @@ describe("sql", function()
   end)
 
   describe(':drop', function()
-    local db = sql.open()
+    local db = sql:open()
 
     it('should drop empty tables.', function()
       db:create("test", { a = "text", b = "int" })
