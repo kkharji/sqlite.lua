@@ -187,6 +187,17 @@ function t:get(query)
   end)
 end
 
+--- get first match from a table based on keys
+--- query results from cache will be returned.
+---@param where table: where key values
+---@return nil or row
+---@usage: t:where{id = 1}
+---@see sql:select()
+function t:where(where)
+  if not where then return end
+  return self:get({ where = where  })[1]
+end
+
 --- Iterate over {self.name} rows and execute {func}.
 ---@param query table: query.where, query.keys, query.join
 ---@param func function: a function that expects a row

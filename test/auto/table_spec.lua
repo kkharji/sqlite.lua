@@ -161,6 +161,13 @@ describe('table', function()
     end)
   end)
 
+  it(":where", function()
+    it("runs a query and returns results (where) with kv pairs", function()
+      local res = t1:where{a = 1}
+      eq(demo[1], res, "should be identical")
+    end)
+  end)
+
   describe(":each", function()
     it("should work func", function()
       local res = {}
