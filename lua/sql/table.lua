@@ -189,25 +189,12 @@ end
 
 --- get first match from a table based on keys
 --- query results from cache will be returned.
----@param args table: where key values
----@return table: empty table if no result
----@usage: t:where{"id", 1}, t:where{id = 1}
+---@param where table: where key values
+---@return nil or row
+---@usage: t:where{id = 1}
 ---@see sql:select()
-function t:where(args)
-  local where = {}
-  if u.is_list(args) then
-    local count = 0
-    for i, _ in ipairs(args) do
-      local key = args[i + count]
-      local value = args[i + 1 + count]
-      where[key] = value
-      count = count + 1
-    end
-  elseif type(args) == "table" then
-    where = args
-  else
-    where = nil
-  end
+function t:where(where)
+  if not where then return end
   return self:get({ where = where  })[1]
 end
 

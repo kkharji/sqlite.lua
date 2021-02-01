@@ -166,14 +166,6 @@ describe('table', function()
       local res = t1:where{a = 1}
       eq(demo[1], res, "should be identical")
     end)
-    it("runs a query and returns results (where) with list", function()
-      local res = t1:where{"a", 1}
-      eq(demo[1], res, "should be identical")
-    end)
-    -- it("runs a query and returns results (where) with list with mutlti key", function()
-    --   local res = t1:where{"a", 1}
-    --   eq(demo[1], res[1], "should be identical")
-    -- end)
   end)
 
   describe(":each", function()
