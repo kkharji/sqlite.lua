@@ -194,7 +194,7 @@ M.is_list = function(t)
   end
 end
 
-M.valid_paragma = {
+M.valid_pargma = {
   ["analysis_limit" ] = true,
   ["application_id" ] = true,
   ["auto_vacuum" ] = true,
@@ -273,8 +273,8 @@ M.valid_paragma = {
   ["vdbe_listing" ] = true,
 }
 
-M.valid_paragma_key = function(key)
-  return M.valid_paragma[key] == true
+M.valid_pargma_key = function(key)
+  return M.valid_pargma[key] == true
 end
 
 return M
