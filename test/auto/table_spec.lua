@@ -12,7 +12,7 @@ local demo = {
 
 local dbpath = "/tmp/tbl_methods_test.sql"
 vim.loop.fs_unlink(dbpath)
-local db = sql.new(dbpath, true)
+local db = sql.new(dbpath)
 
 local seed = function()
   db:open()

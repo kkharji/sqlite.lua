@@ -16,9 +16,9 @@ function sql:__assert_tbl(tbl, method)
 end
 
 function sql:__wrap_stmts(fn)
-  self:__exec("BEGIN")
+  -- self:__exec("BEGIN")
   fn()
-  self:__exec("COMMIT")
+  -- self:__exec("COMMIT")
   return
 end
 
@@ -28,18 +28,21 @@ end
 function sql:__connect()
   local conn = clib.get_new_db_ptr()
   local code = clib.open(self.uri, conn)
-  -- TODO: support open_v2, to provide control over how
-  -- the database file is opened.
+  -- TODO: support open_v2, to provide control over how the database file is opened.
   -- self.flags = args[2], -- file open operations.
   -- self.vfs = args[3], -- VFS (Virtual File System) module to use
-
   if code == flags.ok then
     self.created = os.date('%Y-%m-%d %H:%M:%S')
     self.conn = conn[0]
     self.closed = false
-    clib.exec(self.conn,"pragma synchronous = off", nil, nil, nil)
-    -- TODO should be optional or incase of bulk insert
-    clib.exec(self.conn,"pragma journal_mode = wal", nil, nil, nil)
+    if self.sqlite_opts then
+      for k,v in pairs(self.sqlite_opts) do
+        if not u.valid_pargma_key(k) then
+          return error("sql.nvim: " .. k .. " is not a valid pragma")
+        end
+        clib.exec(self.conn, string.format("pragma %s = %s", k, v), nil, nil, nil)
+      end
+    end
   else
     error(string.format("sql.nvim: couldn't connect to sql database, ERR:", code))
   end
@@ -54,14 +57,13 @@ end
 ---@usage `db:open()` reopen connection if closed.
 ---@return table: sql.nvim object
 ---@todo: decide whether to add active_since.
-function sql:open(uri, noconn)
+function sql:open(uri, opts, noconn)
   local o = {}
-  if type(self) == 'string' or not self then
-    uri, self = self, sql
-  end
 
   if self.uri then
-    if self.closed or self.closed == nil then self:__connect() end
+    if self.closed or self.closed == nil then
+      self:__connect()
+    end
     if not self.closed then
       return self
     else
@@ -70,16 +72,30 @@ function sql:open(uri, noconn)
   end
 
   o.uri = type(uri) == "string" and u.expand(uri) or ":memory:"
+  o.sqlite_opts = opts
+
   setmetatable(o, self)
 
   if noconn then
     o.closed = true
     return o
   end
+
   o.modified = false
+
   o:__connect()
   return o
 end
+
+--- Creates a new sql.nvim object, without creating a connection to uri
+--- |sql.new| is identical to |sql.open| but it without opening sqlite db connection.
+---@param uri string: if uri is nil, then create in memory database.
+---@usage `sql.new()`
+---@usage `sql.new("./path/to/sql.sqlite")`
+---@usage `sql:new("$ENV_VARABLE")`
+---@return table: sql.nvim object
+---@see |sql.open|
+function sql.new(uri, opts) return sql:open(uri, opts, true) end
 
 --- closes sqlite db connection.
 ---@usage `db:close()`
@@ -107,7 +123,7 @@ end
 function sql:with_open(...)
   local args = {...}
   if type(self) == 'string' or not self then
-    self = sql.open(self)
+    self = sql:open(self)
   end
 
   local func = type(args[1]) == "function" and args[1] or args[2]
@@ -120,6 +136,7 @@ function sql:with_open(...)
   self:close()
   return res
 end
+
 
 --- Main sqlite interface. This function evaluates {statement} and if there are
 --- results from evaluating it then the function returns list of row(s). Else, it
@@ -193,16 +210,6 @@ function sql:__parse(statement) return stmt:parse(self.conn, statement) end
 ---@param statement string: statement to be executed.
 ---@return table: stmt object
 function sql:__exec(statement) return clib.exec(self.conn, statement, nil, nil, nil) end
-
---- Creates a new sql.nvim object, without creating a connection to uri
---- |sql.new| is identical to |sql.open| but it without opening sqlite db connection.
----@param uri string: if uri is nil, then create in memory database.
----@usage `sql.new()`
----@usage `sql.new("./path/to/sql.sqlite")`
----@usage `sql:new("$ENV_VARABLE")`
----@return table: sql.nvim object
----@see |sql.open|
-function sql.new(uri) return sql:open(uri, true) end
 
 --- Get last error msg
 ---@return string: sqlite error msg
