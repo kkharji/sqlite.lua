@@ -113,6 +113,17 @@ describe('parse', function()
       local passed = p.create("people", defs)
       eq(expected, passed, "should be identical")
     end)
+    it('ensure that the table is created with a key being true', function()
+      local defs = {
+        id = true,
+        name = "text",
+        age = "int",
+        ensure = true
+      }
+      local expected = "create table if not exists people(age int, id integer primary key, name text)"
+      local passed = p.create("people", defs)
+      eq(expected, passed, "should be identical")
+    end)
   end)
 
   describe('[order by]', function()
@@ -136,6 +147,17 @@ describe('parse', function()
         }
       }
       local expected = "select id, name from people order by name asc, age asc"
+      local passed = p.select("people", defs)
+      eq(expected, passed, "should be identical")
+    end)
+    it('works with [select] = "a single string"', function()
+      local defs = {
+        select = "id",
+        order_by = {
+          asc = {"name", "age"}
+        }
+      }
+      local expected = "select id from people order by name asc, age asc"
       local passed = p.select("people", defs)
       eq(expected, passed, "should be identical")
     end)

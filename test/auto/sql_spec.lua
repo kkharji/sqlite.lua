@@ -21,15 +21,25 @@ describe("sql", function()
       eq(true, db:eval("insert into a(title) values('new')"), "should be insert stuff")
       eq("table", type(db:eval("select * from a")), "should be have content")
       eq(true, db:close(), "should close")
-      eq(true, db:isclose("select * from a"), "should close")
+      eq(true, db:isclose(), "should close")
       eq(true, P.exists(P.new(tmp)), "It should created the file")
+      vim.loop.fs_unlink(tmp)
+    end)
+    it("should accept pargma options", function()
+      local tmp = "/tmp/db5.db"
+      local db = sql.new(tmp, {
+        journal_mode = "persist"
+      })
+      db:open()
+      eq("persist", db:eval("pragma journal_mode")[1].journal_mode)
+      db:close()
       vim.loop.fs_unlink(tmp)
     end)
   end)
 
   describe(":open/:close", function() -- todo(tami5): change to open instead of connect.
     it('creates in memory database.', function()
-      local db = sql.open()
+      local db = sql:open()
       eq("table", type(db), "returns new main interface object.")
       eq("cdata", type(db.conn), "returns sql object.")
       assert(db:close(), "returns true if the connection is closed successfully.")
@@ -41,7 +51,7 @@ describe("sql", function()
 
       eq(true, db:eval("create table if not exists todo(title text, desc text, created int)"))
 
-      db:insert("todo", {
+      db:eval("insert into todo(title, desc, created) values(:title, :desc, :created) ", {
         { title = "1", desc = "......", created = 2021 },
         { title = "2", desc = "......", created = 2021 }
       })
@@ -68,20 +78,21 @@ describe("sql", function()
       db:close()
     end)
 
-    it(':open and .open work the same', function()
-      local db = sql.open()
-      eq("cdata", type(db.conn), "returns sql object.")
-      eq(true, db:close(), "it should closes")
-      local db2 = sql:open()
-      eq("cdata", type(db2.conn), "returns sql object.")
-      eq(true, db2:close(), "it should closes")
+    it("should accept pargma options", function()
+      local tmp = "/tmp/db912.db"
+      local db = sql:open(tmp, {
+        journal_mode = "persist"
+      })
+      eq("persist", db:eval("pragma journal_mode")[1].journal_mode)
+      db:close()
+      vim.loop.fs_unlink(tmp)
     end)
 
     it('reopen db object.', function()
       local db = sql:open(path)
       local row = {title = "1", desc = "...."}
       db:eval("create table if not exists todo(title text, desc text)")
-      db:insert("todo", row)
+      db:eval("insert into todo(title, desc) values(:title, :desc)", row)
 
       db:close()
       eq(true, db.closed, "should be closed." )
@@ -98,9 +109,9 @@ describe("sql", function()
   describe(':open_with', function()
     it('works with initalized sql objects.', function()
       local db = sql:open(path)
-
+      local row = { title = "1", desc = "...." }
       db:eval("create table if not exists todo(title text, desc text)")
-      db:insert("todo", { title = "1", desc = "...." })
+      db:eval("insert into todo(title, desc) values(:title, :desc)", row)
       db:close()
       eq(true, db.closed, "should be closed.")
 
@@ -115,8 +126,9 @@ describe("sql", function()
 
     it('works without initalizing sql objects. (via uri)', function()
       local res = sql.with_open(path, function(db)
+        local row = { title = "1", desc = "...." }
         db:eval("create table if not exists todo(title text, desc text)")
-        db:insert("todo", { title = "1", desc = "...." })
+        db:eval("insert into todo(title, desc) values(:title, :desc)", row)
         return db:eval("select * from todo")
       end)
       eq("1", res[1].title, "should pass.")
@@ -233,7 +245,7 @@ describe("sql", function()
     local db = sql:open()
     assert(db:eval("create table todos(title text, desc text)"))
 
-    it('works with table_name being as the first argument', function()
+    it('inserts a single row', function()
       db:insert("todos", {
         title = "TODO 1",
         desc = "................",
@@ -245,7 +257,7 @@ describe("sql", function()
       db:eval("delete from todos")
     end)
 
-    it('inserts multiple rows in a sql_table (with tbl_name being first param)', function()
+    it('inserts multiple rows', function()
       db:insert("todos", {
         {
           title = "todo 3",
@@ -268,6 +280,63 @@ describe("sql", function()
       db:eval("delete from todos")
     end)
 
+    assert(db:eval[[
+    create table if not exists test(
+    id integer primary key,
+    title text,
+    name text not null,
+    created integer default 'today',
+    current timestamp default current_date,
+    num integer default 0)
+    ]])
+
+    it("respects string defaults", function()
+      db:insert("test", {
+        { title = "A", name = "B" },
+        { title = "C", name = "D" }
+      })
+      local res = db:eval[[ select * from test]]
+      eq("today", res[1].created) -- FIXME
+      eq("today", res[2].created) -- FIXME
+    end)
+
+    it("respects number defaults", function()
+      db:insert("test", {
+        { title = "A", name = "B" },
+        { title = "C", name = "D" }
+      })
+      local res = db:eval[[ select * from test]]
+      eq(0, res[1].num)
+      eq(0, res[2].num)
+    end)
+
+    it("respects sqlvalues defaults", function()
+      db:insert("test", {
+        { title = "A", name = "B" },
+        { title = "C", name = "D" }
+      })
+      local res = db:eval[[ select * from test]]
+      eq(os.date("%Y-%m-%d"), res[1].current)
+      eq(os.date("%Y-%m-%d"), res[2].current)
+    end)
+
+
+    it("respects fails if a key is null", function()
+      local ok, _ = pcall(function()
+        return db:insert("test", { title = "A"})
+      end)
+      eq(false, ok, "should fail")
+    end)
+
+    it("serialize lua table in sql column", function()
+      db:eval("drop table test")
+      db:eval("create table test(id integer, data luatable)")
+      db:insert("test", {id = 1, data = {"list", "of", "lines"}})
+
+      local res = db:eval[[select * from test]]
+      eq('["list","of","lines"]',res[1].data)
+      db:eval("drop table test")
+    end)
     db:close()
   end)
 
@@ -276,10 +345,9 @@ describe("sql", function()
     assert(db:eval("create table todos(title text, desc text)"))
 
     it('works with table_name being as the first argument', function()
-      db:insert("todos", {
-        title = "TODO 1",
-        desc = "................",
-      })
+      local row = { title = "TODO 1", desc = "................" }
+      db:eval("insert into todos(title, desc) values(:title, :desc)", row)
+
       db:update("todos", {
         values = { desc = "done" },
         where = { title = "TODO 1" },
@@ -292,10 +360,8 @@ describe("sql", function()
     end)
 
     it('works with table_name being a lua table key', function()
-      db:insert("todos",{
-        title = "TODO 1",
-        desc = " .......... ",
-      })
+      local row = { title = "TODO 1", desc = " .......... " }
+      db:eval("insert into todos(title, desc) values(:title, :desc)", row)
 
       db:update("todos", {
         values = { desc = "not done" },
@@ -311,7 +377,7 @@ describe("sql", function()
 
     it('update multiple rows in a sql table', function()
       db:eval("delete from todos")
-      db:insert("todos", {
+      local rows = {
         {
           title = "todo 3",
           desc = "...",
@@ -324,7 +390,8 @@ describe("sql", function()
           title = "todo 1",
           desc = "...",
         },
-      })
+      }
+      db:eval("insert into todos(title, desc) values(:title, :desc)", rows)
       db:update("todos", {
         {
           values = { desc = "not done" },
@@ -351,6 +418,17 @@ describe("sql", function()
     it('skip updating if opts is nil', function()
       db:update("todos")
     end)
+
+    it('fallback to insert', function()
+      local tmp = "nvim.nvim"
+      db:update("todos", {
+        values = { desc = tmp },
+        where = { title = "3" },
+      })
+      local store = db:eval("select * from todos")
+      eq(tmp, store[1].desc)
+      eq("3", store[1].title)
+    end)
     db:close()
   end)
 
@@ -359,26 +437,19 @@ describe("sql", function()
     assert(db:eval("create table todos(title text, desc text)"))
 
     it('works with table_name being as the first argument', function()
-      db:insert("todos", {
-        title = "TODO 1",
-        desc = "................",
-      })
+      local row  = { title = "TODO 1", desc = "................", }
+      db:eval("insert into todos(title, desc) values(:title, :desc)", row)
       db:delete('todos')
       local results = db:eval("select * from todos")
       eq(false, type(results) == "table", "It should be deleted.")
     end)
 
     it('works with table_name being and where', function()
-      db:insert("todos", {
-        {
-          title = "TODO 1",
-          desc = "................",
-        },
-        {
-          title = "TODO 2",
-          desc = "................",
-        }
-      })
+      local rows  = {
+        { title = "TODO 1", desc = "................", },
+        { title = "TODO 2", desc = "................", }
+      }
+      db:eval("insert into todos(title, desc) values(:title, :desc)", rows)
       db:delete('todos', { where = { title = "TODO 1" }})
       local results = db:eval("select * from todos")
       eq(true, type(results) == "table")
@@ -387,32 +458,22 @@ describe("sql", function()
     end)
 
     it('delete multiple keys with list of ors', function()
-      db:insert("todos", {
-        {
-          title = "TODO 1",
-          desc = "................",
-        },
-        {
-          title = "TODO 2",
-          desc = "................",
-        }
-      })
+      local rows  ={
+        { title = "TODO 1", desc = "................", },
+        { title = "TODO 2", desc = "................", }
+      }
+      db:eval("insert into todos(title, desc) values(:title, :desc)", rows)
       db:delete("todos", { { where = { title = {"TODO 1", "TODO 2"} } } })
       local results = db:eval("select * from todos")
       eq(false, type(results) == "table")
     end)
 
     it('delete multiple keys with dict for each conditions.', function()
-      db:insert("todos", {
-        {
-          title = "TODO 1",
-          desc = "................",
-        },
-        {
-          title = "TODO 2",
-          desc = "................",
-        }
-      })
+      local rows = {
+        { title = "TODO 1", desc = "................", },
+        { title = "TODO 2", desc = "................", }
+      }
+      db:eval("insert into todos(title, desc) values(:title, :desc)", rows)
       db:delete('todos', { { where = { title = "TODO 1" } }, { where = {title = "TODO 2"} } })
       local results = db:eval("select * from todos")
       eq(false, type(results) == "table")
@@ -421,20 +482,46 @@ describe("sql", function()
   end)
 
   describe(':select', function()
-    local db = sql.open(path)
-    local posts = vim.fn.json_decode(curl.get("https://jsonplaceholder.typicode.com/posts").body)
-    local users = vim.fn.json_decode(curl.get("https://jsonplaceholder.typicode.com/users").body)
+    local db = sql:open(path)
+    local posts, users
+
     it('.... pre', function()
+      if vim.loop.fs_stat("/tmp/posts") == nil then
+        curl.get("https://jsonplaceholder.typicode.com/posts", { output = "/tmp/posts" })
+        curl.get("https://jsonplaceholder.typicode.com/users", { output = "/tmp/users" })
+      end
+
+      posts = vim.fn.json_decode(vim.fn.join(P.readlines("/tmp/posts"), "\n"))
+
+      eq("table", type(posts), "should have been decoded")
+
+      assert(db:eval([[
+      create table posts(id int not null primary key, userId int, title text, body text);
+      ]]))
+
+      eq(true, db:eval([[
+      insert into posts(id, userId, title, body) values(:id, :userId, :title, :body)
+      ]], posts))
+
+      eq("table", type(db:eval("select * from posts")), "there should be posts")
+
+      users = vim.fn.json_decode(vim.fn.join(P.readlines("/tmp/users"), "\n"))
+      eq("table", type(users), "should have been decoded")
       for _, user in ipairs(users) do -- Not sure how to deal with nested tables now
         user["address"] = nil
         user["company"] = nil
       end
-      assert(db:eval("create table posts(id int not null primary key, userId int, title text, body text);"))
-      assert(db:eval("create table users(id int not null primary key, name text, email text, phone text, website text, username text);"))
-      eq(true, db:insert("users", users))
-      eq(true, db:insert("posts", posts))
-      eq("table", type(db:eval("select * from posts")), "there should be posts")
+
+      assert(db:eval([[
+      create table users(id int not null primary key, name text, email text, phone text, website text, username text);
+      ]]))
+
+      eq(true, db:eval([[
+      insert into users(id, name, email, phone, website, username) values(:id,:name,:email,:phone,:website,:username)
+      ]], users))
+
       eq("table", type(db:eval("select * from users")), "there should be users")
+
     end)
 
     it('return everything with no params', function()
@@ -459,13 +546,7 @@ describe("sql", function()
     end)
 
     it('join tables.', function()
-      local res = db:select("posts", {
-        where  = { id = 1 },
-        join = {
-          posts = "userId",
-          users = "id"
-        }
-      })
+      local res = db:select("posts", { where  = { id = 1 }, join = { posts = "userId", users = "id" }})
       local expected = (function()
         for _, post in ipairs(posts) do
           if post["id"] == 1 then
@@ -484,10 +565,7 @@ describe("sql", function()
     end)
 
     it('return selected keys only', function()
-      local res = db:select("posts", {
-        where  = { id = 1 },
-        select = { "userId", "posts.body" }
-      })
+      local res = db:select("posts", { where  = { id = 1 }, keys = { "userId", "posts.body" } })
       local expected = (function()
         for _, post in ipairs(posts) do
           if post["id"] == 1 then
@@ -501,29 +579,63 @@ describe("sql", function()
 
       eq(expected, res[1])
     end)
+    it("it serialize json if the schema key datatype is json", function()
+      db:eval("create table test(id integer, data luatable)")
+      db:eval("insert into test(id,data) values(1, '[\"list\",\"of\",\"lines\"]')")
+      eq({
+        { id = 1, data = {"list", "of", "lines"} }
+      }, db:select("test"), "they should be identical")
+    end)
 
     db:close()
   end)
 
   describe(':schema', function()
-    local db = sql.open()
-    db:eval("create table test(a text, b int)")
+    local db = sql:open()
+    db:eval("create table test(a text, b int, c int not null, d text default def)")
 
     it('gets a sql table schema', function()
       local sch = db:schema("test")
-      eq({ a = "text", b = "int" }, sch)
+      eq({ a = "text", b = "int", c = "int", d = "text" }, sch)
     end)
 
-    it('gets a sql table schema keys only', function()
-      local sch = db:schema("test", true)
-      eq({"a", "b"}, sch)
+    it('gets a sql table schema info', function()
+      local sch = db:schema("test", true).info
+      eq({
+        a = {
+          cid = 0,
+          primary = false,
+          required = false,
+          type = 'text',
+        },
+        b = {
+          cid = 1,
+          primary = false,
+          required = false,
+          type = 'int',
+        },
+        c = {
+          cid = 2,
+          primary = false,
+          required = true,
+          type = "int"
+        },
+        d = {
+          cid = 3,
+          primary = false,
+          required = false,
+          type = "text",
+          default = 'def'
+        }
+
+      }, sch)
     end)
 
     db:close()
   end)
 
   describe(':create', function()
-    local db = sql.open()
+    local db = sql:open()
 
     it('create a new sqlite table, and return true', function()
       eq(false, db:exists("test"))
@@ -546,7 +658,7 @@ describe("sql", function()
   end)
 
   describe(':drop', function()
-    local db = sql.open()
+    local db = sql:open()
 
     it('should drop empty tables.', function()
       db:create("test", { a = "text", b = "int" })
