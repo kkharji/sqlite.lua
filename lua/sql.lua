@@ -16,10 +16,34 @@ function sql:__assert_tbl(tbl, method)
 end
 
 function sql:__wrap_stmts(fn)
-  self:__exec("BEGIN")
+  -- self:__exec("BEGIN")
   fn()
-  self:__exec("COMMIT")
+  -- self:__exec("COMMIT")
   return
+end
+
+local valid_paragma = {
+  "analysis_limit","application_id","auto_vacuum","automatic_index","busy_timeout",
+  "cache_size","cache_spill","case_sensitive_like","cell_size_check","checkpoint_fullfsync",
+  "collation_list","compile_options","data_version","database_list","encoding","foreign_key_check",
+  "foreign_key_list","foreign_keys","freelist_count","fullfsync","function_list",
+  "hard_heap_limit","ignore_check_constraints","incremental_vacuum","index_info","index_list",
+  "index_xinfo","integrity_check","journal_mode","journal_size_limit","legacy_alter_table",
+  "legacy_file_format","locking_mode","max_page_count","mmap_size","module_list","optimize",
+  "page_count","page_size","parser_trace","pragma_list","query_only","quick_check",
+  "read_uncommitted","recursive_triggers","reverse_unordered_selects","schema_version","secure_delete",
+  "shrink_memory","soft_heap_limit","stats","synchronous","table_info","table_xinfo","temp_store",
+  "threads","trusted_schema","user_version","vdbe_addoptrace²","vdbe_debug²","vdbe_listing",
+  "vdbe_trace","wal_autocheckpoint","wal_checkpoint","writable_schema"
+}
+
+local valid_paragma_key = function(value)
+  for _,v in ipairs(valid_paragma) do
+    if v == value then
+      return true
+    end
+  end
+  return false
 end
 
 --- Internal function for creating new connection.
@@ -32,14 +56,19 @@ function sql:__connect()
   -- the database file is opened.
   -- self.flags = args[2], -- file open operations.
   -- self.vfs = args[3], -- VFS (Virtual File System) module to use
-
   if code == flags.ok then
     self.created = os.date('%Y-%m-%d %H:%M:%S')
     self.conn = conn[0]
     self.closed = false
-    clib.exec(self.conn,"pragma synchronous = off", nil, nil, nil)
-    -- TODO should be optional or incase of bulk insert
-    clib.exec(self.conn,"pragma journal_mode = wal", nil, nil, nil)
+    if self.sqlite_opts then
+      -- self.sqlite_opts = opts
+      for k,v in pairs(self.sqlite_opts) do
+        if not valid_paragma_key(k) then
+          return error("sql.nvim:" .. k .. " is not a valid pragma")
+        end
+        clib.exec(self.conn, string.format("pragma %s = %s", k, v), nil, nil, nil)
+      end
+    end
   else
     error(string.format("sql.nvim: couldn't connect to sql database, ERR:", code))
   end
@@ -54,14 +83,13 @@ end
 ---@usage `db:open()` reopen connection if closed.
 ---@return table: sql.nvim object
 ---@todo: decide whether to add active_since.
-function sql:open(uri, noconn)
+function sql:open(uri, opts, noconn)
   local o = {}
-  if type(self) == 'string' or not self then
-    uri, self = self, sql
-  end
 
   if self.uri then
-    if self.closed or self.closed == nil then self:__connect() end
+    if self.closed or self.closed == nil then
+      self:__connect()
+    end
     if not self.closed then
       return self
     else
@@ -69,18 +97,21 @@ function sql:open(uri, noconn)
     end
   end
 
+  print(vim.inspect(opts))
   o.uri = type(uri) == "string" and u.expand(uri) or ":memory:"
   setmetatable(o, self)
+  o.sqlite_opts = opts
 
   if noconn then
     o.closed = true
     return o
   end
   o.modified = false
+
   o:__connect()
   return o
 end
-
+print(vim.inspect(sql:open "/tmp/dbdbdb.sql", {jfdfd = '1'}))
 --- closes sqlite db connection.
 ---@usage `db:close()`
 ---@return boolean: true if closed, error otherwise.
@@ -202,7 +233,9 @@ function sql:__exec(statement) return clib.exec(self.conn, statement, nil, nil, 
 ---@usage `sql:new("$ENV_VARABLE")`
 ---@return table: sql.nvim object
 ---@see |sql.open|
-function sql.new(uri) return sql:open(uri, true) end
+function sql.new(uri, opts)
+  return sql:open(uri, opts, true)
+end
 
 --- Get last error msg
 ---@return string: sqlite error msg
