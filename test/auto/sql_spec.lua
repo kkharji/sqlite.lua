@@ -418,6 +418,17 @@ describe("sql", function()
     it('skip updating if opts is nil', function()
       db:update("todos")
     end)
+
+    it('fallback to insert', function()
+      local tmp = "nvim.nvim"
+      db:update("todos", {
+        values = { desc = tmp },
+        where = { title = "3" },
+      })
+      local store = db:eval("select * from todos")
+      eq(tmp, store[1].desc)
+      eq("3", store[1].title)
+    end)
     db:close()
   end)
 

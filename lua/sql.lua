@@ -362,12 +362,20 @@ function sql:update(tbl, specs)
 
   self:__wrap_stmts(function()
     for _, v in ipairs(specs) do
-      local s = self:__parse(P.update(tbl, { set = v.values, where = v.where }))
-      s:bind(self:pre_insert(v.values, info)[1])
-      s:step()
-      s:reset()
-      s:bind_clear()
-      table.insert(ret_vals, s:finalize())
+      if self:select(tbl, { where = v.where })[1] then
+        local s = self:__parse(P.update(tbl, {
+          set = v.values,
+          where = v.where
+        }))
+        s:bind(self:pre_insert(v.values, info)[1])
+        s:step()
+        s:reset()
+        s:bind_clear()
+        table.insert(ret_vals, s:finalize())
+      else
+        local res = self:insert(tbl, u.tbl_extend("keep", v.values, v.where))
+        table.insert(ret_vals, res)
+      end
     end
   end)
 
