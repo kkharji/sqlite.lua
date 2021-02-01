@@ -25,6 +25,16 @@ describe("sql", function()
       eq(true, P.exists(P.new(tmp)), "It should created the file")
       vim.loop.fs_unlink(tmp)
     end)
+    it("should accept pargma options", function()
+      local tmp = "/tmp/db5.db"
+      local db = sql.new(tmp, {
+        journal_mode = "persist"
+      })
+      db:open()
+      eq("persist", db:eval("pragma journal_mode")[1].journal_mode)
+      db:close()
+      vim.loop.fs_unlink(tmp)
+    end)
   end)
 
   describe(":open/:close", function() -- todo(tami5): change to open instead of connect.
@@ -68,13 +78,14 @@ describe("sql", function()
       db:close()
     end)
 
-    it(':open and .open work the same', function()
-      local db = sql:open()
-      eq("cdata", type(db.conn), "returns sql object.")
-      eq(true, db:close(), "it should closes")
-      local db2 = sql:open()
-      eq("cdata", type(db2.conn), "returns sql object.")
-      eq(true, db2:close(), "it should closes")
+    it("should accept pargma options", function()
+      local tmp = "/tmp/db912.db"
+      local db = sql:open(tmp, {
+        journal_mode = "persist"
+      })
+      eq("persist", db:eval("pragma journal_mode")[1].journal_mode)
+      db:close()
+      vim.loop.fs_unlink(tmp)
     end)
 
     it('reopen db object.', function()
