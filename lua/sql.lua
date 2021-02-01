@@ -22,30 +22,6 @@ function sql:__wrap_stmts(fn)
   return
 end
 
-local valid_paragma = {
-  "analysis_limit","application_id","auto_vacuum","automatic_index","busy_timeout",
-  "cache_size","cache_spill","case_sensitive_like","cell_size_check","checkpoint_fullfsync",
-  "collation_list","compile_options","data_version","database_list","encoding","foreign_key_check",
-  "foreign_key_list","foreign_keys","freelist_count","fullfsync","function_list",
-  "hard_heap_limit","ignore_check_constraints","incremental_vacuum","index_info","index_list",
-  "index_xinfo","integrity_check","journal_mode","journal_size_limit","legacy_alter_table",
-  "legacy_file_format","locking_mode","max_page_count","mmap_size","module_list","optimize",
-  "page_count","page_size","parser_trace","pragma_list","query_only","quick_check",
-  "read_uncommitted","recursive_triggers","reverse_unordered_selects","schema_version","secure_delete",
-  "shrink_memory","soft_heap_limit","stats","synchronous","table_info","table_xinfo","temp_store",
-  "threads","trusted_schema","user_version","vdbe_addoptrace²","vdbe_debug²","vdbe_listing",
-  "vdbe_trace","wal_autocheckpoint","wal_checkpoint","writable_schema"
-}
-
-local valid_paragma_key = function(value)
-  for _,v in ipairs(valid_paragma) do
-    if v == value then
-      return true
-    end
-  end
-  return false
-end
-
 --- Internal function for creating new connection.
 ---@todo: decide whether using os.time and epoch time would be better.
 -- sets {created, conn, closed}

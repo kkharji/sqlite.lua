@@ -194,4 +194,87 @@ M.is_list = function(t)
   end
 end
 
+M.valid_paragma = {
+  ["analysis_limit" ] = true,
+  ["application_id" ] = true,
+  ["auto_vacuum" ] = true,
+  ["automatic_index" ] = true,
+  ["busy_timeout" ] = true,
+
+  ["cache_size" ] = true,
+  ["cache_spill" ] = true,
+  ["case_sensitive_like" ] = true,
+  ["cell_size_check" ] = true,
+  ["checkpoint_fullfsync" ] = true,
+
+  ["collation_list" ] = true,
+  ["compile_options" ] = true,
+  ["data_version" ] = true,
+  ["database_list" ] = true,
+  ["encoding" ] = true,
+  ["foreign_key_check" ] = true,
+
+  ["foreign_key_list" ] = true,
+  ["foreign_keys" ] = true,
+  ["freelist_count" ] = true,
+  ["fullfsync" ] = true,
+  ["function_list" ] = true,
+
+  ["hard_heap_limit" ] = true,
+  ["ignore_check_constraints" ] = true,
+  ["incremental_vacuum" ] = true,
+  ["index_info" ] = true,
+  ["index_list" ] = true,
+
+  ["index_xinfo" ] = true,
+  ["integrity_check" ] = true,
+  ["journal_mode" ] = true,
+  ["journal_size_limit" ] = true,
+  ["legacy_alter_table" ] = true,
+
+  ["legacy_file_format" ] = true,
+  ["locking_mode" ] = true,
+  ["max_page_count" ] = true,
+  ["mmap_size" ] = true,
+  ["module_list" ] = true,
+  ["optimize" ] = true,
+
+  ["page_count" ] = true,
+  ["page_size" ] = true,
+  ["parser_trace" ] = true,
+  ["pragma_list" ] = true,
+  ["query_only" ] = true,
+  ["quick_check" ] = true,
+
+  ["read_uncommitted" ] = true,
+  ["recursive_triggers" ] = true,
+  ["reverse_unordered_selects" ] = true,
+  ["schema_version" ] = true,
+  ["secure_delete" ] = true,
+
+  ["shrink_memory" ] = true,
+  ["soft_heap_limit" ] = true,
+  ["stats" ] = true,
+  ["synchronous" ] = true,
+  ["table_info" ] = true,
+  ["table_xinfo" ] = true,
+  ["temp_store" ] = true,
+
+  ["vdbe_trace" ] = true,
+  ["wal_autocheckpoint" ] = true,
+  ["wal_checkpoint" ] = true,
+  ["writable_schema"] = true,
+
+  ["threads" ] = true,
+  ["trusted_schema" ] = true,
+  ["user_version" ] = true,
+  ["vdbe_addoptrace" ] = true,
+  ["vdbe_debug" ] = true,
+  ["vdbe_listing" ] = true,
+}
+
+M.valid_paragma_key = function(key)
+  return M.valid_paragma[key] == true
+end
+
 return M
