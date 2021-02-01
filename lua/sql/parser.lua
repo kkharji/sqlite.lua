@@ -280,9 +280,11 @@ M.create = function(tbl, defs)
   defs.ensure = nil
 
   for k, v in u.opairs(defs) do
-    if type(v) ~= "table" then
+    if type(v) == "boolean" then
+      table.insert(items, string.format("%s integer primary key", k))
+    elseif type(v) ~= "table" then
       table.insert(items, string.format("%s %s", k, v))
-    else
+     else
       table.insert(items, string.format("%s %s", k, table.concat(v, " ")))
     end
   end
