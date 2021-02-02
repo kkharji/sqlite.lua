@@ -16,9 +16,9 @@ function sql:__assert_tbl(tbl, method)
 end
 
 function sql:__wrap_stmts(fn)
-  -- self:__exec("BEGIN")
+  self:__exec("BEGIN")
   fn()
-  -- self:__exec("COMMIT")
+  self:__exec("COMMIT")
   return
 end
 
