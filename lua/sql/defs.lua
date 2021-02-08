@@ -5,7 +5,11 @@ local M = {}
 
 local clib_path = vim.g.sql_clib_path or (function()
   if vim.loop.os_uname().sysname == 'Darwin' then
-    return '/usr/local/opt/sqlite3/lib/libsqlite3.dylib'
+	if vim.loop.os_uname().machine == "arm64" then
+		return "/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib"
+	else
+		return "/usr/local/opt/sqlite3/lib/libsqlite3.dylib"
+	end
   end
   return 'libsqlite3'
 end)()
