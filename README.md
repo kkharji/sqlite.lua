@@ -68,15 +68,14 @@ programs.neovim = {
 ```
 
 ##### Windows
-On Windows, you'll be looking for `sqlite3.dll` instead of `libsqlite3.so`, be
-careful to also use `/` in the path you specify (Windows's paths usually use
-`\`).
-You can get sqlite3 precompiled binaries for Windows
-[here](https://www.sqlite.org/download.html).
+You can get sqlite3 precompiled binaries for Windows [here](https://www.sqlite.org/download.html).
+Set `sql_clib_path` to where `sqlite3.dll` is located, e.g. `let
+g:sql_clib_path = path/to/sqlite3.dll`, remember to use `/` in the path
+you specify (Windows's paths usually use `\`).
 
 _NOTE: it is "sometimes" required that you set
 `g:sql_clib_path`/`vim.g.sql_clib_path` to where libsqlite3.so is located, and
-if that the case, pr or issue are welcomed to added in order to make it work regardless._
+if that's the case, pr or issue are welcomed in order to make it work regardless._
 
 Usage
 -----------------
