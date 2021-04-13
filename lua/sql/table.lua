@@ -1,4 +1,6 @@
 local u = require'sql.utils'
+local luv = require'luv'
+
 local t = {}
 t.__index = t
 
@@ -61,7 +63,7 @@ end
 
 function t:__get_from_cache(query)
   if self.nocache then return end
-  local stat = vim.loop.fs_stat(self.db.uri)
+  local stat = luv.fs_stat(self.db.uri)
   local mtime = stat and stat.mtime.sec
 
   if self.db.modified or mtime ~= self.mtime then
@@ -79,7 +81,7 @@ function t:new(db, name, opts)
   o.cache = {}
   o.db = db
   o.name = name
-  o.mtime = vim.loop.fs_stat(o.db.uri)
+  o.mtime = luv.fs_stat(o.db.uri)
   o.mtime = o.mtime and o.mtime.mtime.sec
   o.__schema = opts.schema
   o.nocache = opts.nocache

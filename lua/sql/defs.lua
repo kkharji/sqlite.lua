@@ -1,18 +1,21 @@
 local ffi = require'ffi'
 local bit = require'bit'
-
+local luv = require'luv'
 local M = {}
 
-local clib_path = vim.g.sql_clib_path or (function()
-  if vim.loop.os_uname().sysname == 'Darwin' then
-	if vim.loop.os_uname().machine == "arm64" then
-		return "/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib"
-	else
-		return "/usr/local/opt/sqlite3/lib/libsqlite3.dylib"
-	end
+local path = vim and vim.g.sql_clib_path or nil
+
+local clib_path = path or (function()
+  if luv.os_uname().sysname == 'Darwin' then
+    if luv.os_uname().machine == "arm64" then
+      return "/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib"
+    else
+      return "/usr/local/opt/sqlite3/lib/libsqlite3.dylib"
+    end
   end
   return 'libsqlite3'
 end)()
+
 local clib = ffi.load(clib_path)
 
 -- Constants

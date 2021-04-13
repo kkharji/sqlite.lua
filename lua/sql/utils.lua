@@ -1,4 +1,5 @@
 local M = {}
+local luv = require'luv'
 
 M.is_str = function(s) return type(s) == "string" end
 M.is_tbl = function(t) return type(t) == "table" end
@@ -53,9 +54,9 @@ M.expand = function(path)
   if string.find(path, "~") then
     expanded = string.gsub(path, "^~", os.getenv("HOME"))
   elseif string.find(path, "^%.") then
-    expanded = vim.loop.fs_realpath(path)
+    expanded = luv.fs_realpath(path)
     if expanded == nil then
-     expanded = vim.fn.fnamemodify(path, ":p")
+     error("Path not vaild")
    end
   elseif string.find(path, "%$") then
     local rep = string.match(path, "([^%$][^/]*)")

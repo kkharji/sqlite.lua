@@ -5,8 +5,8 @@ sql.nvim
 [sql.nvim] is [SQLite]/[LuaJIT] binding, as well as a highly opinionated
 wrapper targeted towards a number of use-cases, e.g. storing, retrieving,
 caching, persisting, querying, and connecting to [SQLite] databases.  While
-[sql.nvim] is tailored to Neovim environment, ~~it can work in any lua
-environment with luajit support.~~ see #29
+[sql.nvim] is tailored to Neovim environment, it can work in any lua
+environment with luajit support.
 
 - [Status]
 - [Installation]
