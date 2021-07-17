@@ -255,12 +255,12 @@ function sql:schema(tbl, info)
   local types = {}
 
   for _, v in ipairs(sch) do
-    if v.notnull == 1 then req[v.name] = v end
+    if v.notnull == 1 and v.pk == 0 then req[v.name] = v end
     if v.dflt_value then def[v.name] = v.dflt_value end
 
     tbl_info[v.name] = {
       required = v.notnull == 1,
-      primary = v.ok == 1,
+      primary = v.pk == 1,
       type = v.type,
       cid = v.cid,
       default = v.dflt_value
