@@ -323,7 +323,7 @@ end
 --- Insert to lua table into sqlite database table.
 ---@params tbl string: the table name
 ---@params rows table: rows to insert to the table.
----@return boolean: true incase the table was inserted successfully.
+---@return boolean, integer: true incase the table was inserted successfully, and the last inserted row id
 ---@usage db:insert("todos", { title = "new todo" })
 ---@todo support unnamed or anonymous args
 ---@todo handle inconflict case
@@ -332,6 +332,7 @@ function sql:insert(tbl, rows)
   local ret_vals = {}
   local info = self:schema(tbl, true)
   local items = self:pre_insert(rows, info)
+  local last_rowid
   self:__wrap_stmts(function()
 
     for _, v in ipairs(items) do
@@ -341,11 +342,15 @@ function sql:insert(tbl, rows)
       s:bind_clear()
       table.insert(ret_vals, s:finalize())
     end
+      local s = self:__parse("SELECT last_insert_rowid()")
+      s:step()
+      last_rowid = s:vals()[1]
+      s:finalize()
   end)
 
   local succ = u.all(ret_vals, function(_, v) return v end)
   if succ then self.modified = true end
-  return succ
+  return succ, last_rowid
 end
 
 --- Update table row with where closure and list of values
