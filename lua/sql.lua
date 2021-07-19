@@ -323,7 +323,7 @@ end
 --- Insert to lua table into sqlite database table.
 ---@params tbl string: the table name
 ---@params rows table: rows to insert to the table.
----@return boolean, integer: true incase the table was inserted successfully, and the last inserted row id
+---@return boolean|integer: true incase the table was inserted successfully, and the last inserted row id.
 ---@usage db:insert("todos", { title = "new todo" })
 ---@todo support unnamed or anonymous args
 ---@todo handle inconflict case

@@ -254,7 +254,7 @@ end
 ---@param rows table: a row or a group of rows
 ---@see t:__run()
 ---@see sql:insert()
----@return boolean, integer
+---@return boolean|integer
 function t:insert(rows)
   return self:__run(function()
     local succ, last_rowid = self.db:insert(self.name, rows)
