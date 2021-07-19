@@ -346,10 +346,14 @@ describe('table', function()
   seed()
 
   describe(":insert", function()
+    local ex_last_rowid = #demo
     it("inserts a row", function()
-      local new_rows = { a = 109,  b = "0", c = "0" }
-      eq(true, t1:insert(new_rows), "it should return true")
-      eq({new_rows}, db:eval("select * from T where a = 109"), "it should have the new rows")
+      local new_row = { a = 109,  b = "0", c = "0" }
+      ex_last_rowid = ex_last_rowid + 1
+      local succ, last_rowid = t1:insert(new_row)
+      eq(true, succ, "it should return true")
+      eq(ex_last_rowid, last_rowid, "it should return row_id " .. ex_last_rowid)
+      eq({new_row}, db:eval("select * from T where a = 109"), "it should have the new rows")
     end)
 
     it("inserts a list of rows", function()
@@ -358,7 +362,10 @@ describe('table', function()
         { a = 22, b = "sdj", c = "in" },
         { a = 33, b = "sbs", c = "en" }
       }
-      eq(true, t1:insert(new_rows), "it should return true")
+      ex_last_rowid = ex_last_rowid + #new_rows
+      local succ, last_rowid = t1:insert(new_rows)
+      eq(true, succ, "it should return true")
+      eq(ex_last_rowid, last_rowid, "it should return row_id " .. ex_last_rowid)
       eq(new_rows, db:eval("select * from T where a = 11 or a = 22 or a = 33"), "it should have the new rows")
     end)
   end)

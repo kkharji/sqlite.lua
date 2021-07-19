@@ -244,21 +244,25 @@ describe("sql", function()
   describe(':insert', function()
     local db = sql:open()
     assert(db:eval("create table todos(title text, desc text)"))
+    local ex_last_rowid = 0
 
     it('inserts a single row', function()
-      db:insert("todos", {
+      local rows = {
         title = "TODO 1",
         desc = "................",
-      })
-      local results = db:eval("select * from todos")
+      }
+      local _, last_row_id = db:insert("todos", rows)
+      ex_last_rowid = ex_last_rowid + 1
+      local results = db:eval("select rowid, * from todos")
       eq(true, type(results) == "table", "It should be inserted.")
+      eq(last_row_id, results[1].rowid, "It should be equals to the returned last inserted rowid " .. last_row_id)
       eq("TODO 1", results[1].title)
       eq("................", results[1].desc)
       db:eval("delete from todos")
     end)
 
     it('inserts multiple rows', function()
-      db:insert("todos", {
+      local rows = {
         {
           title = "todo 3",
           desc = "...",
@@ -271,8 +275,11 @@ describe("sql", function()
           title = "todo 1",
           desc = "...",
         },
-      })
-      local store = db:eval("select * from todos")
+      }
+      local _, rowid = db:insert("todos", rows)
+      ex_last_rowid = ex_last_rowid + #rows
+      local store = db:eval("select rowid, * from todos")
+      eq(rowid, store[#store].rowid, "It should be equals to the returned last inserted rowid " .. rowid)
       eq(3, vim.tbl_count(store))
       for _, v in ipairs(store) do
         eq(true, v.desc == "...")
