@@ -342,10 +342,7 @@ function sql:insert(tbl, rows)
       s:bind_clear()
       table.insert(ret_vals, s:finalize())
     end
-      local s = self:__parse("SELECT last_insert_rowid()")
-      s:step()
-      last_rowid = s:vals()[1]
-      s:finalize()
+      last_rowid = tonumber(clib.last_insert_rowid(self.conn))
   end)
 
   local succ = u.all(ret_vals, function(_, v) return v end)
