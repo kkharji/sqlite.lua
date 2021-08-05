@@ -129,6 +129,14 @@ describe('table', function()
       demo[1].a = 1
     end)
 
+    it("runs a query and returns results (keys & limit)", function()
+      local limit = 3
+      local res = t1:get{ keys = { "a" }, limit = limit }
+      eq(res[1].b, nil, "should not have the key")
+      eq(res[1].c, nil, "should not have the key")
+      eq(#res, limit, "they should be the same")
+    end)
+
     it("runs a query from cache.", function()
       local res = t1:get{ keys = { "b", "c" }, where = { a = 1 } }
       t1.cache["keys=bc,select=bc,where=a=1"][1].b = "bddddd"

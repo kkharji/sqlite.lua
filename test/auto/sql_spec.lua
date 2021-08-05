@@ -586,6 +586,13 @@ describe("sql", function()
 
       eq(expected, res[1])
     end)
+
+    it('return respecting a limit', function()
+      local limit = 5
+      local res = db:select("posts", { limit = limit })
+      eq(#res, limit, "they should be the same")
+    end)
+
     it("it serialize json if the schema key datatype is json", function()
       db:eval("create table test(id integer, data luatable)")
       db:eval("insert into test(id,data) values(1, '[\"list\",\"of\",\"lines\"]')")

@@ -420,6 +420,7 @@ end
 --- Query from a table with where and join options
 ---@usage db:get("todos") -- everything
 ---@usage db:get("todos", { where = { id = 1 })
+---@usage db:get("todos", { limit = 5 })
 -- @return lua list of matching rows
 function sql:select(tbl, spec)
   self:__assert_tbl(tbl, "select")
@@ -433,6 +434,7 @@ function sql:select(tbl, spec)
       select = spec.select,
       where = spec.where,
       join = spec.join,
+      limit = spec.limit,
     })) or self:__parse(P.select(tbl))
 
     s:each(function()
