@@ -1,167 +1,168 @@
-local ffi = require'ffi'
-local bit = require'bit'
-local luv = require'luv'
+local ffi = require "ffi"
+local bit = require "bit"
+local luv = require "luv"
 local M = {}
 
 local path = vim and vim.g.sql_clib_path or nil
 
-local clib_path = path or (function()
-  if luv.os_uname().sysname == 'Darwin' then
-    if luv.os_uname().machine == "arm64" then
-      return "/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib"
-    else
-      return "/usr/local/opt/sqlite3/lib/libsqlite3.dylib"
+local clib_path = path
+  or (function()
+    if luv.os_uname().sysname == "Darwin" then
+      if luv.os_uname().machine == "arm64" then
+        return "/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib"
+      else
+        return "/usr/local/opt/sqlite3/lib/libsqlite3.dylib"
+      end
     end
-  end
-  return 'libsqlite3'
-end)()
+    return "libsqlite3"
+  end)()
 
 local clib = ffi.load(clib_path)
 
 -- Constants
 M.flags = {
   -- Result codes
-  ['ok']         = 0,
-  ['error']      = 1,
-  ['internal']   = 2,
-  ['perm']       = 3,
-  ['abort']      = 4,
-  ['busy']       = 5,
-  ['locked']     = 6,
-  ['nomem']      = 7,
-  ['readonly']   = 8,
-  ['interrupt']  = 9,
-  ['ioerr']      = 10,
-  ['corrupt']    = 11,
-  ['notfound']   = 12,
-  ['full']       = 13,
-  ['cantopen']   = 14,
-  ['protocol']   = 15,
-  ['empty']      = 16,
-  ['schema']     = 17,
-  ['toobig']     = 18,
-  ['constraint'] = 19,
-  ['mismatch']   = 20,
-  ['misuse']     = 21,
-  ['nolfs']      = 22,
-  ['auth']       = 23,
-  ['format']     = 24,
-  ['range']      = 25,
-  ['notadb']     = 26,
-  ['notice']     = 27,
-  ['warning']    = 28,
-  ['row']        = 100,
-  ['done']       = 101,
+  ["ok"] = 0,
+  ["error"] = 1,
+  ["internal"] = 2,
+  ["perm"] = 3,
+  ["abort"] = 4,
+  ["busy"] = 5,
+  ["locked"] = 6,
+  ["nomem"] = 7,
+  ["readonly"] = 8,
+  ["interrupt"] = 9,
+  ["ioerr"] = 10,
+  ["corrupt"] = 11,
+  ["notfound"] = 12,
+  ["full"] = 13,
+  ["cantopen"] = 14,
+  ["protocol"] = 15,
+  ["empty"] = 16,
+  ["schema"] = 17,
+  ["toobig"] = 18,
+  ["constraint"] = 19,
+  ["mismatch"] = 20,
+  ["misuse"] = 21,
+  ["nolfs"] = 22,
+  ["auth"] = 23,
+  ["format"] = 24,
+  ["range"] = 25,
+  ["notadb"] = 26,
+  ["notice"] = 27,
+  ["warning"] = 28,
+  ["row"] = 100,
+  ["done"] = 101,
 }
 
 -- Extended Result Codes
-M.flags['error_missing_collseq']   = bit.bor(M.flags.error, bit.lshift(1, 8))
-M.flags['error_retry']             = bit.bor(M.flags.error, bit.lshift(2, 8))
-M.flags['error_snapshot']          = bit.bor(M.flags.error, bit.lshift(3, 8))
-M.flags['ioerr_read']              = bit.bor(M.flags.ioerr, bit.lshift(1, 8))
-M.flags['ioerr_short_read']        = bit.bor(M.flags.ioerr, bit.lshift(2, 8))
-M.flags['ioerr_write']             = bit.bor(M.flags.ioerr, bit.lshift(3, 8))
-M.flags['ioerr_fsync']             = bit.bor(M.flags.ioerr, bit.lshift(4, 8))
-M.flags['ioerr_dir_fsync']         = bit.bor(M.flags.ioerr, bit.lshift(5, 8))
-M.flags['ioerr_truncate']          = bit.bor(M.flags.ioerr, bit.lshift(6, 8))
-M.flags['ioerr_fstat']             = bit.bor(M.flags.ioerr, bit.lshift(7, 8))
-M.flags['ioerr_unlock']            = bit.bor(M.flags.ioerr, bit.lshift(8, 8))
-M.flags['ioerr_rdlock']            = bit.bor(M.flags.ioerr, bit.lshift(9, 8))
-M.flags['ioerr_delete']            = bit.bor(M.flags.ioerr, bit.lshift(10, 8))
-M.flags['ioerr_blocked']           = bit.bor(M.flags.ioerr, bit.lshift(11, 8))
-M.flags['ioerr_nomem']             = bit.bor(M.flags.ioerr, bit.lshift(12, 8))
-M.flags['ioerr_access']            = bit.bor(M.flags.ioerr, bit.lshift(13, 8))
-M.flags['ioerr_checkreservedlock'] = bit.bor(M.flags.ioerr, bit.lshift(14, 8))
-M.flags['ioerr_lock']              = bit.bor(M.flags.ioerr, bit.lshift(15, 8))
-M.flags['ioerr_close']             = bit.bor(M.flags.ioerr, bit.lshift(16, 8))
-M.flags['ioerr_dir_close']         = bit.bor(M.flags.ioerr, bit.lshift(17, 8))
-M.flags['ioerr_shmopen']           = bit.bor(M.flags.ioerr, bit.lshift(18, 8))
-M.flags['ioerr_shmsize']           = bit.bor(M.flags.ioerr, bit.lshift(19, 8))
-M.flags['ioerr_shmlock']           = bit.bor(M.flags.ioerr, bit.lshift(20, 8))
-M.flags['ioerr_shmmap']            = bit.bor(M.flags.ioerr, bit.lshift(21, 8))
-M.flags['ioerr_seek']              = bit.bor(M.flags.ioerr, bit.lshift(22, 8))
-M.flags['ioerr_delete_noent']      = bit.bor(M.flags.ioerr, bit.lshift(23, 8))
-M.flags['ioerr_mmap']              = bit.bor(M.flags.ioerr, bit.lshift(24, 8))
-M.flags['ioerr_gettemppath']       = bit.bor(M.flags.ioerr, bit.lshift(25, 8))
-M.flags['ioerr_convpath']          = bit.bor(M.flags.ioerr, bit.lshift(26, 8))
-M.flags['ioerr_vnode']             = bit.bor(M.flags.ioerr, bit.lshift(27, 8))
-M.flags['ioerr_auth']              = bit.bor(M.flags.ioerr, bit.lshift(28, 8))
-M.flags['ioerr_begin_atomic']      = bit.bor(M.flags.ioerr, bit.lshift(29, 8))
-M.flags['ioerr_commit_atomic']     = bit.bor(M.flags.ioerr, bit.lshift(30, 8))
-M.flags['ioerr_rollback_atomic']   = bit.bor(M.flags.ioerr, bit.lshift(31, 8))
-M.flags['ioerr_data']              = bit.bor(M.flags.ioerr, bit.lshift(32, 8))
-M.flags['ioerr_corruptfs']         = bit.bor(M.flags.ioerr, bit.lshift(33, 8))
-M.flags['locked_sharedcache']      = bit.bor(M.flags.locked, bit.lshift(1, 8))
-M.flags['locked_vtab']             = bit.bor(M.flags.locked, bit.lshift(2, 8))
-M.flags['busy_recovery']           = bit.bor(M.flags.busy, bit.lshift(1, 8))
-M.flags['busy_snapshot']           = bit.bor(M.flags.busy, bit.lshift(2, 8))
-M.flags['busy_timeout']            = bit.bor(M.flags.busy, bit.lshift(3, 8))
-M.flags['cantopen_notempdir']      = bit.bor(M.flags.cantopen, bit.lshift(1, 8))
-M.flags['cantopen_isdir']          = bit.bor(M.flags.cantopen, bit.lshift(2, 8))
-M.flags['cantopen_fullpath']       = bit.bor(M.flags.cantopen, bit.lshift(3, 8))
-M.flags['cantopen_convpath']       = bit.bor(M.flags.cantopen, bit.lshift(4, 8))
-M.flags['cantopen_dirtywal']       = bit.bor(M.flags.cantopen, bit.lshift(5, 8))
-M.flags['cantopen_symlink']        = bit.bor(M.flags.cantopen, bit.lshift(6, 8))
-M.flags['corrupt_vtab']            = bit.bor(M.flags.corrupt, bit.lshift(1, 8))
-M.flags['corrupt_sequence']        = bit.bor(M.flags.corrupt, bit.lshift(2, 8))
-M.flags['corrupt_index']           = bit.bor(M.flags.corrupt, bit.lshift(3, 8))
-M.flags['readonly_recovery']       = bit.bor(M.flags.readonly, bit.lshift(1, 8))
-M.flags['readonly_cantlock']       = bit.bor(M.flags.readonly, bit.lshift(2, 8))
-M.flags['readonly_rollback']       = bit.bor(M.flags.readonly, bit.lshift(3, 8))
-M.flags['readonly_dbmoved']        = bit.bor(M.flags.readonly, bit.lshift(4, 8))
-M.flags['readonly_cantinit']       = bit.bor(M.flags.readonly, bit.lshift(5, 8))
-M.flags['readonly_directory']      = bit.bor(M.flags.readonly, bit.lshift(6, 8))
-M.flags['abort_rollback']          = bit.bor(M.flags.abort, bit.lshift(2, 8))
-M.flags['constraint_check']        = bit.bor(M.flags.constraint, bit.lshift(1, 8))
-M.flags['constraint_commithook']   = bit.bor(M.flags.constraint, bit.lshift(2, 8))
-M.flags['constraint_foreignkey']   = bit.bor(M.flags.constraint, bit.lshift(3, 8))
-M.flags['constraint_function']     = bit.bor(M.flags.constraint, bit.lshift(4, 8))
-M.flags['constraint_notnull']      = bit.bor(M.flags.constraint, bit.lshift(5, 8))
-M.flags['constraint_primarykey']   = bit.bor(M.flags.constraint, bit.lshift(6, 8))
-M.flags['constraint_trigger']      = bit.bor(M.flags.constraint, bit.lshift(7, 8))
-M.flags['constraint_unique']       = bit.bor(M.flags.constraint, bit.lshift(8, 8))
-M.flags['constraint_vtab']         = bit.bor(M.flags.constraint, bit.lshift(9, 8))
-M.flags['constraint_rowid']        = bit.bor(M.flags.constraint, bit.lshift(10, 8))
-M.flags['constraint_pinned']       = bit.bor(M.flags.constraint, bit.lshift(11, 8))
-M.flags['notice_recover_wal']      = bit.bor(M.flags.notice, bit.lshift(1, 8))
-M.flags['notice_recover_rollback'] = bit.bor(M.flags.notice, bit.lshift(2, 8))
-M.flags['warning_autoindex']       = bit.bor(M.flags.warning, bit.lshift(1, 8))
-M.flags['auth_user']               = bit.bor(M.flags.auth, bit.lshift(1, 8))
-M.flags['ok_load_permanently']     = bit.bor(M.flags.ok, bit.lshift(1, 8))
-M.flags['ok_symlink']              = bit.bor(M.flags.ok, bit.lshift(2, 8))
+M.flags["error_missing_collseq"] = bit.bor(M.flags.error, bit.lshift(1, 8))
+M.flags["error_retry"] = bit.bor(M.flags.error, bit.lshift(2, 8))
+M.flags["error_snapshot"] = bit.bor(M.flags.error, bit.lshift(3, 8))
+M.flags["ioerr_read"] = bit.bor(M.flags.ioerr, bit.lshift(1, 8))
+M.flags["ioerr_short_read"] = bit.bor(M.flags.ioerr, bit.lshift(2, 8))
+M.flags["ioerr_write"] = bit.bor(M.flags.ioerr, bit.lshift(3, 8))
+M.flags["ioerr_fsync"] = bit.bor(M.flags.ioerr, bit.lshift(4, 8))
+M.flags["ioerr_dir_fsync"] = bit.bor(M.flags.ioerr, bit.lshift(5, 8))
+M.flags["ioerr_truncate"] = bit.bor(M.flags.ioerr, bit.lshift(6, 8))
+M.flags["ioerr_fstat"] = bit.bor(M.flags.ioerr, bit.lshift(7, 8))
+M.flags["ioerr_unlock"] = bit.bor(M.flags.ioerr, bit.lshift(8, 8))
+M.flags["ioerr_rdlock"] = bit.bor(M.flags.ioerr, bit.lshift(9, 8))
+M.flags["ioerr_delete"] = bit.bor(M.flags.ioerr, bit.lshift(10, 8))
+M.flags["ioerr_blocked"] = bit.bor(M.flags.ioerr, bit.lshift(11, 8))
+M.flags["ioerr_nomem"] = bit.bor(M.flags.ioerr, bit.lshift(12, 8))
+M.flags["ioerr_access"] = bit.bor(M.flags.ioerr, bit.lshift(13, 8))
+M.flags["ioerr_checkreservedlock"] = bit.bor(M.flags.ioerr, bit.lshift(14, 8))
+M.flags["ioerr_lock"] = bit.bor(M.flags.ioerr, bit.lshift(15, 8))
+M.flags["ioerr_close"] = bit.bor(M.flags.ioerr, bit.lshift(16, 8))
+M.flags["ioerr_dir_close"] = bit.bor(M.flags.ioerr, bit.lshift(17, 8))
+M.flags["ioerr_shmopen"] = bit.bor(M.flags.ioerr, bit.lshift(18, 8))
+M.flags["ioerr_shmsize"] = bit.bor(M.flags.ioerr, bit.lshift(19, 8))
+M.flags["ioerr_shmlock"] = bit.bor(M.flags.ioerr, bit.lshift(20, 8))
+M.flags["ioerr_shmmap"] = bit.bor(M.flags.ioerr, bit.lshift(21, 8))
+M.flags["ioerr_seek"] = bit.bor(M.flags.ioerr, bit.lshift(22, 8))
+M.flags["ioerr_delete_noent"] = bit.bor(M.flags.ioerr, bit.lshift(23, 8))
+M.flags["ioerr_mmap"] = bit.bor(M.flags.ioerr, bit.lshift(24, 8))
+M.flags["ioerr_gettemppath"] = bit.bor(M.flags.ioerr, bit.lshift(25, 8))
+M.flags["ioerr_convpath"] = bit.bor(M.flags.ioerr, bit.lshift(26, 8))
+M.flags["ioerr_vnode"] = bit.bor(M.flags.ioerr, bit.lshift(27, 8))
+M.flags["ioerr_auth"] = bit.bor(M.flags.ioerr, bit.lshift(28, 8))
+M.flags["ioerr_begin_atomic"] = bit.bor(M.flags.ioerr, bit.lshift(29, 8))
+M.flags["ioerr_commit_atomic"] = bit.bor(M.flags.ioerr, bit.lshift(30, 8))
+M.flags["ioerr_rollback_atomic"] = bit.bor(M.flags.ioerr, bit.lshift(31, 8))
+M.flags["ioerr_data"] = bit.bor(M.flags.ioerr, bit.lshift(32, 8))
+M.flags["ioerr_corruptfs"] = bit.bor(M.flags.ioerr, bit.lshift(33, 8))
+M.flags["locked_sharedcache"] = bit.bor(M.flags.locked, bit.lshift(1, 8))
+M.flags["locked_vtab"] = bit.bor(M.flags.locked, bit.lshift(2, 8))
+M.flags["busy_recovery"] = bit.bor(M.flags.busy, bit.lshift(1, 8))
+M.flags["busy_snapshot"] = bit.bor(M.flags.busy, bit.lshift(2, 8))
+M.flags["busy_timeout"] = bit.bor(M.flags.busy, bit.lshift(3, 8))
+M.flags["cantopen_notempdir"] = bit.bor(M.flags.cantopen, bit.lshift(1, 8))
+M.flags["cantopen_isdir"] = bit.bor(M.flags.cantopen, bit.lshift(2, 8))
+M.flags["cantopen_fullpath"] = bit.bor(M.flags.cantopen, bit.lshift(3, 8))
+M.flags["cantopen_convpath"] = bit.bor(M.flags.cantopen, bit.lshift(4, 8))
+M.flags["cantopen_dirtywal"] = bit.bor(M.flags.cantopen, bit.lshift(5, 8))
+M.flags["cantopen_symlink"] = bit.bor(M.flags.cantopen, bit.lshift(6, 8))
+M.flags["corrupt_vtab"] = bit.bor(M.flags.corrupt, bit.lshift(1, 8))
+M.flags["corrupt_sequence"] = bit.bor(M.flags.corrupt, bit.lshift(2, 8))
+M.flags["corrupt_index"] = bit.bor(M.flags.corrupt, bit.lshift(3, 8))
+M.flags["readonly_recovery"] = bit.bor(M.flags.readonly, bit.lshift(1, 8))
+M.flags["readonly_cantlock"] = bit.bor(M.flags.readonly, bit.lshift(2, 8))
+M.flags["readonly_rollback"] = bit.bor(M.flags.readonly, bit.lshift(3, 8))
+M.flags["readonly_dbmoved"] = bit.bor(M.flags.readonly, bit.lshift(4, 8))
+M.flags["readonly_cantinit"] = bit.bor(M.flags.readonly, bit.lshift(5, 8))
+M.flags["readonly_directory"] = bit.bor(M.flags.readonly, bit.lshift(6, 8))
+M.flags["abort_rollback"] = bit.bor(M.flags.abort, bit.lshift(2, 8))
+M.flags["constraint_check"] = bit.bor(M.flags.constraint, bit.lshift(1, 8))
+M.flags["constraint_commithook"] = bit.bor(M.flags.constraint, bit.lshift(2, 8))
+M.flags["constraint_foreignkey"] = bit.bor(M.flags.constraint, bit.lshift(3, 8))
+M.flags["constraint_function"] = bit.bor(M.flags.constraint, bit.lshift(4, 8))
+M.flags["constraint_notnull"] = bit.bor(M.flags.constraint, bit.lshift(5, 8))
+M.flags["constraint_primarykey"] = bit.bor(M.flags.constraint, bit.lshift(6, 8))
+M.flags["constraint_trigger"] = bit.bor(M.flags.constraint, bit.lshift(7, 8))
+M.flags["constraint_unique"] = bit.bor(M.flags.constraint, bit.lshift(8, 8))
+M.flags["constraint_vtab"] = bit.bor(M.flags.constraint, bit.lshift(9, 8))
+M.flags["constraint_rowid"] = bit.bor(M.flags.constraint, bit.lshift(10, 8))
+M.flags["constraint_pinned"] = bit.bor(M.flags.constraint, bit.lshift(11, 8))
+M.flags["notice_recover_wal"] = bit.bor(M.flags.notice, bit.lshift(1, 8))
+M.flags["notice_recover_rollback"] = bit.bor(M.flags.notice, bit.lshift(2, 8))
+M.flags["warning_autoindex"] = bit.bor(M.flags.warning, bit.lshift(1, 8))
+M.flags["auth_user"] = bit.bor(M.flags.auth, bit.lshift(1, 8))
+M.flags["ok_load_permanently"] = bit.bor(M.flags.ok, bit.lshift(1, 8))
+M.flags["ok_symlink"] = bit.bor(M.flags.ok, bit.lshift(2, 8))
 
 -- Flags for file open operations.
-M.flags['open_readonly']      = 0x00000001
-M.flags['open_readwrite']     = 0x00000002
-M.flags['open_create']        = 0x00000004
-M.flags['open_deleteonclose'] = 0x00000008
-M.flags['open_exclusive']     = 0x00000010
-M.flags['open_autoproxy']     = 0x00000020
-M.flags['open_uri']           = 0x00000040
-M.flags['open_memory']        = 0x00000080
-M.flags['open_main_db']       = 0x00000100
-M.flags['open_temp_db']       = 0x00000200
-M.flags['open_transient_db']  = 0x00000400
-M.flags['open_main_journal']  = 0x00000800
-M.flags['open_temp_journal']  = 0x00001000
-M.flags['open_subjournal']    = 0x00002000
-M.flags['open_super_journal'] = 0x00004000
-M.flags['open_nomutex']       = 0x00008000
-M.flags['open_fullmutex']     = 0x00010000
-M.flags['open_sharedcache']   = 0x00020000
-M.flags['open_privatecache']  = 0x00040000
-M.flags['open_wal']           = 0x00080000
-M.flags['open_nofollow']      = 0x01000000
+M.flags["open_readonly"] = 0x00000001
+M.flags["open_readwrite"] = 0x00000002
+M.flags["open_create"] = 0x00000004
+M.flags["open_deleteonclose"] = 0x00000008
+M.flags["open_exclusive"] = 0x00000010
+M.flags["open_autoproxy"] = 0x00000020
+M.flags["open_uri"] = 0x00000040
+M.flags["open_memory"] = 0x00000080
+M.flags["open_main_db"] = 0x00000100
+M.flags["open_temp_db"] = 0x00000200
+M.flags["open_transient_db"] = 0x00000400
+M.flags["open_main_journal"] = 0x00000800
+M.flags["open_temp_journal"] = 0x00001000
+M.flags["open_subjournal"] = 0x00002000
+M.flags["open_super_journal"] = 0x00004000
+M.flags["open_nomutex"] = 0x00008000
+M.flags["open_fullmutex"] = 0x00010000
+M.flags["open_sharedcache"] = 0x00020000
+M.flags["open_privatecache"] = 0x00040000
+M.flags["open_wal"] = 0x00080000
+M.flags["open_nofollow"] = 0x01000000
 
 -- Fundamental Datatypes
-M.flags['integer'] = 1
-M.flags['float']   = 2
-M.flags['text']    = 3
-M.flags['blob']    = 4
-M.flags['null']    = 5
+M.flags["integer"] = 1
+M.flags["float"] = 2
+M.flags["text"] = 3
+M.flags["blob"] = 4
+M.flags["null"] = 5
 
 -- Types
-ffi.cdef[[
+ffi.cdef [[
   typedef struct sqlite3 sqlite3;
 
   typedef __int64 sqlite_int64;
@@ -186,7 +187,7 @@ ffi.cdef[[
 ]]
 
 -- Functions
-ffi.cdef[[
+ffi.cdef [[
   const char *sqlite3_libversion(void);
   const char *sqlite3_sourceid(void);
   int sqlite3_libversion_number(void);
@@ -498,36 +499,40 @@ ffi.cdef[[
 ]]
 
 M.to_str = function(ptr, len)
-  if ptr == nil then return end
+  if ptr == nil then
+    return
+  end
   return ffi.string(ptr, len)
 end
 
 M.type_of = function(ptr)
-  if ptr == nil then return end
+  if ptr == nil then
+    return
+  end
   return ffi.typeof(ptr)
 end
 
 M.get_new_db_ptr = function()
-  return ffi.new('sqlite3*[1]')
+  return ffi.new "sqlite3*[1]"
 end
 
 M.get_new_stmt_ptr = function()
-  return ffi.new('sqlite3_stmt*[1]')
+  return ffi.new "sqlite3_stmt*[1]"
 end
 
 M.get_new_blob_ptr = function()
-  return ffi.new('sqlite3_blob*[1]')
+  return ffi.new "sqlite3_blob*[1]"
 end
 
-M.type_of_db_ptr = ffi.typeof("sqlite3*")
-M.type_of_stmt_ptr = ffi.typeof("sqlite3_stmt*")
-M.type_of_exec_ptr = ffi.typeof("int (*)(void*,int,char**,char**)")
-M.type_of_blob_ptr = ffi.typeof("sqlite3_blob*")
+M.type_of_db_ptr = ffi.typeof "sqlite3*"
+M.type_of_stmt_ptr = ffi.typeof "sqlite3_stmt*"
+M.type_of_exec_ptr = ffi.typeof "int (*)(void*,int,char**,char**)"
+M.type_of_blob_ptr = ffi.typeof "sqlite3_blob*"
 
 M = setmetatable(M, {
   __index = function(_, k)
-    return clib['sqlite3_' .. k]
-  end
+    return clib["sqlite3_" .. k]
+  end,
 })
 
 return M

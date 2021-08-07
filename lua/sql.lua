@@ -1,24 +1,28 @@
-local clib = require'sql.defs'
-local stmt = require'sql.stmt'
-local u = require'sql.utils'
-local t = require'sql.table'
-local P = require'sql.parser'
-local json = require'sql.json'
+local clib = require "sql.defs"
+local stmt = require "sql.stmt"
+local u = require "sql.utils"
+local t = require "sql.table"
+local P = require "sql.parser"
+local json = require "sql.json"
 local flags = clib.flags
 local sql = {}
 sql.__index = sql
 
 function sql:__assert_tbl(tbl, method)
-  assert(self:exists(tbl),
-  string.format("sql.nvim: can not execute %s, %s doesn't exists.",
-  method, tbl
-  ))
+  assert(
+    self:exists(tbl),
+    string.format(
+      "sql.nvim: can not execute %s, %s doesn't exists.",
+      method,
+      tbl
+    )
+  )
 end
 
 function sql:__wrap_stmts(fn)
-  self:__exec("BEGIN")
+  self:__exec "BEGIN"
   fn()
-  self:__exec("COMMIT")
+  self:__exec "COMMIT"
   return
 end
 
@@ -32,19 +36,27 @@ function sql:__connect()
   -- self.flags = args[2], -- file open operations.
   -- self.vfs = args[3], -- VFS (Virtual File System) module to use
   if code == flags.ok then
-    self.created = os.date('%Y-%m-%d %H:%M:%S')
+    self.created = os.date "%Y-%m-%d %H:%M:%S"
     self.conn = conn[0]
     self.closed = false
     if self.sqlite_opts then
-      for k,v in pairs(self.sqlite_opts) do
+      for k, v in pairs(self.sqlite_opts) do
         if not u.valid_pargma_key(k) then
           return error("sql.nvim: " .. k .. " is not a valid pragma")
         end
-        clib.exec(self.conn, string.format("pragma %s = %s", k, v), nil, nil, nil)
+        clib.exec(
+          self.conn,
+          string.format("pragma %s = %s", k, v),
+          nil,
+          nil,
+          nil
+        )
       end
     end
   else
-    error(string.format("sql.nvim: couldn't connect to sql database, ERR:", code))
+    error(
+      string.format("sql.nvim: couldn't connect to sql database, ERR:", code)
+    )
   end
 end
 
@@ -95,18 +107,25 @@ end
 ---@usage `sql:new("$ENV_VARABLE")`
 ---@return table: sql.nvim object
 ---@see |sql.open|
-function sql.new(uri, opts) return sql:open(uri, opts, true) end
+function sql.new(uri, opts)
+  return sql:open(uri, opts, true)
+end
 
 --- closes sqlite db connection.
 ---@usage `db:close()`
 ---@return boolean: true if closed, error otherwise.
 function sql:close()
-  if self.closed then return true end
+  if self.closed then
+    return true
+  end
   self.closed = clib.close(self.conn) == 0
-  assert(self.closed, string.format(
-    "sql.nvim: database connection didn't get closed, ERRMSG: %s",
-    self:__last_errmsg()
-  ))
+  assert(
+    self.closed,
+    string.format(
+      "sql.nvim: database connection didn't get closed, ERRMSG: %s",
+      self:__last_errmsg()
+    )
+  )
   return self.closed
 end
 
@@ -121,8 +140,8 @@ end
 ---@return table: sql.nvim object
 ---@see sql:open()
 function sql:with_open(...)
-  local args = {...}
-  if type(self) == 'string' or not self then
+  local args = { ... }
+  if type(self) == "string" or not self then
     self = sql:open(self)
   end
 
@@ -136,7 +155,6 @@ function sql:with_open(...)
   self:close()
   return res
 end
-
 
 --- Main sqlite interface. This function evaluates {statement} and if there are
 --- results from evaluating it then the function returns list of row(s). Else, it
@@ -160,19 +178,19 @@ function sql:eval(statement, params)
     end)
     s:reset()
 
-  -- when the user run eval("select * from ?", "tbl")
-  elseif type(params) ~= "table" and statement:match('%?') then
+    -- when the user run eval("select * from ?", "tbl")
+  elseif type(params) ~= "table" and statement:match "%?" then
     local value = P.sqlvalue(params)
-    s:bind({value})
+    s:bind { value }
     s:each(function(stm)
       table.insert(res, stm:kv())
     end)
     s:reset()
     s:bind_clear()
 
-  -- when the user provided named keys
+    -- when the user provided named keys
   elseif params and type(params) == "table" then
-    params = type(params[1]) == "table" and params or {params}
+    params = type(params[1]) == "table" and params or { params }
     for _, v in ipairs(params) do
       s:bind(v)
       s:each(function(stm)
@@ -193,10 +211,13 @@ function sql:eval(statement, params)
     res = res[1]
   end
 
-  assert(self:__last_errcode() == flags.ok , string.format(
-  "sql.nvim: :eval has failed to execute statement, ERRMSG: %s",
-    self:__last_errmsg()
-  ))
+  assert(
+    self:__last_errcode() == flags.ok,
+    string.format(
+      "sql.nvim: :eval has failed to execute statement, ERRMSG: %s",
+      self:__last_errmsg()
+    )
+  )
   self.modified = true
   return res
 end
@@ -204,34 +225,48 @@ end
 --- Wrapper around stmt module for convenience.
 ---@param statement string: statement to be parsed.
 ---@return table: stmt object
-function sql:__parse(statement) return stmt:parse(self.conn, statement) end
+function sql:__parse(statement)
+  return stmt:parse(self.conn, statement)
+end
 
 --- wrapper around clib.exec for convenience.
 ---@param statement string: statement to be executed.
 ---@return table: stmt object
-function sql:__exec(statement) return clib.exec(self.conn, statement, nil, nil, nil) end
+function sql:__exec(statement)
+  return clib.exec(self.conn, statement, nil, nil, nil)
+end
 
 --- Get last error msg
 ---@return string: sqlite error msg
-function sql:__last_errmsg() return clib.to_str(clib.errmsg(self.conn)) end
+function sql:__last_errmsg()
+  return clib.to_str(clib.errmsg(self.conn))
+end
 
 --- Get last error code
 ---@return number: sqlite error number
-function sql:__last_errcode() return clib.errcode(self.conn) end
+function sql:__last_errcode()
+  return clib.errcode(self.conn)
+end
 
 --- predict returning true if db connection is active.
 ---@return boolean: true if db is opened, otherwise false.
-function sql:isopen() return not self.closed end
+function sql:isopen()
+  return not self.closed
+end
 
 --- predict returning true if db connection is deactivated.
 ---@return boolean: true if db is close, otherwise false.
-function sql:isclose() return self.closed end
+function sql:isclose()
+  return self.closed
+end
 
 --- Returns current connection status
 --- Get last error code
 ---@todo: decide whether to keep this function
 ---@return table: msg,code,closed
-function sql:status() return { msg = self:__last_errmsg(), code = self:__last_errcode() } end
+function sql:status()
+  return { msg = self:__last_errmsg(), code = self:__last_errcode() }
+end
 
 --- Check if a table with {name} exists in sqlite db
 ---@param name string: the table name.
@@ -246,8 +281,10 @@ end
 ---@param info boolean: whether to return table info. default false.
 ---@return table: list of keys or keys and their type.
 function sql:schema(tbl, info)
-  local sch = self:eval(string.format("pragma table_info(%s)",  tbl))
-  if type(sch) == "boolean" then return {} end
+  local sch = self:eval(string.format("pragma table_info(%s)", tbl))
+  if type(sch) == "boolean" then
+    return {}
+  end
 
   local tbl_info = {}
   local req = {}
@@ -255,15 +292,19 @@ function sql:schema(tbl, info)
   local types = {}
 
   for _, v in ipairs(sch) do
-    if v.notnull == 1 and v.pk == 0 then req[v.name] = v end
-    if v.dflt_value then def[v.name] = v.dflt_value end
+    if v.notnull == 1 and v.pk == 0 then
+      req[v.name] = v
+    end
+    if v.dflt_value then
+      def[v.name] = v.dflt_value
+    end
 
     tbl_info[v.name] = {
       required = v.notnull == 1,
       primary = v.pk == 1,
       type = v.type,
       cid = v.cid,
-      default = v.dflt_value
+      default = v.dflt_value,
     }
 
     types[v.name] = v.type
@@ -273,7 +314,7 @@ function sql:schema(tbl, info)
     info = tbl_info,
     req = req == {} and nil or req,
     def = def == {} and nil or def,
-    types = types
+    types = types,
   }
 
   return info and obj or obj.types
@@ -285,18 +326,24 @@ end
 ---@param schema table: the table keys/column and their types
 ---@usage `db:create("todos", {id = {"int", "primary", "key"}, title = "text"})`
 ---@return boolean
-function sql:create(name, schema) return self:eval(P.create(name, schema)) end
+function sql:create(name, schema)
+  return self:eval(P.create(name, schema))
+end
 
 --- Create a new sqlite db table with {name} based on {schema}. if {schema.ensure} then
 --- create only when it doesn't exists. similar to 'create if not exists'
 ---@param name string: table name
 ---@usage `db:drop("todos")`
 ---@return boolean
-function sql:drop(name) return self:eval(P.drop(name)) end
-
+function sql:drop(name)
+  return self:eval(P.drop(name))
+end
 
 local fail_on_wrong_input = function(ret_vals)
-  assert(#ret_vals > 0, 'sql.nvim: can\'t parse your input. Make sure it use that function correct')
+  assert(
+    #ret_vals > 0,
+    "sql.nvim: can't parse your input. Make sure it use that function correct"
+  )
 end
 
 function sql:pre_insert(rows, info)
@@ -309,7 +356,7 @@ function sql:pre_insert(rows, info)
     end
 
     for k, v in pairs(row) do
-      if info.types[k] == "luatable" or info.types[k] == "json"  then
+      if info.types[k] == "luatable" or info.types[k] == "json" then
         row[k] = json.encode(v)
       end
       if type(v) == "boolean" then
@@ -334,7 +381,6 @@ function sql:insert(tbl, rows)
   local items = self:pre_insert(rows, info)
   local last_rowid
   self:__wrap_stmts(function()
-
     for _, v in ipairs(items) do
       local s = self:__parse(P.insert(tbl, { values = v }))
       s:bind(v)
@@ -342,11 +388,15 @@ function sql:insert(tbl, rows)
       s:bind_clear()
       table.insert(ret_vals, s:finalize())
     end
-      last_rowid = tonumber(clib.last_insert_rowid(self.conn))
+    last_rowid = tonumber(clib.last_insert_rowid(self.conn))
   end)
 
-  local succ = u.all(ret_vals, function(_, v) return v end)
-  if succ then self.modified = true end
+  local succ = u.all(ret_vals, function(_, v)
+    return v
+  end)
+  if succ then
+    self.modified = true
+  end
   return succ, last_rowid
 end
 
@@ -358,16 +408,18 @@ end
 function sql:update(tbl, specs)
   self:__assert_tbl(tbl, "update")
   local ret_vals = {}
-  if not specs then return false end
+  if not specs then
+    return false
+  end
   local info = self:schema(tbl, true)
-  specs = u.is_nested(specs) and specs or {specs}
+  specs = u.is_nested(specs) and specs or { specs }
 
   self:__wrap_stmts(function()
     for _, v in ipairs(specs) do
       if self:select(tbl, { where = v.where })[1] then
         local s = self:__parse(P.update(tbl, {
           set = v.values,
-          where = v.where
+          where = v.where,
         }))
         s:bind(self:pre_insert(v.values, info)[1])
         s:step()
@@ -382,8 +434,12 @@ function sql:update(tbl, specs)
   end)
 
   fail_on_wrong_input(ret_vals)
-  local succ = u.all(ret_vals, function(_, v) return v end)
-  if succ then self.modified = true end
+  local succ = u.all(ret_vals, function(_, v)
+    return v
+  end)
+  if succ then
+    self.modified = true
+  end
   return succ
 end
 
@@ -402,18 +458,24 @@ function sql:delete(tbl, specs)
     return self:__exec(P.delete(tbl)) == 0 and true or self:__last_errmsg()
   end
 
-  specs = u.is_nested(specs) and specs or {specs}
+  specs = u.is_nested(specs) and specs or { specs }
   self:__wrap_stmts(function()
     for _, spec in ipairs(specs) do
-      local s = self:__parse(P.delete(tbl, { where = spec and spec.where or nil}))
+      local s = self:__parse(
+        P.delete(tbl, { where = spec and spec.where or nil })
+      )
       s:step()
       s:reset()
       table.insert(ret_vals, s:finalize())
     end
   end)
 
-  local succ = u.all(ret_vals, function(_, v) return v end)
-  if succ then self.modified = true end
+  local succ = u.all(ret_vals, function(_, v)
+    return v
+  end)
+  if succ then
+    self.modified = true
+  end
   return succ
 end
 
@@ -429,13 +491,17 @@ function sql:select(tbl, spec)
   local types = self:schema(tbl)
 
   self:__wrap_stmts(function()
-    if spec.keys then spec.select = spec.keys end
-    local s = spec and self:__parse(P.select(tbl, {
-      select = spec.select,
-      where = spec.where,
-      join = spec.join,
-      limit = spec.limit,
-    })) or self:__parse(P.select(tbl))
+    if spec.keys then
+      spec.select = spec.keys
+    end
+    local s = spec
+        and self:__parse(P.select(tbl, {
+          select = spec.select,
+          where = spec.where,
+          join = spec.join,
+          limit = spec.limit,
+        }))
+      or self:__parse(P.select(tbl))
 
     s:each(function()
       local row = s:kv()

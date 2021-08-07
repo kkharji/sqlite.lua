@@ -1,4 +1,4 @@
-local sqlite = require'sql.defs'
+local sqlite = require "sql.defs"
 local flags = sqlite.flags
 
 local Stmt = {}
@@ -21,7 +21,6 @@ Stmt.__index = Stmt
 ---@class Stmt
 --- object to deal with sqlite statements
 
-
 --- Create new object to deal with sqlite {stmt}
 ---@param conn sqlite3*[1]: the database connection.
 ---@param stmt string: the sqlite statement to be parsed.
@@ -29,7 +28,10 @@ Stmt.__index = Stmt
 ---@see Stmt:__parse()
 ---@usage local stmt = Stmt:parse(db, "insert into todos (title,desc) values(:title, :desc)")
 function Stmt:parse(conn, stmt)
-  assert(sqlite.type_of(conn) == sqlite.type_of_db_ptr, "Invalid connection passed to stmt:parse")
+  assert(
+    sqlite.type_of(conn) == sqlite.type_of_db_ptr,
+    "Invalid connection passed to stmt:parse"
+  )
   assert(type(stmt) == "string", "Invalid second argument passed to stmt:parse")
   local o = {
     str = stmt,
@@ -46,11 +48,14 @@ end
 ---@local
 function Stmt:__parse()
   local pstmt = sqlite.get_new_stmt_ptr()
-  local code  = sqlite.prepare_v2(self.conn, self.str, #self.str, pstmt, nil);
-  assert(code == flags.ok, string.format(
-    "sql.nvim: couldn't parse sql statement, ERRMSG: %s",
-    sqlite.to_str(sqlite.errmsg(self.conn))
-  ))
+  local code = sqlite.prepare_v2(self.conn, self.str, #self.str, pstmt, nil)
+  assert(
+    code == flags.ok,
+    string.format(
+      "sql.nvim: couldn't parse sql statement, ERRMSG: %s",
+      sqlite.to_str(sqlite.errmsg(self.conn))
+    )
+  )
   self.pstmt = pstmt[0]
 end
 
@@ -69,10 +74,13 @@ end
 function Stmt:finalize()
   self.errcode = sqlite.finalize(self.pstmt)
   self.finalized = self.errcode == flags.ok
-  assert(self.finalized, string.format(
-    "sql.nvim: couldn't finalize statement, ERRMSG: %s",
-    sqlite.to_str(sqlite.errmsg(self.conn))
-  ))
+  assert(
+    self.finalized,
+    string.format(
+      "sql.nvim: couldn't finalize statement, ERRMSG: %s",
+      sqlite.to_str(sqlite.errmsg(self.conn))
+    )
+  )
   return self.finalized
 end
 
@@ -86,10 +94,13 @@ end
 ---@raise when code == falgs.error or falgs.misuse.
 function Stmt:step()
   local step_code = sqlite.step(self.pstmt)
-  assert(step_code ~= flags.error or step_code ~= flags.misuse, string.format(
-    "sql.nvim: error in step(), ERRMSG: %s. Please report issue.",
-    sqlite.to_str(sqlite.errmsg(self.conn))
-  ))
+  assert(
+    step_code ~= flags.error or step_code ~= flags.misuse,
+    string.format(
+      "sql.nvim: error in step(), ERRMSG: %s. Please report issue.",
+      sqlite.to_str(sqlite.errmsg(self.conn))
+    )
+  )
   return step_code
 end
 
@@ -130,11 +141,11 @@ function Stmt:keys()
 end
 
 local sqlite_datatypes = {
-  [1] = 'int', -- bind_double
-  [2] = 'double',   -- bind_text
-  [3] = 'text',      -- bind_null
-  [4] = 'blob',      -- bind_null
-  [5] = 'null',      -- bind_null
+  [1] = "int", -- bind_double
+  [2] = "double", -- bind_text
+  [3] = "text", -- bind_null
+  [4] = "blob", -- bind_null
+  [5] = "null", -- bind_null
 }
 
 --- Key/Column lua datatype at {idx}
@@ -143,12 +154,12 @@ local sqlite_datatypes = {
 ---@todo should accept 1-index
 function Stmt:type(idx)
   local convert_dt = {
-    ['integer'] = "number",
-    ['float'] = "number",
-    ['double'] = "number",
-    ['text'] = "string",
-    ['blob'] = "binary",
-    ['null'] = nil
+    ["integer"] = "number",
+    ["float"] = "number",
+    ["double"] = "number",
+    ["text"] = "string",
+    ["blob"] = "binary",
+    ["null"] = nil,
   }
   return convert_dt[sqlite.to_str(sqlite.column_decltype(self.pstmt, idx))]
 end
@@ -171,7 +182,9 @@ end
 ---@todo should accept 1-index
 function Stmt:val(idx)
   local ktype = sqlite.column_type(self.pstmt, idx)
-  if ktype == 5 then return end
+  if ktype == 5 then
+    return
+  end
   local val = sqlite["column_" .. sqlite_datatypes[ktype]](self.pstmt, idx)
   return ktype == 3 and sqlite.to_str(val) or val
 end
@@ -237,7 +250,10 @@ end
 ---@usage Stmt:each(function(s)  print(s:val(1))  end)
 ---@see Stmt:step
 function Stmt:each(callback)
-  assert(type(callback) == "function", "stmt:each expected a function, got something else.")
+  assert(
+    type(callback) == "function",
+    "stmt:each expected a function, got something else."
+  )
   while self:step() == flags.row do
     callback(self)
   end
@@ -286,9 +302,9 @@ function Stmt:vrows(callback)
 end
 
 local bind_type_to_func = {
-  ['number'] = 'double', -- bind_double
-  ['string'] = 'text',   -- bind_text
-  ['nil'] = 'null',      -- bind_null
+  ["number"] = "double", -- bind_double
+  ["string"] = "text", -- bind_text
+  ["nil"] = "null", -- bind_null
 }
 
 --- bind {args[2]} at {args[1]} or kv pairs {args[1]}.
@@ -299,7 +315,7 @@ local bind_type_to_func = {
 ---@see Stmt:param
 ---@see Stmt:bind
 function Stmt:bind(...)
-  local args = {...}
+  local args = { ... }
   -- bind by table
   if type(args[1]) == "table" then
     local names = args[1]
@@ -307,7 +323,7 @@ function Stmt:bind(...)
     local anon_indices = {}
     for i = 1, self:nparam() do
       local name = self:param(i)
-      if name == '?' then
+      if name == "?" then
         table.insert(anon_indices, i)
       else
         parameter_index_cache[name:sub(2, -1)] = i
@@ -317,7 +333,9 @@ function Stmt:bind(...)
     for k, v in pairs(names) do
       local index = parameter_index_cache[k] or table.remove(anon_indices, 1)
       local ret = self:bind(index, v)
-      if ret ~= flags.ok then return ret end -- TODO(conni): should we error out ?
+      if ret ~= flags.ok then
+        return ret
+      end -- TODO(conni): should we error out ?
     end
     return flags.ok
   end
@@ -326,22 +344,22 @@ function Stmt:bind(...)
   if type(args[1]) == "number" and args[2] then
     local idx, value = args[1], args[2]
     local func = bind_type_to_func[type(value)]
-    local len = func == 'text' and #value or nil
+    local len = func == "text" and #value or nil
 
     if not func then
-      return error([[
+      return error [[
         sql.nvim error at stmt:bind(): Unrecognized or unsupported type.
         Please report issue.
-      ]])
+      ]]
     end
 
     if len then
-      return sqlite['bind_' .. func](self.pstmt, idx, value, len, nil)
+      return sqlite["bind_" .. func](self.pstmt, idx, value, len, nil)
     else
       if value then
-        return sqlite['bind_' .. func](self.pstmt, idx, value)
+        return sqlite["bind_" .. func](self.pstmt, idx, value)
       else
-        return sqlite['bind_' .. func](self.pstmt, idx)
+        return sqlite["bind_" .. func](self.pstmt, idx)
       end
     end
   end
@@ -378,7 +396,7 @@ end
 ---@param idx number: index starting at 1
 ---@return string: param key ":key" at {idx}
 function Stmt:param(idx)
-  return sqlite.to_str(sqlite.bind_parameter_name(self.pstmt, idx)) or '?'
+  return sqlite.to_str(sqlite.bind_parameter_name(self.pstmt, idx)) or "?"
 end
 
 --- parameters keys/names
