@@ -1,5 +1,5 @@
-local u = require'sql.utils'
-local luv = require'luv'
+local u = require "sql.utils"
+local luv = require "luv"
 
 local t = {}
 t.__index = t
@@ -26,28 +26,40 @@ local get_key = function(query) -- TODO: refactor / move to utils
   local items = {}
   for k, v in u.opairs(query) do
     if type(v) == "table" then
-      table.insert(items, string.format("%s=%s", k, table.concat((function()
-        if not u.is_list(v) and type(v) ~= "string" then
-          local tmp = {}
-          for _k,_v in u.opairs(v) do
-            if type(_v) == "table" then
-              table.insert(tmp, string.format("%s=%s", _k, table.concat(_v, ",")))
-            else
-              table.insert(tmp, string.format("%s=%s", _k, _v))
-            end
-          end
-          return tmp
-        else
-          return v
-        end
-      end)(), "")))
+      table.insert(
+        items,
+        string.format(
+          "%s=%s",
+          k,
+          table.concat(
+            (function()
+              if not u.is_list(v) and type(v) ~= "string" then
+                local tmp = {}
+                for _k, _v in u.opairs(v) do
+                  if type(_v) == "table" then
+                    table.insert(
+                      tmp,
+                      string.format("%s=%s", _k, table.concat(_v, ","))
+                    )
+                  else
+                    table.insert(tmp, string.format("%s=%s", _k, _v))
+                  end
+                end
+                return tmp
+              else
+                return v
+              end
+            end)(),
+            ""
+          )
+        )
+      )
     else
       table.insert(items, k .. "=" .. v)
     end
   end
   return table.concat(items, ",")
 end
-
 
 function t:__clear_cache(succ, change)
   -- TODO: maybe do something smart here to update cache :D
@@ -62,7 +74,9 @@ function t:__fill_cache(query, res)
 end
 
 function t:__get_from_cache(query)
-  if self.nocache then return end
+  if self.nocache then
+    return
+  end
   local stat = luv.fs_stat(self.db.uri)
   local mtime = stat and stat.mtime.sec
 
@@ -73,7 +87,6 @@ function t:__get_from_cache(query)
   end
   return self.cache[get_key(query)]
 end
-
 
 function t:new(db, name, opts)
   opts = opts or {}
@@ -117,8 +130,8 @@ function t:schema(schema)
         return {}
       end
 
-    -- if not schema then -- TODO: or table is empty
-    --   return exists and self.db:schema(self.name) or {}
+      -- if not schema then -- TODO: or table is empty
+      --   return exists and self.db:schema(self.name) or {}
     elseif not exists or schema.ensure then
       res = self.db:create(self.name, schema)
       self.tbl_exists = res
@@ -137,7 +150,9 @@ end
 ---@return boolean
 function t:drop()
   return self:__run(function()
-    if not self.db:exists(self.name) then return false end
+    if not self.db:exists(self.name) then
+      return false
+    end
 
     local res = self.db:drop(self.name)
     if res then
@@ -148,7 +163,6 @@ function t:drop()
   end)
 end
 
-
 --- Predicate that returns true if the table is empty
 ---@return boolean
 function t:empty()
@@ -158,19 +172,22 @@ end
 --- Predicate that returns true if the table exists
 ---@return boolean
 function t:exists()
-  return self:__run(function() return self.db:exists(self.name) end)
+  return self:__run(function()
+    return self.db:exists(self.name)
+  end)
 end
 
 --- The count of the rows in {self.name}.
 ---@return number: number of rows in {self.name}
 function t:count()
   return self:__run(function()
-    if not self.db:exists(self.name) then return 0 end
+    if not self.db:exists(self.name) then
+      return 0
+    end
     local res = self.db:eval("select count(*) from " .. self.name)
     return res[1]["count(*)"]
   end)
 end
-
 
 --- Query the table and return results. If the {query} has been ran before, then
 --- query results from cache will be returned.
@@ -178,13 +195,17 @@ end
 ---@return table: empty table if no result
 ---@see sql:select()
 function t:get(query)
-  query = query or { query = {all = 1} }
+  query = query or { query = { all = 1 } }
   local cache = self:__get_from_cache(query)
-  if cache then return cache end
+  if cache then
+    return cache
+  end
 
   return self:__run(function()
     local res = self.db:select(self.name, query)
-    if res and not self.nocache then self:__fill_cache(query, res) end
+    if res and not self.nocache then
+      self:__fill_cache(query, res)
+    end
     return res
   end)
 end
@@ -196,8 +217,10 @@ end
 ---@usage: t:where{id = 1}
 ---@see sql:select()
 function t:where(where)
-  if not where then return end
-  return self:get({ where = where  })[1]
+  if not where then
+    return
+  end
+  return self:get({ where = where })[1]
 end
 
 --- Iterate over {self.name} rows and execute {func}.
@@ -207,12 +230,17 @@ end
 function t:each(query, func)
   assert(type(func) == "function", "required a function as second params")
   local cache = self:__get_from_cache(query)
-  local rows = cache and cache or (function()
-    local res = self.db:select(self.name, query)
-    if res and not self.nocache then self:__fill_cache(query, res) end
-    return res
-  end)()
-  if not rows then return end
+  local rows = cache and cache
+    or (function()
+      local res = self.db:select(self.name, query)
+      if res and not self.nocache then
+        self:__fill_cache(query, res)
+      end
+      return res
+    end)()
+  if not rows then
+    return
+  end
   for _, row in ipairs(rows) do
     func(row)
   end
@@ -227,7 +255,7 @@ function t:map(query, func)
   assert(type(func) == "function", "required a function as second params")
   local res = {}
   self:each(query, function(row)
-      table.insert(res, func(row))
+    table.insert(res, func(row))
   end)
   return res
 end
@@ -241,12 +269,20 @@ end
 ---@return table: list of sorted values
 function t:sort(query, transform, comp)
   local res = self:get(query)
-  local f = transform or function(r) return r[u.keys(query.where)[1]] end
-  if (type(transform) == 'string') then
-    f = function(r) return r[transform] end
+  local f = transform or function(r)
+    return r[u.keys(query.where)[1]]
   end
-  comp = comp or function(a,b) return a < b end
-  table.sort(res, function(a,b) return comp(f(a), f(b)) end)
+  if type(transform) == "string" then
+    f = function(r)
+      return r[transform]
+    end
+  end
+  comp = comp or function(a, b)
+    return a < b
+  end
+  table.sort(res, function(a, b)
+    return comp(f(a), f(b))
+  end)
   return res
 end
 

@@ -1,4 +1,4 @@
-local u = require'sql.utils'
+local u = require "sql.utils"
 local M = {}
 
 ---@brief [[
@@ -25,11 +25,11 @@ end
 ---@return string
 local specifier = function(v, nonbind)
   local type = type(v)
-  if type == "number"then
-    local _, b  = math.modf(v)
+  if type == "number" then
+    local _, b = math.modf(v)
     return b == 0 and "%d" or "%f"
   elseif type == "string" and not nonbind then
-    return v:find("'") and [["%s"]] or "'%s'"
+    return v:find "'" and [["%s"]] or "'%s'"
   elseif nonbind then
     return v
   else
@@ -49,9 +49,14 @@ local bind = function(o)
       k = o.k ~= nil and o.k or k
       v = M.sqlvalue(v)
       v = o.nonbind and ":" .. k or v
-      table.insert(res, string.format(
-        "%s" .. (o.nonbind and nil or " = ") .. specifier(v, o.nonbind), k, v
-      ))
+      table.insert(
+        res,
+        string.format(
+          "%s" .. (o.nonbind and nil or " = ") .. specifier(v, o.nonbind),
+          k,
+          v
+        )
+      )
     end
     return table.concat(res, o.s)
   end
@@ -59,13 +64,21 @@ end
 
 --- format glob pattern as part of where clause
 local pcontains = function(defs)
-  if not defs then return {} end
+  if not defs then
+    return {}
+  end
   local items = {}
-  for k,v in u.opairs(defs) do
+  for k, v in u.opairs(defs) do
     if type(v) == "table" then
-      table.insert(items, table.concat(u.map(v, function(_v)
-        return string.format("%s glob " .. specifier(k), k, M.sqlvalue(_v))
-      end), " or "))
+      table.insert(
+        items,
+        table.concat(
+          u.map(v, function(_v)
+            return string.format("%s glob " .. specifier(k), k, M.sqlvalue(_v))
+          end),
+          " or "
+        )
+      )
     else
       table.insert(items, string.format("%s glob " .. specifier(k), k, v))
     end
@@ -77,7 +90,9 @@ end
 ---@params defs table: key/value pairs defining sqlite table keys.
 ---@params defs kv: whether to bind by named keys.
 local pkeys = function(defs, kv)
-  if not defs then return {} end
+  if not defs then
+    return {}
+  end
   kv = kv == nil and true or kv
   if kv then
     local keys = {}
@@ -93,7 +108,9 @@ end
 ---@params defs table: key/value pairs defining sqlite table keys.
 ---@params defs kv: whether to bind by named keys.
 local pvalues = function(defs, kv)
-  if not defs then return {} end
+  if not defs then
+    return {}
+  end
   kv = kv == nil and true or kv -- TODO: check if defs is key value pairs instead
   if kv then
     local keys = {}
@@ -110,20 +127,25 @@ end
 ---@params name string: the name of the sqlite table
 ---@params join table: used as boolean, controling whether to use name.key or just key.
 local pwhere = function(defs, name, join, contains)
-  if not defs and not contains then return {} end
+  if not defs and not contains then
+    return {}
+  end
   local where = {}
 
   if defs then
     for k, v in u.opairs(defs) do
       k = join and name .. "." .. k or k
       if type(v) ~= "table" then
-        table.insert(where, bind{
-          v = v,
-          k = k,
-          s = " and "
-        })
+        table.insert(
+          where,
+          bind {
+            v = v,
+            k = k,
+            s = " and ",
+          }
+        )
       else
-        table.insert(where, "(" .. bind{
+        table.insert(where, "(" .. bind {
           kv = v,
           k = k,
           s = " or ",
@@ -140,7 +162,9 @@ local pwhere = function(defs, name, join, contains)
 end
 
 local plimit = function(defs)
-  if not defs then return {} end
+  if not defs then
+    return {}
+  end
   local type = type(defs)
   local limit
 
@@ -158,15 +182,19 @@ end
 --- format set part of sql statement, usually used with update method.
 ---@params defs table: key/value pairs defining sqlite table keys.
 local pset = function(defs)
-  if not defs then return {} end
-  return "set " .. bind{ kv = defs, nonbind = true }
+  if not defs then
+    return {}
+  end
+  return "set " .. bind { kv = defs, nonbind = true }
 end
 
 --- format join part of a sql statement.
 ---@params defs table: key/value pairs defining sqlite table keys.
 ---@params name string: the name of the sqlite table
 local pjoin = function(defs, name)
-  if not defs or not name then return {} end
+  if not defs or not name then
+    return {}
+  end
   local target
 
   local on = (function()
@@ -191,13 +219,15 @@ end
 
 local porder_by = function(defs)
   -- TODO: what if nulls? should append "nulls last"
-  if not defs then return {} end
+  if not defs then
+    return {}
+  end
   local items = {}
   for v, k in u.opairs(defs) do
     if type(k) == "table" then
       for _, _k in u.opairs(k) do
         table.insert(items, string.format("%s %s", _k, v))
-       end
+      end
     else
       table.insert(items, string.format("%s %s", k, v))
     end
@@ -208,15 +238,18 @@ end
 
 local partial = function(method, tbl, opts)
   opts = opts or {}
-  return table.concat(u.flatten{
-    method,
-    pkeys(opts.values),
-    pvalues(opts.values, opts.named),
-    pset(opts.set),
-    pwhere(opts.where, tbl, opts.join, opts.contains),
-    porder_by(opts.order_by),
-    plimit(opts.limit),
-  }, " ")
+  return table.concat(
+    u.flatten {
+      method,
+      pkeys(opts.values),
+      pvalues(opts.values, opts.named),
+      pset(opts.set),
+      pwhere(opts.where, tbl, opts.join, opts.contains),
+      porder_by(opts.order_by),
+      plimit(opts.limit),
+    },
+    " "
+  )
 end
 
 --- parse select statement to extracts data from a database
@@ -253,7 +286,7 @@ end
 ---@param opts table: lists of options: valid{ where }
 ---@return string: the insert sql statement.
 M.insert = function(tbl, opts)
- local method = string.format("insert into %s", tbl)
+  local method = string.format("insert into %s", tbl)
   return partial(method, tbl, opts)
 end
 
@@ -273,7 +306,9 @@ end
 ---@param defs table: keys and type pairs
 ---@return string: the create sql statement.
 M.create = function(tbl, defs)
-  if not defs then return end
+  if not defs then
+    return
+  end
   local items = {}
 
   tbl = defs.ensure and "if not exists " .. tbl or tbl
@@ -284,7 +319,7 @@ M.create = function(tbl, defs)
       table.insert(items, string.format("%s integer primary key", k))
     elseif type(v) ~= "table" then
       table.insert(items, string.format("%s %s", k, v))
-     else
+    else
       table.insert(items, string.format("%s %s", k, table.concat(v, " ")))
     end
   end
@@ -295,7 +330,7 @@ end
 --- parse table drop statement
 ---@param tbl string: table name
 ---@return string: the drop sql statement.
-M.drop  = function(tbl)
+M.drop = function(tbl)
   return string.format("drop table %s", tbl)
 end
 
