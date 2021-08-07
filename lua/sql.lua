@@ -8,55 +8,80 @@ local flags = clib.flags
 local sql = {}
 sql.__index = sql
 
-function sql:__assert_tbl(tbl, method)
-  assert(
-    self:exists(tbl),
-    string.format(
-      "sql.nvim: can not execute %s, %s doesn't exists.",
-      method,
-      tbl
-    )
-  )
+---Fail at lua side if sql table doesn't exists.
+---@param sqldb table
+---@param tbl_name string
+---@param method any
+local function assert_tbl(sqldb, tbl_name, method)
+  local errmsg = ("sql.nvim: can not execute %s, %s doesn't exists."):format(method, tbl_name)
+  assert(sqldb:exists(tbl_name), errmsg)
 end
 
-function sql:__wrap_stmts(fn)
-  self:__exec "BEGIN"
+--- Wrapper around clib.exec for convenience.
+---@param conn_ptr sqlite connction ptr
+---@param statement string: statement to be executed.
+---@return table: stmt object
+local function exec(conn_ptr, statement)
+  return clib.exec(conn_ptr, statement, nil, nil, nil)
+end
+
+--- Execute a manipulation sql statement within begin and commit block
+---@param conn_ptr sqlite connction ptr
+---@param sqldb table
+---@param fn func()
+local function wrap_stmts(conn_ptr, fn)
+  exec(conn_ptr, "BEGIN")
   fn()
-  self:__exec "COMMIT"
+  exec(conn_ptr, "COMMIT")
   return
 end
 
---- Internal function for creating new connection.
+--- Wrapper around stmt module for convenience.
+---@param conn_ptr sqlite connction ptr
+---@param statement string: statement to be parsed.
+---@return table: stmt object
+local function parse(conn_ptr, statement)
+  return stmt:parse(conn_ptr, statement)
+end
+
+---Get last error msg
+---@param conn_ptr sqlite connction ptr
+---@return string: sqlite error msg
+local function last_errmsg(conn_ptr)
+  return clib.to_str(clib.errmsg(conn_ptr))
+end
+
+---Get last error code
+---@param conn_ptr sqlite connction ptr
+---@return number: sqlite error number
+local function last_errcode(conn_ptr)
+  return clib.errcode(conn_ptr)
+end
+
+---Create new connection and modify `sqldb` object
+---sets {created, conn, closed}
 ---@todo: decide whether using os.time and epoch time would be better.
--- sets {created, conn, closed}
-function sql:__connect()
+---@param sqldb table
+local function connect(sqldb)
   local conn = clib.get_new_db_ptr()
-  local code = clib.open(self.uri, conn)
+  local code = clib.open(sqldb.uri, conn)
   -- TODO: support open_v2, to provide control over how the database file is opened.
   -- self.flags = args[2], -- file open operations.
   -- self.vfs = args[3], -- VFS (Virtual File System) module to use
   if code == flags.ok then
-    self.created = os.date "%Y-%m-%d %H:%M:%S"
-    self.conn = conn[0]
-    self.closed = false
-    if self.sqlite_opts then
-      for k, v in pairs(self.sqlite_opts) do
+    sqldb.created = os.date "%Y-%m-%d %H:%M:%S"
+    sqldb.conn = conn[0]
+    sqldb.closed = false
+    if sqldb.sqlite_opts then
+      for k, v in pairs(sqldb.sqlite_opts) do
         if not u.valid_pargma_key(k) then
           return error("sql.nvim: " .. k .. " is not a valid pragma")
         end
-        clib.exec(
-          self.conn,
-          string.format("pragma %s = %s", k, v),
-          nil,
-          nil,
-          nil
-        )
+        exec(conn[0], ("pragma %s = %s"):format(k, v))
       end
     end
   else
-    error(
-      string.format("sql.nvim: couldn't connect to sql database, ERR:", code)
-    )
+    error(("sql.nvim: couldn't connect to sql database, ERR:"):format(code))
   end
 end
 
@@ -74,7 +99,7 @@ function sql:open(uri, opts, noconn)
 
   if self.uri then
     if self.closed or self.closed == nil then
-      self:__connect()
+      connect(self)
     end
     if not self.closed then
       return self
@@ -95,7 +120,7 @@ function sql:open(uri, opts, noconn)
 
   o.modified = false
 
-  o:__connect()
+  connect(o)
   return o
 end
 
@@ -123,7 +148,7 @@ function sql:close()
     self.closed,
     string.format(
       "sql.nvim: database connection didn't get closed, ERRMSG: %s",
-      self:__last_errmsg()
+      last_errmsg(self.conn)
     )
   )
   return self.closed
@@ -169,7 +194,7 @@ end
 ---@return boolean or table
 function sql:eval(statement, params)
   local res = {}
-  local s = self:__parse(statement)
+  local s = parse(self.conn, statement)
 
   -- when the user provide simple sql statements
   if not params then
@@ -204,7 +229,7 @@ function sql:eval(statement, params)
   s:finalize()
 
   -- if no rows is returned, then check return the result of errcode == flags.ok
-  res = rawequal(next(res), nil) and self:__last_errcode() == flags.ok or res
+  res = rawequal(next(res), nil) and last_errcode(self.conn) == flags.ok or res
 
   -- fix res of its table, so that select all doesn't return { [1] = {[1] = { row }} }
   if type(res) == "table" and res[2] == nil and u.is_nested(res[1]) then
@@ -212,40 +237,14 @@ function sql:eval(statement, params)
   end
 
   assert(
-    self:__last_errcode() == flags.ok,
+    last_errcode(self.conn) == flags.ok,
     string.format(
       "sql.nvim: :eval has failed to execute statement, ERRMSG: %s",
-      self:__last_errmsg()
+      last_errmsg(self.conn)
     )
   )
   self.modified = true
   return res
-end
-
---- Wrapper around stmt module for convenience.
----@param statement string: statement to be parsed.
----@return table: stmt object
-function sql:__parse(statement)
-  return stmt:parse(self.conn, statement)
-end
-
---- wrapper around clib.exec for convenience.
----@param statement string: statement to be executed.
----@return table: stmt object
-function sql:__exec(statement)
-  return clib.exec(self.conn, statement, nil, nil, nil)
-end
-
---- Get last error msg
----@return string: sqlite error msg
-function sql:__last_errmsg()
-  return clib.to_str(clib.errmsg(self.conn))
-end
-
---- Get last error code
----@return number: sqlite error number
-function sql:__last_errcode()
-  return clib.errcode(self.conn)
 end
 
 --- predict returning true if db connection is active.
@@ -265,7 +264,7 @@ end
 ---@todo: decide whether to keep this function
 ---@return table: msg,code,closed
 function sql:status()
-  return { msg = self:__last_errmsg(), code = self:__last_errcode() }
+  return { msg = last_errmsg(self.conn), code = last_errcode(self.conn) }
 end
 
 --- Check if a table with {name} exists in sqlite db
@@ -340,10 +339,7 @@ function sql:drop(name)
 end
 
 local fail_on_wrong_input = function(ret_vals)
-  assert(
-    #ret_vals > 0,
-    "sql.nvim: can't parse your input. Make sure it use that function correct"
-  )
+  assert(#ret_vals > 0, "sql.nvim: can't parse your input. Make sure it use that function correct")
 end
 
 function sql:pre_insert(rows, info)
@@ -375,14 +371,14 @@ end
 ---@todo support unnamed or anonymous args
 ---@todo handle inconflict case
 function sql:insert(tbl, rows)
-  self:__assert_tbl(tbl, "insert")
+  assert_tbl(self, tbl, "insert")
   local ret_vals = {}
   local info = self:schema(tbl, true)
   local items = self:pre_insert(rows, info)
   local last_rowid
-  self:__wrap_stmts(function()
+  wrap_stmts(self.conn, function()
     for _, v in ipairs(items) do
-      local s = self:__parse(P.insert(tbl, { values = v }))
+      local s = parse(self.conn, P.insert(tbl, { values = v }))
       s:bind(v)
       s:step()
       s:bind_clear()
@@ -406,7 +402,7 @@ end
 ---@return boolean: true incase the table was updated successfully.
 ---@usage `db:update("todos", { where = { id = "1" }, values = { action = "DONE" }})`
 function sql:update(tbl, specs)
-  self:__assert_tbl(tbl, "update")
+  assert_tbl(self, tbl, "update")
   local ret_vals = {}
   if not specs then
     return false
@@ -414,13 +410,10 @@ function sql:update(tbl, specs)
   local info = self:schema(tbl, true)
   specs = u.is_nested(specs) and specs or { specs }
 
-  self:__wrap_stmts(function()
+  wrap_stmts(self.conn, function()
     for _, v in ipairs(specs) do
       if self:select(tbl, { where = v.where })[1] then
-        local s = self:__parse(P.update(tbl, {
-          set = v.values,
-          where = v.where,
-        }))
+        local s = parse(self.conn, P.update(tbl, { set = v.values, where = v.where }))
         s:bind(self:pre_insert(v.values, info)[1])
         s:step()
         s:reset()
@@ -452,18 +445,16 @@ end
 ---@usage db:delete("todos", { where = { id = 1 })
 ---@usage db:delete("todos", { where = { id = {1,2,3} })
 function sql:delete(tbl, specs)
-  self:__assert_tbl(tbl, "delete")
+  assert_tbl(self, tbl, "delete")
   local ret_vals = {}
   if not specs then
-    return self:__exec(P.delete(tbl)) == 0 and true or self:__last_errmsg()
+    return exec(self.conn, P.delete(tbl)) == 0 and true or last_errmsg(self.conn)
   end
 
   specs = u.is_nested(specs) and specs or { specs }
-  self:__wrap_stmts(function()
+  wrap_stmts(self.conn, function()
     for _, spec in ipairs(specs) do
-      local s = self:__parse(
-        P.delete(tbl, { where = spec and spec.where or nil })
-      )
+      local s = parse(self.conn, P.delete(tbl, { where = spec and spec.where or nil }))
       s:step()
       s:reset()
       table.insert(ret_vals, s:finalize())
@@ -485,23 +476,17 @@ end
 ---@usage db:get("todos", { limit = 5 })
 -- @return lua list of matching rows
 function sql:select(tbl, spec)
-  self:__assert_tbl(tbl, "select")
+  assert_tbl(self, tbl, "select")
   spec = spec or {}
   local ret = {}
   local types = self:schema(tbl)
 
-  self:__wrap_stmts(function()
+  wrap_stmts(self.conn, function()
     if spec.keys then
       spec.select = spec.keys
     end
-    local s = spec
-        and self:__parse(P.select(tbl, {
-          select = spec.select,
-          where = spec.where,
-          join = spec.join,
-          limit = spec.limit,
-        }))
-      or self:__parse(P.select(tbl))
+
+    local s = parse(self.conn, P.select(tbl, spec))
 
     s:each(function()
       local row = s:kv()
