@@ -133,6 +133,7 @@ M.valid_pargma = {
   ["vdbe_debug"] = true,
   ["vdbe_listing"] = true,
 }
+
 -- Extended Result Codes
 M.flags["error_missing_collseq"] = bit.bor(M.flags.error, bit.lshift(1, 8))
 M.flags["error_retry"] = bit.bor(M.flags.error, bit.lshift(2, 8))
@@ -607,15 +608,6 @@ M.type_of_stmt_ptr = ffi.typeof "sqlite3_stmt*"
 M.type_of_exec_ptr = ffi.typeof "int (*)(void*,int,char**,char**)"
 M.type_of_blob_ptr = ffi.typeof "sqlite3_blob*"
 
----Fail at lua side if sql table doesn't exists.
----@param db table
----@param tbl_name string
----@param method any
-M.assert_tbl = function(db, tbl_name, method)
-  local errmsg = ("sql.nvim: can not execute %s, %s doesn't exists."):format(method, tbl_name)
-  assert(db:exists(tbl_name), errmsg)
-end
-
 --- Wrapper around clib.exec for convenience.
 ---@param conn_ptr sqlite connction ptr
 ---@param statement string: statement to be executed.
@@ -633,14 +625,6 @@ M.wrap_stmts = function(conn_ptr, fn)
   fn()
   M.exec_stmt(conn_ptr, "COMMIT")
   return
-end
-
---- Wrapper around stmt module for convenience.
----@param conn_ptr sqlite connction ptr
----@param statement string: statement to be parsed.
----@return table: stmt object
-M.parse_stmt = function(conn_ptr, statement)
-  return require("sql.stmt"):parse(conn_ptr, statement)
 end
 
 ---Get last error msg

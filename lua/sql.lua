@@ -112,7 +112,7 @@ end
 ---@return boolean or table
 function sql:eval(statement, params)
   local res = {}
-  local s = clib.parse_stmt(self.conn, statement)
+  local s = stmt:parse(self.conn, statement)
 
   -- when the user provide simple sql statements
   if not params then
@@ -267,14 +267,14 @@ end
 ---@todo support unnamed or anonymous args
 ---@todo handle inconflict case
 function sql:insert(tbl, rows)
-  clib.assert_tbl(self, tbl, "insert")
+  u.assert.is_sqltbl(self, tbl, "insert")
   local ret_vals = {}
   local info = self:schema(tbl, true)
   local items = P.pre_insert(rows, info)
   local last_rowid
   clib.wrap_stmts(self.conn, function()
     for _, v in ipairs(items) do
-      local s = clib.parse_stmt(self.conn, P.insert(tbl, { values = v }))
+      local s = stmt:parse(self.conn, P.insert(tbl, { values = v }))
       s:bind(v)
       s:step()
       s:bind_clear()
@@ -298,7 +298,7 @@ end
 ---@return boolean: true incase the table was updated successfully.
 ---@usage `db:update("todos", { where = { id = "1" }, values = { action = "DONE" }})`
 function sql:update(tbl, specs)
-  clib.assert_tbl(self, tbl, "update")
+  u.assert.is_sqltbl(self, tbl, "update")
   local ret_vals = {}
   if not specs then
     return false
@@ -309,7 +309,7 @@ function sql:update(tbl, specs)
   clib.wrap_stmts(self.conn, function()
     for _, v in ipairs(specs) do
       if self:select(tbl, { where = v.where })[1] then
-        local s = clib.parse_stmt(self.conn, P.update(tbl, { set = v.values, where = v.where }))
+        local s = stmt:parse(self.conn, P.update(tbl, { set = v.values, where = v.where }))
         s:bind(P.pre_insert(v.values, info)[1])
         s:step()
         s:reset()
@@ -343,7 +343,7 @@ end
 ---@usage db:delete("todos", { where = { id = 1 })
 ---@usage db:delete("todos", { where = { id = {1,2,3} })
 function sql:delete(tbl, specs)
-  clib.assert_tbl(self, tbl, "delete")
+  u.assert.is_sqltbl(self, tbl, "delete")
   local ret_vals = {}
   if not specs then
     return clib.exec_stmt(self.conn, P.delete(tbl)) == 0 and true or last_errmsg(self.conn)
@@ -352,7 +352,7 @@ function sql:delete(tbl, specs)
   specs = u.is_nested(specs) and specs or { specs }
   clib.wrap_stmts(self.conn, function()
     for _, spec in ipairs(specs) do
-      local s = clib.parse_stmt(self.conn, P.delete(tbl, { where = spec and spec.where or nil }))
+      local s = stmt:parse(self.conn, P.delete(tbl, { where = spec and spec.where or nil }))
       s:step()
       s:reset()
       table.insert(ret_vals, s:finalize())
@@ -374,7 +374,7 @@ end
 ---@usage db:get("todos", { limit = 5 })
 ---@return lua list of matching rows
 function sql:select(tbl, spec)
-  clib.assert_tbl(self, tbl, "select")
+  u.assert.is_sqltbl(self, tbl, "select")
   spec = spec or {}
   self.modified = false
 
@@ -386,7 +386,7 @@ function sql:select(tbl, spec)
   clib.wrap_stmts(self.conn, function()
     spec.select = spec.keys and spec.keys or spec.select
 
-    local stmt = clib.parse_stmt(self.conn, P.select(tbl, spec))
+    local stmt = stmt:parse(self.conn, P.select(tbl, spec))
     stmt:each(function()
       table.insert(ret, stmt:kv())
     end)

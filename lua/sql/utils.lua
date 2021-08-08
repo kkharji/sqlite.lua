@@ -1,63 +1,87 @@
-local M = {}
 local luv = require "luv"
+local M = {}
 
 M.is_str = function(s)
   return type(s) == "string"
 end
+
 M.is_tbl = function(t)
   return type(t) == "table"
 end
+
 M.is_boolean = function(t)
   return type(t) == "boolean"
 end
+
 M.is_userdata = function(t)
   return type(t) == "userdata"
 end
+
 M.is_nested = function(t)
   return type(t[1]) == "table"
 end
--- I'm sure there is a better way.
 
-local __gen_order_index = function(t)
-  local orderedIndex = {}
-  for key in pairs(t) do
-    table.insert(orderedIndex, key)
+-- taken from: https://github.com/neovim/neovim/blob/master/runtime/lua/vim/shared.lua
+M.is_list = function(t)
+  if type(t) ~= "table" then
+    return false
   end
-  table.sort(orderedIndex)
-  return orderedIndex
-end
 
-local nextpair = function(t, state)
-  -- Equivalent of the next function, but returns the keys in the alphabetic
-  -- order. We use a temporary ordered key table that is stored in the
-  -- table being iterated.
+  local count = 0
 
-  local key = nil
-  if state == nil then
-    -- the first time, generate the index
-    t.__orderedIndex = __gen_order_index(t)
-    key = t.__orderedIndex[1]
-  else
-    -- fetch the next value
-    for i = 1, table.getn(t.__orderedIndex) do
-      if t.__orderedIndex[i] == state then
-        key = t.__orderedIndex[i + 1]
-      end
+  for k, _ in pairs(t) do
+    if type(k) == "number" then
+      count = count + 1
+    else
+      return false
     end
   end
 
-  if key then
-    return key, t[key]
+  if count > 0 then
+    return true
+  else
+    return getmetatable(t) ~= {}
+  end
+end
+
+M.opairs = (function()
+  local __gen_order_index = function(t)
+    local orderedIndex = {}
+    for key in pairs(t) do
+      table.insert(orderedIndex, key)
+    end
+    table.sort(orderedIndex)
+    return orderedIndex
   end
 
-  -- no more value to return, cleanup
-  t.__orderedIndex = nil
-  return
-end
+  local nextpair = function(t, state)
+    local key
+    if state == nil then
+      -- the first time, generate the index
+      t.__orderedIndex = __gen_order_index(t)
+      key = t.__orderedIndex[1]
+    else
+      -- fetch the next value
+      for i = 1, table.getn(t.__orderedIndex) do
+        if t.__orderedIndex[i] == state then
+          key = t.__orderedIndex[i + 1]
+        end
+      end
+    end
 
-M.opairs = function(t)
-  return nextpair, t, nil
-end
+    if key then
+      return key, t[key]
+    end
+
+    -- no more value to return, cleanup
+    t.__orderedIndex = nil
+    return
+  end
+
+  return function(t)
+    return nextpair, t, nil
+  end
+end)()
 
 M.expand = function(path)
   local expanded
@@ -131,7 +155,7 @@ M.join = function(l, s)
   return table.concat(M.map(l, tostring), s, 1)
 end
 
-do
+M.tbl_extend = (function()
   local run_behavior = setmetatable({
     ["error"] = function(_, k, _)
       error("Key already exists: ", k)
@@ -146,7 +170,7 @@ do
     end,
   })
 
-  M.tbl_extend = function(behavior, ...)
+  return function(behavior, ...)
     local new_table = {}
     local tables = { ... }
     for i = 1, #tables do
@@ -163,12 +187,11 @@ do
     end
     return new_table
   end
-end
+end)()
 
 -- Flatten taken from: https://github.com/premake/premake-core/blob/master/src/base/table.lua
 M.flatten = function(tbl)
   local result = {}
-
   local function flatten(arr)
     local n = #arr
     for i = 1, n do
@@ -180,32 +203,11 @@ M.flatten = function(tbl)
       end
     end
   end
-
   flatten(tbl)
+
   return result
 end
 
--- taken from: https://github.com/neovim/neovim/blob/master/runtime/lua/vim/shared.lua
-M.is_list = function(t)
-  if type(t) ~= "table" then
-    return false
-  end
-
-  local count = 0
-
-  for k, _ in pairs(t) do
-    if type(k) == "number" then
-      count = count + 1
-    else
-      return false
-    end
-  end
-
-  if count > 0 then
-    return true
-  else
-    return getmetatable(t) ~= {}
-  end
-end
+M.assert = require "sql.utils.assert"
 
 return M
