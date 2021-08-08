@@ -1,0 +1,436 @@
+================================================================================
+                                                                       *sql.lua*
+
+SQLite/LuaJIT binding and highly opinionated wrapper for storing, retrieving,
+caching, persisting, querying, and connecting to SQLite databases.
+To find out more:
+https://github.com/tami5/sql.nvim
+  :h sql
+  :h sql.table
+
+sql.new({uri})                                                     *sql.new()*
+    Creates a new sql.nvim object, without creating a connection to uri
+    |sql.new| is identical to |sql.open| but it without opening sqlite db
+    connection.
+
+
+    Parameters: ~
+        {uri} (string)  if uri is nil, then create in memory database.
+
+    Return: ~
+        table: sql.nvim object
+
+    Usage: ~
+        `sql.new()`
+        `sql.new("./path/to/sql.sqlite")`
+        `sql:new("$ENV_VARABLE")`
+
+    See: ~
+        |sql.open()|
+
+
+sql:open({uri})                                                   *sql:open()*
+    Connect, or create new sqlite db, either in memory or via a {uri}.
+    |sql.open| is identical to |sql.new| but it additionally opens the db
+
+
+    Parameters: ~
+        {uri} (string)  if uri is nil, then create in memory database.
+
+    Return: ~
+        table: sql.nvim object
+
+    Usage: ~
+        `sql.open()`
+        `sql.open("./path/to/sql.sqlite")`
+        `sql:open("$ENV_VARABLE")`
+        `db:open()` reopen connection if closed.
+
+
+sql:close()                                                      *sql:close()*
+    closes sqlite db connection.
+
+
+    Return: ~
+        boolean: true if closed, error otherwise.
+
+    Usage: ~
+        `db:close()`
+
+
+sql:with_open()                                              *sql:with_open()*
+    Same as |sql:open| but closes db connection after executing {args[1]} or
+    {args[2]} depending of how its called. if the function is called as a
+    method to db object e.g. *db:with_open*, then {args[1]} must be a function.
+    Else {args[1]} need to be the uri and {args[2]} the function. The function
+    should accept and use db object.
+
+
+    Varargs: ~
+        If used as db method, then the {args[1]} should be a function, else
+        {args[1]} and {args[2]}.
+
+    Return: ~
+        table: sql.nvim object
+
+    Usage: ~
+        `sql.open_with("$ENV_VARABLE/path", function(db) db:eval("...") end)`
+        `db:with_open(function() db:insert{...} end)`
+
+    See: ~
+        |sql:open()|
+
+
+sql:eval({params})                                                *sql:eval()*
+    Main sqlite interface. This function evaluates {statement} and if there are
+    results from evaluating it then the function returns list of row(s). Else,
+    it returns a boolean indecating whether the evaluation was successful - or
+    not- Optionally, the function accept {params} which can be a dict of values
+    corresponding to the sql statement or a list of unamed values.
+
+
+    Parameters: ~
+        {params} (table)  params to be bind to {statement}, it can be a list
+                          or dict
+
+    Return: ~
+        boolean or table
+
+    Usage: ~
+        db:eval("drop table if exists todos")
+        db:eval("select * from todos where id = ?", 1)
+        db:eval("insert into t(a, b) values(:a, :b)", {a = "1", b = 2021})
+
+
+sql:isopen()                                                    *sql:isopen()*
+    Predict returning true if db connection is active.
+
+
+    Return: ~
+        boolean: true if db is opened, otherwise false.
+
+
+sql:isclose()                                                  *sql:isclose()*
+    Predict returning true if db connection is deactivated.
+
+
+    Return: ~
+        boolean: true if db is close, otherwise false.
+
+
+sql:status()                                                    *sql:status()*
+    Returns current connection status Get last error code
+
+
+
+sql:exists({name})                                              *sql:exists()*
+    Check if a table with {name} exists in sqlite db
+
+
+    Parameters: ~
+        {name} (string)  the table name.
+
+    Return: ~
+        boolean
+
+
+sql:schema({tbl}, {info})                                       *sql:schema()*
+    get sql table {name} schema, if table doesn't exist then return empty
+    table.
+
+
+    Parameters: ~
+        {tbl}  (string)   the table name
+        {info} (boolean)  whether to return table info. default false.
+
+    Return: ~
+        table: list of keys or keys and their type.
+
+
+sql:create({name}, {schema})                                    *sql:create()*
+    Create a new sqlite db table with {name} based on {schema}. if
+    {schema.ensure} then create only when it doesn't exists. similar to 'create
+    if not exists'
+
+
+    Parameters: ~
+        {name}   (string)  table name
+        {schema} (table)   the table keys/column and their types
+
+    Return: ~
+        boolean
+
+    Usage: ~
+        `db:create("todos", {id = {"int", "primary", "key"}, title = "text"})`
+
+
+sql:drop({name})                                                  *sql:drop()*
+    Create a new sqlite db table with {name} based on {schema}. if
+    {schema.ensure} then create only when it doesn't exists. similar to 'create
+    if not exists'
+
+
+    Parameters: ~
+        {name} (string)  table name
+
+    Return: ~
+        boolean
+
+    Usage: ~
+        `db:drop("todos")`
+
+
+sql:insert()                                                    *sql:insert()*
+    Insert to lua table into sqlite database table.
+
+
+    Return: ~
+        boolean|integer: true incase the table was inserted successfully, and
+        the last inserted row id.
+
+    Usage: ~
+        db:insert("todos", { title = "new todo" })
+
+
+sql:update({tbl}, {specs})                                      *sql:update()*
+    Update table row with where closure and list of values
+
+
+    Parameters: ~
+        {tbl}   (string)  the name of the db table.
+        {specs} (table)   a {spec} or a list of {specs} with where and values
+                          key.
+
+    Return: ~
+        boolean: true incase the table was updated successfully.
+
+    Usage: ~
+        `db:update("todos", { where = { id = "1" }, values = { action = "DONE"
+        }})`
+
+
+sql:delete({tbl}, {specs})                                      *sql:delete()*
+    Delete a {tbl} row/rows based on the {specs} given. if no spec was given,
+    then all the {tbl} content will be deleted.
+
+
+    Parameters: ~
+        {tbl}   (string)  the name of the db table.
+        {specs} (table)   a {spec} or a list of {specs} with where and values
+                          key.
+
+    Return: ~
+        boolean: true if operation is successfully, false otherwise.
+
+    Usage: ~
+        db:delete("todos")
+        db:delete("todos", { where = { id = 1 })
+        db:delete("todos", { where = { id = {1,2,3} })
+
+
+sql:select()                                                    *sql:select()*
+    Query from a table with where and join options
+
+
+    Return: ~
+        lua list of matching rows
+
+    Usage: ~
+        db:get("todos") -- everything
+        db:get("todos", { where = { id = 1 })
+        db:get("todos", { limit = 5 })
+
+
+sql:table({tbl_name})                                            *sql:table()*
+    Create new sql-table object.
+
+
+    Parameters: ~
+        {tbl_name} (string)  the name of the table. can be new or existing
+                             one.
+
+    Return: ~
+        table
+
+
+
+================================================================================
+tbl:schema({schema})                                            *tbl:schema()*
+    Create or change {self.name} schema. If no {schema} is given, then it
+    return current the used schema.
+
+
+    Parameters: ~
+        {schema} (table)  table schema definition
+
+    Return: ~
+        table: list of keys or keys and their type.
+
+
+tbl:drop()                                                        *tbl:drop()*
+    Same functionalities as |sql:drop()|, if the table is already drooped then
+    it returns false
+
+
+    Return: ~
+        boolean
+
+
+tbl:empty()                                                      *tbl:empty()*
+    Predicate that returns true if the table is empty
+
+
+    Return: ~
+        boolean
+
+
+tbl:exists()                                                    *tbl:exists()*
+    Predicate that returns true if the table exists
+
+
+    Return: ~
+        boolean
+
+
+tbl:count()                                                      *tbl:count()*
+    The count of the rows in {self.name}.
+
+
+    Return: ~
+        number: number of rows in {self.name}
+
+
+tbl:get({query})                                                   *tbl:get()*
+    Query the table and return results. If the {query} has been ran before,
+    then query results from cache will be returned.
+
+
+    Parameters: ~
+        {query} (table)  query.where, query.keys, query.join
+
+    Return: ~
+        table: empty table if no result
+
+    See: ~
+        |sql:select()|
+
+
+tbl:where({where})                                               *tbl:where()*
+    Get first match from a table based on keys query results from cache will be
+    returned.
+
+
+    Parameters: ~
+        {where} (table)  where key values
+
+    Return: ~
+        nil or row
+
+    Usage: ~
+        ---@usage: tbl:where{id = 1}
+
+    See: ~
+        |sql:select()|
+
+
+tbl:each({query}, {func})                                         *tbl:each()*
+    Iterate over {self.name} rows and execute {func}.
+
+
+    Parameters: ~
+        {query} (table)     query.where, query.keys, query.join
+        {func}  (function)  a function that expects a row
+
+    Return: ~
+        boolean: true if rows ~= empty table
+
+
+tbl:map({query}, {func})                                           *tbl:map()*
+    Create a new table from iterating over {self.name} rows with {func}.
+
+
+    Parameters: ~
+        {query} (table)     query.where, query.keys, query.join
+        {func}  (function)  a function that expects a row
+
+    Return: ~
+        boolean: true if rows ~= empty table
+
+
+tbl:sort({query}, {comp})                                         *tbl:sort()*
+    Sorts a table in-place using a transform. Values are ranked in a custom
+    order of the results of running `transform (v)` on all values. `transform`
+    may also be a string name property sort by. `comp` is a comparison
+    function. Adopted from Moses.lua
+
+
+    Parameters: ~
+        {query} (table)     query.where, query.keys, query.join
+        {comp}  (function)  a comparison function, defaults to the `<`
+                            operator
+
+    Return: ~
+        table: list of sorted values
+
+
+tbl:insert({rows})                                              *tbl:insert()*
+    Same functionalities as |sql:insert()|
+
+
+    Parameters: ~
+        {rows} (table)  a row or a group of rows
+
+    Return: ~
+        boolean|integer
+
+    See: ~
+        |sql:insert()|
+
+
+tbl:remove({specs})                                             *tbl:remove()*
+    Same functionalities as |sql:delete()|
+
+
+    Parameters: ~
+        {specs} (table)  specs.where
+
+    Return: ~
+        boolean
+
+    See: ~
+        |sql:delete()|
+
+
+tbl:update({specs})                                             *tbl:update()*
+    Same functionalities as |sql:update()|
+
+
+    Parameters: ~
+        {specs} (table)  a table or a list of tables with where and values
+                         keys.
+
+    Return: ~
+        boolean
+
+    See: ~
+        |sql:update()|
+
+
+tbl:replace({rows})                                            *tbl:replace()*
+    Same functionalities as |tbl:add()|, but replaces {self.name} content with
+    {rows}
+
+
+    Parameters: ~
+        {rows} (table)  a row or a group of rows
+
+    Return: ~
+        boolean
+
+    See: ~
+        |sql:delete()|
+        |sql:insert()|
+
+
+
+ vim:tw=78:ts=8:ft=help:norl:
