@@ -645,7 +645,7 @@ end
 ---@param uri string
 ---@param sqldb table
 ---@return sqlite3_blob*
----@todo: support open_v2 to enable control over how the database file is opened.
+---@TODO: support open_v2 to enable control over how the database file is opened.
 M.connect = function(uri, opts)
   opts = opts or {}
   local conn = M.get_new_db_ptr()

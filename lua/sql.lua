@@ -1,3 +1,15 @@
+---@brief [[
+---SQLite/LuaJIT binding and highly opinionated wrapper for storing,
+---retrieving, caching, persisting, querying, and connecting to SQLite databases.
+--- <pre>
+--- To find out more:
+--- https://github.com/tami5/sql.nvim
+---   :h sql
+---   :h sql.table
+--- </pre>
+---@brief ]]
+---@tag sql.lua
+
 local clib = require "sql.defs"
 local stmt = require "sql.stmt"
 local u = require "sql.utils"
@@ -8,7 +20,7 @@ local flags = clib.flags
 local sql = {}
 sql.__index = sql
 
----@todo: decide whether using os.time and epoch time would be better.
+---@TODO: decide whether using os.time and epoch time would be better.
 ---@return string|osdate
 local created = function()
   return os.date "%Y-%m-%d %H:%M:%S"
@@ -33,7 +45,7 @@ end
 ---@usage `sql.open("./path/to/sql.sqlite")`
 ---@usage `sql:open("$ENV_VARABLE")`
 ---@usage `db:open()` reopen connection if closed.
----@todo: decide whether to add active_since.
+---@TODO: decide whether to add active_since.
 ---@return table: sql.nvim object
 function sql:open(uri, opts, noconn)
   local o = {}
@@ -175,7 +187,7 @@ end
 
 ---Returns current connection status
 ---Get last error code
----@todo: decide whether to keep this function
+---@TODO: decide whether to keep this function
 ---@return table: msg,code,closed
 function sql:status()
   return {
@@ -260,8 +272,8 @@ end
 ---@params rows table: rows to insert to the table.
 ---@return boolean|integer: true incase the table was inserted successfully, and the last inserted row id.
 ---@usage db:insert("todos", { title = "new todo" })
----@todo support unnamed or anonymous args
----@todo handle inconflict case
+---@TODO support unnamed or anonymous args
+---@TODO handle inconflict case
 function sql:insert(tbl, rows)
   a.is_sqltbl(self, tbl, "insert")
   local ret_vals = {}

@@ -57,7 +57,7 @@ end
 -- NOTE: Any statement variables that had values bound to them using the
 -- Stmt:bind functions retain their values.
 ---@return number: falgs.ok or errcode
----@todo should we error out when errcode?
+---@TODO should we error out when errcode?
 function Stmt:reset()
   return sqlite.reset(self.pstmt)
 end
@@ -114,7 +114,7 @@ end
 --- key-name/column-name at {idx} in results.
 ---@param idx number: (0-index)
 ---@return string: keyname/column name at {idx}
----@todo should accept 1-index
+---@TODO should accept 1-index
 function Stmt:key(idx)
   return sqlite.to_str(sqlite.column_name(self.pstmt, idx))
 end
@@ -142,7 +142,7 @@ local sqlite_datatypes = {
 --- Key/Column lua datatype at {idx}
 ---@param idx number: (0-index)
 ---@return string: key/column type at {idx}
----@todo should accept 1-index
+---@TODO should accept 1-index
 function Stmt:type(idx)
   local convert_dt = {
     ["integer"] = "number",
@@ -170,7 +170,7 @@ end
 --- Value at {idx}
 ---@param idx number: (0-index)
 ---@return string: value at {idx}
----@todo should accept 1-index
+---@TODO should accept 1-index
 function Stmt:val(idx)
   local ktype = sqlite.column_type(self.pstmt, idx)
   if ktype == 5 then
@@ -409,7 +409,7 @@ end
 --- Bind the value at the next index until all values are bound
 ---@param value any: value to bind
 ---@return sqlite_flag
----@todo does it return sqlite_flag in all cases? @conni
+---@TODO does it return sqlite_flag in all cases? @conni
 function Stmt:bind_next(value)
   if not self.current_bind_index then
     self.current_bind_index = 1
