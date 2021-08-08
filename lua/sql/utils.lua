@@ -208,6 +208,4 @@ M.flatten = function(tbl)
   return result
 end
 
-M.assert = require "sql.utils.assert"
-
 return M

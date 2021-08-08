@@ -1,6 +1,7 @@
 local clib = require "sql.defs"
 local stmt = require "sql.stmt"
 local u = require "sql.utils"
+local a = require "sql.assert"
 local t = require "sql.table"
 local P = require "sql.parser"
 local flags = clib.flags
@@ -67,8 +68,7 @@ end
 ---@return boolean: true if closed, error otherwise.
 function sql:close()
   self.closed = self.closed or clib.close(self.conn) == 0
-  local errmsg = "sql.nvim: database connection didn't get closed, ERRMSG: %s"
-  assert(self.closed, errmsg:format(clib.last_errmsg(self.conn)))
+  a.should_close(self.conn, self.closed)
   return self.closed
 end
 
@@ -154,14 +154,10 @@ function sql:eval(statement, params)
     res = res[1]
   end
 
-  assert(
-    clib.last_errcode(self.conn) == flags.ok,
-    string.format(
-      "sql.nvim: :eval has failed to execute statement, ERRMSG: %s",
-      clib.last_errmsg(self.conn)
-    )
-  )
+  a.should_eval(self.conn)
+
   self.modified = true
+
   return res
 end
 
@@ -267,7 +263,7 @@ end
 ---@todo support unnamed or anonymous args
 ---@todo handle inconflict case
 function sql:insert(tbl, rows)
-  u.assert.is_sqltbl(self, tbl, "insert")
+  a.is_sqltbl(self, tbl, "insert")
   local ret_vals = {}
   local info = self:schema(tbl, true)
   local items = P.pre_insert(rows, info)
@@ -298,7 +294,8 @@ end
 ---@return boolean: true incase the table was updated successfully.
 ---@usage `db:update("todos", { where = { id = "1" }, values = { action = "DONE" }})`
 function sql:update(tbl, specs)
-  u.assert.is_sqltbl(self, tbl, "update")
+  a.is_sqltbl(self, tbl, "update")
+
   local ret_vals = {}
   if not specs then
     return false
@@ -322,7 +319,7 @@ function sql:update(tbl, specs)
     end
   end)
 
-  assert(#ret_vals > 0, "sql.nvim: can't parse your input. Make sure it use that function correct")
+  a.should_update(ret_vals)
 
   local succ = u.all(ret_vals, function(_, v)
     return v
@@ -343,7 +340,7 @@ end
 ---@usage db:delete("todos", { where = { id = 1 })
 ---@usage db:delete("todos", { where = { id = {1,2,3} })
 function sql:delete(tbl, specs)
-  u.assert.is_sqltbl(self, tbl, "delete")
+  a.is_sqltbl(self, tbl, "delete")
   local ret_vals = {}
   if not specs then
     return clib.exec_stmt(self.conn, P.delete(tbl)) == 0 and true or last_errmsg(self.conn)
@@ -374,7 +371,7 @@ end
 ---@usage db:get("todos", { limit = 5 })
 ---@return lua list of matching rows
 function sql:select(tbl, spec)
-  u.assert.is_sqltbl(self, tbl, "select")
+  a.is_sqltbl(self, tbl, "select")
   spec = spec or {}
   self.modified = false
 
