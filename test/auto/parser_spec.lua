@@ -1,124 +1,125 @@
-local p = require'sql.parser'
+local p = require "sql.parser"
 local eq = assert.are.same
 
-describe('parse', function()
+describe("parse", function()
   local tbl = "todo"
 
-  describe('[all]', function()
-    it('select all', function()
+  describe("[all]", function()
+    it("select all", function()
       local sqlstmt = p.select(tbl)
       eq("select * from todo", sqlstmt, "It should be identical")
     end)
-    it('delete all', function()
+    it("delete all", function()
       local sqlstmt = p.delete(tbl)
       eq("delete from todo", sqlstmt, "It should be identical")
     end)
   end)
 
-  describe('[where]', function()
-    it('single key = value', function()
+  describe("[where]", function()
+    it("single key = value", function()
       local where = { id = 1 }
       local pselect = p.select(tbl, { where = where })
       local eselect = "select * from todo where id = 1"
       eq(eselect, pselect, "It should be identical")
     end)
-    it('multi key', function()
+    it("multi key", function()
       local where = { id = 1, act = "done" }
       local pselect = p.select(tbl, { where = where })
       local eselect = "select * from todo where act = 'done' and id = 1"
       eq(eselect, pselect, "It should be identical")
     end)
-    it('with [or] for single keys', function()
-      local where = { act = {"done", "overdue"} }
+    it("with [or] for single keys", function()
+      local where = { act = { "done", "overdue" } }
       local pselect = p.select(tbl, { where = where })
       local eselect = "select * from todo where (act = 'done' or act = 'overdue')"
       eq(eselect, pselect, "It should be identical")
     end)
-    it('with [or] for multi keys', function()
+    it("with [or] for multi keys", function()
       local where = {
-        act = {"done", "overdue"},
+        act = { "done", "overdue" },
         name = "conni",
-        date = 2021
+        date = 2021,
       }
       local pselect = p.select(tbl, { where = where })
       local eselect = "select * from todo where (act = 'done' or act = 'overdue') and date = 2021 and name = 'conni'"
       eq(eselect, pselect, "It should be identical")
     end)
-    it('with multi [or] and multi keys', function()
+    it("with multi [or] and multi keys", function()
       local where = {
-        n = {1,2,3},
-        act = {"a", "b"},
-        date = 2021
+        n = { 1, 2, 3 },
+        act = { "a", "b" },
+        date = 2021,
       }
       local pselect = p.select(tbl, { where = where })
       local eselect = "select * from todo where (act = 'a' or act = 'b') and date = 2021 and (n = 1 or n = 2 or n = 3)"
-      eq(eselect, pselect , "It should be identical")
+      eq(eselect, pselect, "It should be identical")
     end)
-    it('interop boolean', function()
+    it("interop boolean", function()
       local where = {
         act = false,
         n = true,
-        date = 2021
+        date = 2021,
       }
       local eselect = "select * from todo where act = 0 and date = 2021 and n = 1"
       local pselect = p.select(tbl, { where = where })
-      eq(eselect, pselect , "It should be identical")
+      eq(eselect, pselect, "It should be identical")
     end)
-    it('handles quotes', function()
-      local where = { a = "I'm", c = "it's"  }
+    it("handles quotes", function()
+      local where = { a = "I'm", c = "it's" }
       local eselect = [[select * from todo where a = "I'm" and c = "it's"]]
       local pselect = p.select(tbl, { where = where })
-      eq(eselect, pselect , "It should be identical")
+      eq(eselect, pselect, "It should be identical")
     end)
   end)
 
-  describe('[set]', function()
-    it('single value and [where]', function()
+  describe("[set]", function()
+    it("single value and [where]", function()
       local set = { date = 2021 }
       local where = { id = 1 }
-      local pupdate = p.update(tbl, { where = where, set = set})
+      local pupdate = p.update(tbl, { where = where, set = set })
       local eupdate = "update todo set date = :date where id = 1"
       eq(eupdate, pupdate, "should be identical")
     end)
-    it('multiple value and where', function()
-      local set = { date = 2021, a = "b", c = "d"  }
+    it("multiple value and where", function()
+      local set = { date = 2021, a = "b", c = "d" }
       local where = { id = 1 }
-      local pupdate = p.update(tbl, { where = where, set = set})
+      local pupdate = p.update(tbl, { where = where, set = set })
       local eupdate = "update todo set a = :a, c = :c, date = :date where id = 1"
       eq(eupdate, pupdate, "should be identical")
     end)
   end)
 
-  describe('[create]', function()
-    it('table', function()
+  describe("[create]", function()
+    it("table", function()
       local defs = {
-        id = {"integer", "primary", "key"},
+        id = { "integer", "primary", "key" },
         title = "text",
         desc = "text",
         created = "int",
-        done = {"int", "not", "null", "default", 0},
+        done = { "int", "not", "null", "default", 0 },
       }
-      local expected = "create table todos(created int, desc text, done int not null default 0, id integer primary key, title text)"
+      local expected =
+        "create table todos(created int, desc text, done int not null default 0, id integer primary key, title text)"
       local passed = p.create("todos", defs)
       eq(expected, passed, "should be identical")
     end)
-    it('ensure that the table is created', function()
+    it("ensure that the table is created", function()
       local defs = {
-        id = {"integer", "primary", "key"},
+        id = { "integer", "primary", "key" },
         name = "text",
         age = "int",
-        ensure = true
+        ensure = true,
       }
       local expected = "create table if not exists people(age int, id integer primary key, name text)"
       local passed = p.create("people", defs)
       eq(expected, passed, "should be identical")
     end)
-    it('ensure that the table is created with a key being true', function()
+    it("ensure that the table is created with a key being true", function()
       local defs = {
         id = true,
         name = "text",
         age = "int",
-        ensure = true
+        ensure = true,
       }
       local expected = "create table if not exists people(age int, id integer primary key, name text)"
       local passed = p.create("people", defs)
@@ -126,25 +127,25 @@ describe('parse', function()
     end)
   end)
 
-  describe('[order by]', function()
-    it('works with signle table name', function()
+  describe("[order by]", function()
+    it("works with signle table name", function()
       local defs = {
         select = { "id", "name" },
         order_by = {
           desc = "name",
-          asc = "id"
-        }
+          asc = "id",
+        },
       }
       local expected = "select id, name from people order by id asc, name desc"
       local passed = p.select("people", defs)
       eq(expected, passed, "should be identical")
     end)
-    it('works with multiple table name', function()
+    it("works with multiple table name", function()
       local defs = {
         select = { "id", "name" },
         order_by = {
-          asc = {"name", "age"}
-        }
+          asc = { "name", "age" },
+        },
       }
       local expected = "select id, name from people order by name asc, age asc"
       local passed = p.select("people", defs)
@@ -154,87 +155,86 @@ describe('parse', function()
       local defs = {
         select = "id",
         order_by = {
-          asc = {"name", "age"}
-        }
+          asc = { "name", "age" },
+        },
       }
       local expected = "select id from people order by name asc, age asc"
       local passed = p.select("people", defs)
       eq(expected, passed, "should be identical")
     end)
   end)
-  describe('[distinct]', function()
+  describe("[distinct]", function()
     -- remove duplicate from result set
-    it('with single key', function()
+    it("with single key", function()
       local defs = { -- TODO: works for a single key
         select = { "id", "name" },
-        unique = true
+        unique = true,
       }
       local expected = "select distinct id, name from people"
       local passed = p.select("people", defs)
       eq(expected, passed, "should be identical")
     end)
   end)
-  describe('[limit]', function()
-    it('with limit as number', function()
+  describe("[limit]", function()
+    it("with limit as number", function()
       local defs = {
         select = { "id", "name" },
-        limit = 10
+        limit = 10,
       }
       local expected = "select id, name from people limit 10"
       local passed = p.select("people", defs)
       eq(expected, passed, "should be identical")
     end)
-    it('with limit as number inside list', function()
+    it("with limit as number inside list", function()
       local defs = {
         select = { "id", "name" },
-        limit = {10}
+        limit = { 10 },
       }
       local expected = "select id, name from people limit 10"
       local passed = p.select("people", defs)
       eq(expected, passed, "should be identical")
     end)
-    it('with limit and offset', function()
+    it("with limit and offset", function()
       local defs = {
         select = { "id", "name" },
-        limit = {10, 10}
+        limit = { 10, 10 },
       }
       local expected = "select id, name from people limit 10 offset 10"
       local passed = p.select("people", defs)
       eq(expected, passed, "should be identical")
     end)
   end)
-  describe('[glob]/contains', function()
-    it('with single key', function()
+  describe("[glob]/contains", function()
+    it("with single key", function()
       local defs = {
         select = { "id", "name" },
-        contains = { name = "%j" }
+        contains = { name = "%j" },
       }
       local expected = "select id, name from people where name glob '%j'"
       local passed = p.select("people", defs)
       eq(expected, passed, "should be identical")
     end)
-    it('with single key and an list of patterns', function()
+    it("with single key and an list of patterns", function()
       local defs = {
         select = { "id", "name" },
-        contains = { name = {"%j", "%a", "%b%"} }
+        contains = { name = { "%j", "%a", "%b%" } },
       }
       local expected = "select id, name from people where name glob '%j' or name glob '%a' or name glob '%b%'"
       local passed = p.select("people", defs)
       eq(expected, passed, "should be identical")
     end)
-    it('with multi key and an list of patterns', function()
+    it("with multi key and an list of patterns", function()
       local defs = {
         select = { "id", "name" },
         contains = {
-          name = {"%j", "%a", "%b%"},
-          last = "%f"
-        }
+          name = { "%j", "%a", "%b%" },
+          last = "%f",
+        },
       }
-      local expected = "select id, name from people where last glob '%f' name glob '%j' or name glob '%a' or name glob '%b%'"
+      local expected =
+        "select id, name from people where last glob '%f' name glob '%j' or name glob '%a' or name glob '%b%'"
       local passed = p.select("people", defs)
       eq(expected, passed, "should be identical")
     end)
-
   end)
-
 end)

@@ -55,6 +55,85 @@ M.flags = {
   ["done"] = 101,
 }
 
+M.valid_pargma = {
+  ["analysis_limit"] = true,
+  ["application_id"] = true,
+  ["auto_vacuum"] = true,
+  ["automatic_index"] = true,
+  ["busy_timeout"] = true,
+
+  ["cache_size"] = true,
+  ["cache_spill"] = true,
+  ["case_sensitive_like"] = true,
+  ["cell_size_check"] = true,
+  ["checkpoint_fullfsync"] = true,
+
+  ["collation_list"] = true,
+  ["compile_options"] = true,
+  ["data_version"] = true,
+  ["database_list"] = true,
+  ["encoding"] = true,
+  ["foreign_key_check"] = true,
+
+  ["foreign_key_list"] = true,
+  ["foreign_keys"] = true,
+  ["freelist_count"] = true,
+  ["fullfsync"] = true,
+  ["function_list"] = true,
+
+  ["hard_heap_limit"] = true,
+  ["ignore_check_constraints"] = true,
+  ["incremental_vacuum"] = true,
+  ["index_info"] = true,
+  ["index_list"] = true,
+
+  ["index_xinfo"] = true,
+  ["integrity_check"] = true,
+  ["journal_mode"] = true,
+  ["journal_size_limit"] = true,
+  ["legacy_alter_table"] = true,
+
+  ["legacy_file_format"] = true,
+  ["locking_mode"] = true,
+  ["max_page_count"] = true,
+  ["mmap_size"] = true,
+  ["module_list"] = true,
+  ["optimize"] = true,
+
+  ["page_count"] = true,
+  ["page_size"] = true,
+  ["parser_trace"] = true,
+  ["pragma_list"] = true,
+  ["query_only"] = true,
+  ["quick_check"] = true,
+
+  ["read_uncommitted"] = true,
+  ["recursive_triggers"] = true,
+  ["reverse_unordered_selects"] = true,
+  ["schema_version"] = true,
+  ["secure_delete"] = true,
+
+  ["shrink_memory"] = true,
+  ["soft_heap_limit"] = true,
+  ["stats"] = true,
+  ["synchronous"] = true,
+  ["table_info"] = true,
+  ["table_xinfo"] = true,
+  ["temp_store"] = true,
+
+  ["vdbe_trace"] = true,
+  ["wal_autocheckpoint"] = true,
+  ["wal_checkpoint"] = true,
+  ["writable_schema"] = true,
+
+  ["threads"] = true,
+  ["trusted_schema"] = true,
+  ["user_version"] = true,
+  ["vdbe_addoptrace"] = true,
+  ["vdbe_debug"] = true,
+  ["vdbe_listing"] = true,
+}
+
 -- Extended Result Codes
 M.flags["error_missing_collseq"] = bit.bor(M.flags.error, bit.lshift(1, 8))
 M.flags["error_retry"] = bit.bor(M.flags.error, bit.lshift(2, 8))
@@ -528,6 +607,63 @@ M.type_of_db_ptr = ffi.typeof "sqlite3*"
 M.type_of_stmt_ptr = ffi.typeof "sqlite3_stmt*"
 M.type_of_exec_ptr = ffi.typeof "int (*)(void*,int,char**,char**)"
 M.type_of_blob_ptr = ffi.typeof "sqlite3_blob*"
+
+--- Wrapper around clib.exec for convenience.
+---@param conn_ptr sqlite connction ptr
+---@param statement string: statement to be executed.
+---@return table: stmt object
+M.exec_stmt = function(conn_ptr, statement)
+  return clib.sqlite3_exec(conn_ptr, statement, nil, nil, nil)
+end
+
+--- Execute a manipulation sql statement within begin and commit block
+---@param conn_ptr sqlite connction ptr
+---@param sqldb table
+---@param fn func()
+M.wrap_stmts = function(conn_ptr, fn)
+  M.exec_stmt(conn_ptr, "BEGIN")
+  fn()
+  M.exec_stmt(conn_ptr, "COMMIT")
+  return
+end
+
+---Get last error msg
+---@param conn_ptr sqlite connction ptr
+---@return string: sqlite error msg
+M.last_errmsg = function(conn_ptr)
+  return M.to_str(clib.sqlite3_errmsg(conn_ptr))
+end
+
+---Get last error code
+---@param conn_ptr sqlite connction ptr
+---@return number: sqlite error number
+M.last_errcode = function(conn_ptr)
+  return clib.sqlite3_errcode(conn_ptr)
+end
+
+---Create new connection and modify `sqldb` object
+---@param uri string
+---@param sqldb table
+---@return sqlite3_blob*
+---@TODO: support open_v2 to enable control over how the database file is opened.
+M.connect = function(uri, opts)
+  opts = opts or {}
+  local conn = M.get_new_db_ptr()
+  local code = clib.sqlite3_open(uri, conn)
+
+  if code ~= M.flags.ok then
+    error(("sql.nvim: couldn't connect to sql database, ERR:"):format(code))
+  end
+
+  for k, v in pairs(opts) do
+    if not M.valid_pargma[k] then
+      error("sql.nvim: " .. k .. " is not a valid pragma")
+    end
+    M.exec_stmt(conn[0], ("pragma %s = %s"):format(k, v))
+  end
+
+  return conn[0]
+end
 
 M = setmetatable(M, {
   __index = function(_, k)

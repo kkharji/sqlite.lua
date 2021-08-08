@@ -1,16 +1,18 @@
 local u = require "sql.utils"
+local json = require "sql.json"
+
 local M = {}
 
 ---@brief [[
---- Internal functions for parsing sql statement from lua table.
---- methods = { select, update, delete, insert, create, alter, drop }
---- accepts tbl name and options.
---- options = {join, keys, values, set, where, select}
---- hopfully returning valid sql statement :D
+---Internal functions for parsing sql statement from lua table.
+---methods = { select, update, delete, insert, create, alter, drop }
+---accepts tbl name and options.
+---options = {join, keys, values, set, where, select}
+---hopfully returning valid sql statement :D
 ---@brief ]]
 ---@tag parser.lua
 
---- handle sqlite datatype interop
+---handle sqlite datatype interop
 M.sqlvalue = function(v)
   if type(v) == "boolean" then
     return v == true and 1 or 0
@@ -19,7 +21,7 @@ M.sqlvalue = function(v)
   end
 end
 
---- string.format specifier based on value type
+---string.format specifier based on value type
 ---@param v any: the value
 ---@param nonbind boolean: whether to return the specifier or just return the value.
 ---@return string
@@ -49,20 +51,13 @@ local bind = function(o)
       k = o.k ~= nil and o.k or k
       v = M.sqlvalue(v)
       v = o.nonbind and ":" .. k or v
-      table.insert(
-        res,
-        string.format(
-          "%s" .. (o.nonbind and nil or " = ") .. specifier(v, o.nonbind),
-          k,
-          v
-        )
-      )
+      table.insert(res, string.format("%s" .. (o.nonbind and nil or " = ") .. specifier(v, o.nonbind), k, v))
     end
     return table.concat(res, o.s)
   end
 end
 
---- format glob pattern as part of where clause
+---format glob pattern as part of where clause
 local pcontains = function(defs)
   if not defs then
     return {}
@@ -86,7 +81,7 @@ local pcontains = function(defs)
   return table.concat(items, " ")
 end
 
---- format values part of sql statement
+---Format values part of sql statement
 ---@params defs table: key/value pairs defining sqlite table keys.
 ---@params defs kv: whether to bind by named keys.
 local pkeys = function(defs, kv)
@@ -104,7 +99,7 @@ local pkeys = function(defs, kv)
   end
 end
 
---- format values part of sql statement, usually used with select method.
+---Format values part of sql statement, usually used with select method.
 ---@params defs table: key/value pairs defining sqlite table keys.
 ---@params defs kv: whether to bind by named keys.
 local pvalues = function(defs, kv)
@@ -122,7 +117,7 @@ local pvalues = function(defs, kv)
   end
 end
 
---- format where part of a sql statement.
+---Format where part of a sql statement.
 ---@params defs table: key/value pairs defining sqlite table keys.
 ---@params name string: the name of the sqlite table
 ---@params join table: used as boolean, controling whether to use name.key or just key.
@@ -179,7 +174,7 @@ local plimit = function(defs)
   return limit
 end
 
---- format set part of sql statement, usually used with update method.
+---Format set part of sql statement, usually used with update method.
 ---@params defs table: key/value pairs defining sqlite table keys.
 local pset = function(defs)
   if not defs then
@@ -188,7 +183,7 @@ local pset = function(defs)
   return "set " .. bind { kv = defs, nonbind = true }
 end
 
---- format join part of a sql statement.
+---Format join part of a sql statement.
 ---@params defs table: key/value pairs defining sqlite table keys.
 ---@params name string: the name of the sqlite table
 local pjoin = function(defs, name)
@@ -252,7 +247,7 @@ local partial = function(method, tbl, opts)
   )
 end
 
---- parse select statement to extracts data from a database
+---Parse select statement to extracts data from a database
 ---@param tbl string: table name
 ---@param opts table: lists of options: valid{ select, join, order_by, limit, where }
 ---@return string: the select sql statement.
@@ -272,7 +267,7 @@ M.select = function(tbl, opts)
   return partial(method, tbl, opts)
 end
 
---- parse select statement to update data in the database
+---Parse select statement to update data in the database
 ---@param tbl string: table name
 ---@param opts table: lists of options: valid{ set, where }
 ---@return string: the update sql statement.
@@ -281,7 +276,7 @@ M.update = function(tbl, opts)
   return partial(method, tbl, opts)
 end
 
---- parse insert statement to insert data into a database
+---Parse insert statement to insert data into a database
 ---@param tbl string: table name
 ---@param opts table: lists of options: valid{ where }
 ---@return string: the insert sql statement.
@@ -290,7 +285,7 @@ M.insert = function(tbl, opts)
   return partial(method, tbl, opts)
 end
 
---- parse delete statement to deletes data from a database
+---Parse delete statement to deletes data from a database
 ---@param tbl string: table name
 ---@param opts table: lists of options: valid{ where }
 ---@return string: the delete sql statement.
@@ -301,7 +296,7 @@ M.delete = function(tbl, opts)
   return type(where) == "string" and method .. " " .. where or method
 end
 
---- parse table create statement
+---Parse table create statement
 ---@param tbl string: table name
 ---@param defs table: keys and type pairs
 ---@return string: the create sql statement.
@@ -327,11 +322,60 @@ M.create = function(tbl, defs)
   return string.format("create table %s(%s)", tbl, table.concat(items, ", "))
 end
 
---- parse table drop statement
+---Parse table drop statement
 ---@param tbl string: table name
 ---@return string: the drop sql statement.
 M.drop = function(tbl)
   return string.format("drop table %s", tbl)
+end
+
+---Preporcess data insert to sql db.
+---for now it's mainly used to for parsing lua tables and boolean values.
+---It throws when a schema key is required and doesn't exists.
+---@param rows table inserted row.
+---@param schema table tbl schema with extra info
+---@return table pre processed rows
+M.pre_insert = function(rows, schema)
+  rows = u.is_nested(rows) and rows or { rows }
+
+  for _, row in ipairs(rows) do
+    for k, _ in pairs(schema.req) do
+      if not row[k] then
+        error("sql.nvim: (insert) missing a required key: " .. k)
+      end
+    end
+
+    for k, v in pairs(row) do
+      if schema.types[k] == "luatable" or schema.types[k] == "json" then
+        row[k] = json.encode(v)
+      end
+
+      if type(v) == "boolean" then
+        row[k] = v == true and 1 or 0
+      end
+    end
+  end
+
+  return rows
+end
+
+---Postprocess data queried from a sql db. for now it is mainly used
+---to for parsing json values to lua table.
+---@param rows table inserted row.
+---@param schema table tbl schema
+---@return table pre processed rows
+---@TODO support boolean values.
+M.post_select = function(rows, types)
+  local is_nested = u.is_nested(rows)
+  rows = is_nested and rows or { rows }
+  for _, row in ipairs(rows) do
+    for k, v in pairs(row) do
+      if types[k] == "luatable" or types[k] == "json" then
+        row[k] = json.decode(v)
+      end
+    end
+  end
+  return is_nested and rows or rows[1]
 end
 
 return M

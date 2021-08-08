@@ -28,10 +28,7 @@ Stmt.__index = Stmt
 ---@see Stmt:__parse()
 ---@usage local stmt = Stmt:parse(db, "insert into todos (title,desc) values(:title, :desc)")
 function Stmt:parse(conn, stmt)
-  assert(
-    sqlite.type_of(conn) == sqlite.type_of_db_ptr,
-    "Invalid connection passed to stmt:parse"
-  )
+  assert(sqlite.type_of(conn) == sqlite.type_of_db_ptr, "Invalid connection passed to stmt:parse")
   assert(type(stmt) == "string", "Invalid second argument passed to stmt:parse")
   local o = {
     str = stmt,
@@ -51,10 +48,7 @@ function Stmt:__parse()
   local code = sqlite.prepare_v2(self.conn, self.str, #self.str, pstmt, nil)
   assert(
     code == flags.ok,
-    string.format(
-      "sql.nvim: couldn't parse sql statement, ERRMSG: %s",
-      sqlite.to_str(sqlite.errmsg(self.conn))
-    )
+    string.format("sql.nvim: couldn't parse sql statement, ERRMSG: %s", sqlite.to_str(sqlite.errmsg(self.conn)))
   )
   self.pstmt = pstmt[0]
 end
@@ -63,7 +57,7 @@ end
 -- NOTE: Any statement variables that had values bound to them using the
 -- Stmt:bind functions retain their values.
 ---@return number: falgs.ok or errcode
----@todo should we error out when errcode?
+---@TODO should we error out when errcode?
 function Stmt:reset()
   return sqlite.reset(self.pstmt)
 end
@@ -76,10 +70,7 @@ function Stmt:finalize()
   self.finalized = self.errcode == flags.ok
   assert(
     self.finalized,
-    string.format(
-      "sql.nvim: couldn't finalize statement, ERRMSG: %s",
-      sqlite.to_str(sqlite.errmsg(self.conn))
-    )
+    string.format("sql.nvim: couldn't finalize statement, ERRMSG: %s", sqlite.to_str(sqlite.errmsg(self.conn)))
   )
   return self.finalized
 end
@@ -123,7 +114,7 @@ end
 --- key-name/column-name at {idx} in results.
 ---@param idx number: (0-index)
 ---@return string: keyname/column name at {idx}
----@todo should accept 1-index
+---@TODO should accept 1-index
 function Stmt:key(idx)
   return sqlite.to_str(sqlite.column_name(self.pstmt, idx))
 end
@@ -151,7 +142,7 @@ local sqlite_datatypes = {
 --- Key/Column lua datatype at {idx}
 ---@param idx number: (0-index)
 ---@return string: key/column type at {idx}
----@todo should accept 1-index
+---@TODO should accept 1-index
 function Stmt:type(idx)
   local convert_dt = {
     ["integer"] = "number",
@@ -179,7 +170,7 @@ end
 --- Value at {idx}
 ---@param idx number: (0-index)
 ---@return string: value at {idx}
----@todo should accept 1-index
+---@TODO should accept 1-index
 function Stmt:val(idx)
   local ktype = sqlite.column_type(self.pstmt, idx)
   if ktype == 5 then
@@ -250,10 +241,7 @@ end
 ---@usage Stmt:each(function(s)  print(s:val(1))  end)
 ---@see Stmt:step
 function Stmt:each(callback)
-  assert(
-    type(callback) == "function",
-    "stmt:each expected a function, got something else."
-  )
+  assert(type(callback) == "function", "stmt:each expected a function, got something else.")
   while self:step() == flags.row do
     callback(self)
   end
@@ -421,7 +409,7 @@ end
 --- Bind the value at the next index until all values are bound
 ---@param value any: value to bind
 ---@return sqlite_flag
----@todo does it return sqlite_flag in all cases? @conni
+---@TODO does it return sqlite_flag in all cases? @conni
 function Stmt:bind_next(value)
   if not self.current_bind_index then
     self.current_bind_index = 1
