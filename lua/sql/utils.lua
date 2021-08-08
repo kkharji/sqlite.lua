@@ -208,4 +208,45 @@ M.flatten = function(tbl)
   return result
 end
 
+---Generate query key for a given query table
+---@param query any
+---@see table.lua
+---@return string
+M.query_key = function(query)
+  local items = {}
+  for k, v in M.opairs(query) do
+    if type(v) == "table" then
+      table.insert(
+        items,
+        string.format(
+          "%s=%s",
+          k,
+          table.concat(
+            (function()
+              if not M.is_list(v) and type(v) ~= "string" then
+                local tmp = {}
+                for _k, _v in M.opairs(v) do
+                  if type(_v) == "table" then
+                    table.insert(tmp, string.format("%s=%s", _k, table.concat(_v, ",")))
+                  else
+                    table.insert(tmp, string.format("%s=%s", _k, _v))
+                  end
+                end
+                return tmp
+              else
+                return v
+              end
+            end)(),
+            ""
+          )
+        )
+      )
+    else
+      table.insert(items, k .. "=" .. v)
+    end
+  end
+
+  return table.concat(items, ",")
+end
+
 return M

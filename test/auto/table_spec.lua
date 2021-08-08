@@ -59,16 +59,16 @@ describe("table", function()
 
     it("initalizes db with schema", function()
       eq(opts.schema, new:schema(), "should be identical")
-      eq(opts.schema, new.__schema, "should be identical")
+      eq(opts.schema, new.tbl_schema, "should be identical")
     end)
     it("should not rewrite schema.", function()
       local new2 = db:table "newtbl"
       eq(opts.schema, new2:schema(), "should be identical")
-      eq(opts.schema, new2.__schema, "should be identical")
+      eq(opts.schema, new2.tbl_schema, "should be identical")
 
       local new3 = db:table("newtbl", { schema = { id = "string" } })
       eq(opts.schema, new3:schema(), "should be identical")
-      eq(opts.schema, new3.__schema, "should be identical")
+      eq(opts.schema, new3.tbl_schema, "should be identical")
     end)
   end)
 
@@ -149,8 +149,6 @@ describe("table", function()
       eq(vim.loop.fs_stat(dbpath).mtime.sec, t1.mtime, "should be the same")
       eq(true, db:eval("insert into T(a,b,c) values(?,?,?)", { 200, "a", "f" }), "should insert")
       eq(true, t1.db.modified, "should be modified tr")
-      assert(not t1:__get_from_cache(), "cache should be nil.")
-      eq(false, t1.db.modified, "should not be modified after this function is ran.")
       assert(db:eval "delete from T where a = 200", "should be deleted")
     end)
 
