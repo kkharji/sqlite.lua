@@ -1,4 +1,6 @@
 local u = require "sql.utils"
+local json = require "sql.json"
+
 local M = {}
 
 ---@brief [[
@@ -51,11 +53,7 @@ local bind = function(o)
       v = o.nonbind and ":" .. k or v
       table.insert(
         res,
-        string.format(
-          "%s" .. (o.nonbind and nil or " = ") .. specifier(v, o.nonbind),
-          k,
-          v
-        )
+        string.format("%s" .. (o.nonbind and nil or " = ") .. specifier(v, o.nonbind), k, v)
       )
     end
     return table.concat(res, o.s)
@@ -332,6 +330,56 @@ end
 ---@return string: the drop sql statement.
 M.drop = function(tbl)
   return string.format("drop table %s", tbl)
+end
+
+---Preporcess data insert to sql db.
+---for now it's mainly used to for parsing lua tables and boolean values.
+---It throws when a schema key is required and doesn't exists.
+---@param rows table inserted row.
+---@param schema table tbl schema with extra info
+---@return table pre processed rows
+M.pre_insert = function(rows, schema)
+  rows = u.is_nested(rows) and rows or { rows }
+
+  for _, row in ipairs(rows) do
+    for k, _ in pairs(schema.req) do
+      if not row[k] then
+        error("sql.nvim: (insert) missing a required key: " .. k)
+      end
+    end
+
+    for k, v in pairs(row) do
+      if schema.types[k] == "luatable" or schema.types[k] == "json" then
+        row[k] = json.encode(v)
+      end
+
+      if type(v) == "boolean" then
+        row[k] = v == true and 1 or 0
+      end
+    end
+  end
+
+  return rows
+end
+
+---Postprocess data queried from a sql db. for now it is mainly used
+---to for parsing json values to lua table.
+---
+---@TODO support boolean values.
+---@param rows table inserted row.
+---@param schema table tbl schema
+---@return table pre processed rows
+M.post_select = function(rows, types)
+  local is_nested = u.is_nested(rows)
+  rows = is_nested and rows or { rows }
+  for _, row in ipairs(rows) do
+    for k, v in pairs(row) do
+      if types[k] == "luatable" or types[k] == "json" then
+        row[k] = json.decode(v)
+      end
+    end
+  end
+  return is_nested and rows or rows[1]
 end
 
 return M
