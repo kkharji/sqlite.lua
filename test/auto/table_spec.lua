@@ -39,9 +39,12 @@ describe("table", function()
     it("registers whether the table exists in self.tbl_exists.", function()
       eq(true, t1.tbl_exists)
     end)
-    it("registers whether the table has content in self.has_content.", function()
-      eq(true, t1.has_content, "should be false")
-    end)
+    it(
+      "registers whether the table has content in self.has_content.",
+      function()
+        eq(true, t1.has_content, "should be false")
+      end
+    )
     it("initalizes empty cache in self.cache", function()
       eq({}, t1.cache, "should be empty.")
     end)
@@ -147,10 +150,18 @@ describe("table", function()
 
     it("cache should be cleared.", function()
       eq(vim.loop.fs_stat(dbpath).mtime.sec, t1.mtime, "should be the same")
-      eq(true, db:eval("insert into T(a,b,c) values(?,?,?)", { 200, "a", "f" }), "should insert")
+      eq(
+        true,
+        db:eval("insert into T(a,b,c) values(?,?,?)", { 200, "a", "f" }),
+        "should insert"
+      )
       eq(true, t1.db.modified, "should be modified tr")
       assert(not t1:__get_from_cache(), "cache should be nil.")
-      eq(false, t1.db.modified, "should not be modified after this function is ran.")
+      eq(
+        false,
+        t1.db.modified,
+        "should not be modified after this function is ran."
+      )
       assert(db:eval "delete from T where a = 200", "should be deleted")
     end)
 
@@ -239,13 +250,17 @@ describe("table", function()
 
   describe(":sort", function()
     it("transform function defaults to to first where key", function()
-      eq({
-        { a = 4, b = "pef", c = "ru" },
-        { a = 5, b = "sam", c = "da" },
-        { a = 35, b = "cba", c = "qa" },
-      }, t1:sort {
-        where = { a = { 35, 4, 5 } },
-      }, "should be identical")
+      eq(
+        {
+          { a = 4, b = "pef", c = "ru" },
+          { a = 5, b = "sam", c = "da" },
+          { a = 35, b = "cba", c = "qa" },
+        },
+        t1:sort {
+          where = { a = { 35, 4, 5 } },
+        },
+        "should be identical"
+      )
     end)
 
     it("transform function can be a string with row key ", function()
@@ -300,7 +315,11 @@ describe("table", function()
 
     it("removes a single row", function()
       eq(true, t1:remove { where = { a = 5 } }, "should remove")
-      eq(true, db:eval "select * from T where a = 5", "should return boolean, if no resluts")
+      eq(
+        true,
+        db:eval "select * from T where a = 5",
+        "should return boolean, if no resluts"
+      )
     end)
 
     it("removes a multiple rows", function()
@@ -328,9 +347,17 @@ describe("table", function()
     end)
 
     it("update a single row", function()
-      eq(true, t1:update { where = { a = 4 }, values = { c = "a", b = "a" } }, "should be updated")
+      eq(
+        true,
+        t1:update { where = { a = 4 }, values = { c = "a", b = "a" } },
+        "should be updated"
+      )
       demo[6] = { a = 4, c = "a", b = "a" }
-      eq({ demo[6] }, db:eval "select * from T where a = 4", "should return boolean, if no resluts")
+      eq(
+        { demo[6] },
+        db:eval "select * from T where a = 4",
+        "should return boolean, if no resluts"
+      )
     end)
 
     it("update a multiple rows", function()
@@ -350,7 +377,11 @@ describe("table", function()
       )
       demo[7] = { a = 5, c = "a", b = "a" }
       demo[5] = { a = 35, c = "a", b = "a" }
-      eq({ demo[7] }, db:eval "select * from T where a = 5", "should return boolean, if no resluts")
+      eq(
+        { demo[7] },
+        db:eval "select * from T where a = 5",
+        "should return boolean, if no resluts"
+      )
       eq(
         { demo[5] },
         db:eval "select * from T where a = 35",
@@ -389,7 +420,11 @@ describe("table", function()
       local succ, last_rowid = t1:insert(new_row)
       eq(true, succ, "it should return true")
       eq(ex_last_rowid, last_rowid, "it should return row_id " .. ex_last_rowid)
-      eq({ new_row }, db:eval "select * from T where a = 109", "it should have the new rows")
+      eq(
+        { new_row },
+        db:eval "select * from T where a = 109",
+        "it should have the new rows"
+      )
     end)
 
     it("inserts a list of rows", function()
