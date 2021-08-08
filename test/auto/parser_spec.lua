@@ -31,8 +31,7 @@ describe("parse", function()
     it("with [or] for single keys", function()
       local where = { act = { "done", "overdue" } }
       local pselect = p.select(tbl, { where = where })
-      local eselect =
-        "select * from todo where (act = 'done' or act = 'overdue')"
+      local eselect = "select * from todo where (act = 'done' or act = 'overdue')"
       eq(eselect, pselect, "It should be identical")
     end)
     it("with [or] for multi keys", function()
@@ -42,8 +41,7 @@ describe("parse", function()
         date = 2021,
       }
       local pselect = p.select(tbl, { where = where })
-      local eselect =
-        "select * from todo where (act = 'done' or act = 'overdue') and date = 2021 and name = 'conni'"
+      local eselect = "select * from todo where (act = 'done' or act = 'overdue') and date = 2021 and name = 'conni'"
       eq(eselect, pselect, "It should be identical")
     end)
     it("with multi [or] and multi keys", function()
@@ -53,8 +51,7 @@ describe("parse", function()
         date = 2021,
       }
       local pselect = p.select(tbl, { where = where })
-      local eselect =
-        "select * from todo where (act = 'a' or act = 'b') and date = 2021 and (n = 1 or n = 2 or n = 3)"
+      local eselect = "select * from todo where (act = 'a' or act = 'b') and date = 2021 and (n = 1 or n = 2 or n = 3)"
       eq(eselect, pselect, "It should be identical")
     end)
     it("interop boolean", function()
@@ -63,8 +60,7 @@ describe("parse", function()
         n = true,
         date = 2021,
       }
-      local eselect =
-        "select * from todo where act = 0 and date = 2021 and n = 1"
+      local eselect = "select * from todo where act = 0 and date = 2021 and n = 1"
       local pselect = p.select(tbl, { where = where })
       eq(eselect, pselect, "It should be identical")
     end)
@@ -88,8 +84,7 @@ describe("parse", function()
       local set = { date = 2021, a = "b", c = "d" }
       local where = { id = 1 }
       local pupdate = p.update(tbl, { where = where, set = set })
-      local eupdate =
-        "update todo set a = :a, c = :c, date = :date where id = 1"
+      local eupdate = "update todo set a = :a, c = :c, date = :date where id = 1"
       eq(eupdate, pupdate, "should be identical")
     end)
   end)
@@ -115,8 +110,7 @@ describe("parse", function()
         age = "int",
         ensure = true,
       }
-      local expected =
-        "create table if not exists people(age int, id integer primary key, name text)"
+      local expected = "create table if not exists people(age int, id integer primary key, name text)"
       local passed = p.create("people", defs)
       eq(expected, passed, "should be identical")
     end)
@@ -127,8 +121,7 @@ describe("parse", function()
         age = "int",
         ensure = true,
       }
-      local expected =
-        "create table if not exists people(age int, id integer primary key, name text)"
+      local expected = "create table if not exists people(age int, id integer primary key, name text)"
       local passed = p.create("people", defs)
       eq(expected, passed, "should be identical")
     end)
@@ -226,8 +219,7 @@ describe("parse", function()
         select = { "id", "name" },
         contains = { name = { "%j", "%a", "%b%" } },
       }
-      local expected =
-        "select id, name from people where name glob '%j' or name glob '%a' or name glob '%b%'"
+      local expected = "select id, name from people where name glob '%j' or name glob '%a' or name glob '%b%'"
       local passed = p.select("people", defs)
       eq(expected, passed, "should be identical")
     end)

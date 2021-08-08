@@ -12,9 +12,7 @@ local conn = function(uri)
   if code == sqlite.flags.ok then
     return conn[0]
   else
-    error(
-      string.format("sql.nvim: couldn't connect to sql database, ERR:", code)
-    )
+    error(string.format("sql.nvim: couldn't connect to sql database, ERR:", code))
   end
 end
 
@@ -31,10 +29,7 @@ describe("stmt", function()
     local db = conn()
     local stm = "select * from todos"
 
-    eval(
-      db,
-      "create table todos(id integer primary key, title text, decs text, deadline integer);"
-    )
+    eval(db, "create table todos(id integer primary key, title text, decs text, deadline integer);")
     local s = stmt:parse(db, stm)
 
     it("creates new statement object.", function()
@@ -150,31 +145,25 @@ describe("stmt", function()
   end
 
   describe(":val(i)      ", function()
-    it(
-      "returns (with stmt:each) a list of vals in all the rows at idx.",
-      function()
-        local res = {}
-        s:each(function(st)
-          table.insert(res, st:val(0))
-        end)
-        eq(false, vim.tbl_isempty(res))
-        eq({ 1, 2 }, res)
-      end
-    )
+    it("returns (with stmt:each) a list of vals in all the rows at idx.", function()
+      local res = {}
+      s:each(function(st)
+        table.insert(res, st:val(0))
+      end)
+      eq(false, vim.tbl_isempty(res))
+      eq({ 1, 2 }, res)
+    end)
   end)
 
   describe(":vals()      ", function()
-    it(
-      "returns (with stmt:each) a nested list all the vals in all the rows.",
-      function()
-        local res = {}
-        s:each(function(st)
-          table.insert(res, st:vals())
-        end)
-        eq(false, vim.tbl_isempty(res))
-        -- eq(expectedlist, res) -- the order is missed up.
-      end
-    )
+    it("returns (with stmt:each) a nested list all the vals in all the rows.", function()
+      local res = {}
+      s:each(function(st)
+        table.insert(res, st:vals())
+      end)
+      eq(false, vim.tbl_isempty(res))
+      -- eq(expectedlist, res) -- the order is missed up.
+    end)
   end)
 
   describe(":kvrows()    ", function()
@@ -192,14 +181,11 @@ describe("stmt", function()
 
   describe(":vrows()     ", function()
     -- assert(s.finalized)
-    it(
-      "returns a nested list values in all the rows. if no callback.",
-      function()
-        local res = s:vrows()
-        eq(true, not vim.tbl_isempty(res), "it should be filled.")
-        -- eq(expectedlist, res, "it should be identical") -- the order is mixed up
-      end
-    )
+    it("returns a nested list values in all the rows. if no callback.", function()
+      local res = s:vrows()
+      eq(true, not vim.tbl_isempty(res), "it should be filled.")
+      -- eq(expectedlist, res, "it should be identical") -- the order is mixed up
+    end)
   end)
 
   describe(":nrows()     ", function()
@@ -210,14 +196,8 @@ describe("stmt", function()
 
   kill(s, db) -- end of second suit
   local bind_db = conn() -- start of third db test
-  eval(
-    bind_db,
-    [[create table todos(id integer primary key, title text, desc text, deadline integer);]]
-  )
-  local bind_s = stmt:parse(
-    bind_db,
-    "insert into todos (title,desc,deadline) values(:title, :desc, :deadline);"
-  )
+  eval(bind_db, [[create table todos(id integer primary key, title text, desc text, deadline integer);]])
+  local bind_s = stmt:parse(bind_db, "insert into todos (title,desc,deadline) values(:title, :desc, :deadline);")
   local expected_stmt =
     "insert into todos (title,desc,deadline) values('Fancy todo title', 'We are doing all the things', 2021.0);"
 
@@ -286,23 +266,14 @@ describe("stmt", function()
     it("binds a zeroblob by idx", function()
       bind_s:bind_clear()
       bind_s:bind_zeroblob(1, 10)
-      eq(
-        "insert into todos (title,desc,deadline) values(zeroblob(10), NULL, NULL);",
-        bind_s:expand()
-      )
+      eq("insert into todos (title,desc,deadline) values(zeroblob(10), NULL, NULL);", bind_s:expand())
     end)
   end)
 
   kill(bind_s, bind_db) -- end of third test suit
   bind_db = conn() -- beginning of forth test suit
-  eval(
-    bind_db,
-    [[create table todos(id integer primary key, title text, desc text, deadline integer);]]
-  )
-  bind_s = stmt:parse(
-    bind_db,
-    "insert into todos (title,desc,deadline) values(?, ?, ?);"
-  )
+  eval(bind_db, [[create table todos(id integer primary key, title text, desc text, deadline integer);]])
+  bind_s = stmt:parse(bind_db, "insert into todos (title,desc,deadline) values(?, ?, ?);")
   expected_stmt =
     "insert into todos (title,desc,deadline) values('Fancy todo title', 'We are doing all the things', 2021.0);"
 
@@ -364,23 +335,14 @@ describe("stmt", function()
     it('does as expected with "anonymous parmas"', function()
       bind_s:bind_clear()
       bind_s:bind_zeroblob(1, 10)
-      eq(
-        "insert into todos (title,desc,deadline) values(zeroblob(10), NULL, NULL);",
-        bind_s:expand()
-      )
+      eq("insert into todos (title,desc,deadline) values(zeroblob(10), NULL, NULL);", bind_s:expand())
     end)
   end)
 
   kill(bind_s, bind_db) -- end of forth test suit
   bind_db = conn() -- beginning of fifth test suit
-  eval(
-    bind_db,
-    [[create table todos(id integer primary key, title text, desc text, deadline integer);]]
-  )
-  bind_s = stmt:parse(
-    bind_db,
-    "insert into todos (title,desc,deadline) values(:title, ?, :deadline);"
-  )
+  eval(bind_db, [[create table todos(id integer primary key, title text, desc text, deadline integer);]])
+  bind_s = stmt:parse(bind_db, "insert into todos (title,desc,deadline) values(:title, ?, :deadline);")
   expected_stmt =
     "insert into todos (title,desc,deadline) values('Fancy todo title', 'We are doing all the things', 2021.0);"
 
@@ -442,23 +404,14 @@ describe("stmt", function()
     it('does as expected with "anonymous params" and "named params"', function()
       bind_s:bind_clear()
       bind_s:bind_zeroblob(1, 10)
-      eq(
-        "insert into todos (title,desc,deadline) values(zeroblob(10), NULL, NULL);",
-        bind_s:expand()
-      )
+      eq("insert into todos (title,desc,deadline) values(zeroblob(10), NULL, NULL);", bind_s:expand())
     end)
   end)
 
   kill(bind_s, bind_db) -- end of fifth test suit
   bind_db = conn() -- beginning of sixth test suit
-  eval(
-    bind_db,
-    [[create table todos(id integer primary key, title text, desc text, deadline integer);]]
-  )
-  bind_s = stmt:parse(
-    bind_db,
-    "insert into todos (id,title,desc,deadline) values(:id, :title, :desc, :deadline);"
-  )
+  eval(bind_db, [[create table todos(id integer primary key, title text, desc text, deadline integer);]])
+  bind_s = stmt:parse(bind_db, "insert into todos (id,title,desc,deadline) values(:id, :title, :desc, :deadline);")
 
   describe("Combined test", function()
     it("passes", function()

@@ -17,16 +17,8 @@ describe("sql", function()
       eq("table", type(db:open()), "should return sql.nvim object")
       eq(true, db:isopen(), "should be opened")
       eq(0, db:status().code, "should be be zero")
-      eq(
-        true,
-        db:eval "create table if not exists a(title)",
-        "should be create a table"
-      )
-      eq(
-        true,
-        db:eval "insert into a(title) values('new')",
-        "should be insert stuff"
-      )
+      eq(true, db:eval "create table if not exists a(title)", "should be create a table")
+      eq(true, db:eval "insert into a(title) values('new')", "should be insert stuff")
       eq("table", type(db:eval "select * from a"), "should be have content")
       eq(true, db:close(), "should close")
       eq(true, db:isclose(), "should close")
@@ -45,91 +37,74 @@ describe("sql", function()
     end)
   end)
 
-  describe(
-    ":open/:close",
-    function() -- todo(tami5): change to open instead of connect.
-      it("creates in memory database.", function()
-        local db = sql:open()
-        eq("table", type(db), "returns new main interface object.")
-        eq("cdata", type(db.conn), "returns sql object.")
-        assert(
-          db:close(),
-          "returns true if the connection is closed successfully."
-        )
-      end)
+  describe(":open/:close", function() -- todo(tami5): change to open instead of connect.
+    it("creates in memory database.", function()
+      local db = sql:open()
+      eq("table", type(db), "returns new main interface object.")
+      eq("cdata", type(db.conn), "returns sql object.")
+      assert(db:close(), "returns true if the connection is closed successfully.")
+    end)
 
-      it("creates new persistence database.", function()
-        local db = sql:open(path)
-        eq("cdata", type(db.conn), "returns sqlite object.")
+    it("creates new persistence database.", function()
+      local db = sql:open(path)
+      eq("cdata", type(db.conn), "returns sqlite object.")
 
-        eq(
-          true,
-          db:eval "create table if not exists todo(title text, desc text, created int)"
-        )
+      eq(true, db:eval "create table if not exists todo(title text, desc text, created int)")
 
-        db:eval(
-          "insert into todo(title, desc, created) values(:title, :desc, :created) ",
-          {
-            { title = "1", desc = "......", created = 2021 },
-            { title = "2", desc = "......", created = 2021 },
-          }
-        )
+      db:eval("insert into todo(title, desc, created) values(:title, :desc, :created) ", {
+        { title = "1", desc = "......", created = 2021 },
+        { title = "2", desc = "......", created = 2021 },
+      })
 
-        eq(true, db:close(), "It should close connection successfully.")
-        eq(true, P.exists(P.new(path)), "It should created the file")
-      end)
+      eq(true, db:close(), "It should close connection successfully.")
+      eq(true, P.exists(P.new(path)), "It should created the file")
+    end)
 
-      it("connects to pre-existent database.", function()
-        local db = sql:open(path)
+    it("connects to pre-existent database.", function()
+      local db = sql:open(path)
 
-        local todos = db:eval "select * from todo"
-        eq("1", todos[1].title)
-        eq("2", todos[2].title)
+      local todos = db:eval "select * from todo"
+      eq("1", todos[1].title)
+      eq("2", todos[2].title)
 
-        eq(true, db:close(), "It should close connection successfully.")
-        eq(true, P.exists(P.new(path)), "File should still exists")
-        vim.loop.fs_unlink(path)
-      end)
+      eq(true, db:close(), "It should close connection successfully.")
+      eq(true, P.exists(P.new(path)), "File should still exists")
+      vim.loop.fs_unlink(path)
+    end)
 
-      it("returns data and time of creation", function()
-        local db = sql:open()
-        eq(os.date "%Y-%m-%d %H:%M:%S", db.created)
-        db:close()
-      end)
+    it("returns data and time of creation", function()
+      local db = sql:open()
+      eq(os.date "%Y-%m-%d %H:%M:%S", db.created)
+      db:close()
+    end)
 
-      it("should accept pargma options", function()
-        local tmp = "/tmp/db912.db"
-        local db = sql:open(tmp, {
-          journal_mode = "persist",
-        })
-        eq("persist", db:eval("pragma journal_mode")[1].journal_mode)
-        db:close()
-        vim.loop.fs_unlink(tmp)
-      end)
+    it("should accept pargma options", function()
+      local tmp = "/tmp/db912.db"
+      local db = sql:open(tmp, {
+        journal_mode = "persist",
+      })
+      eq("persist", db:eval("pragma journal_mode")[1].journal_mode)
+      db:close()
+      vim.loop.fs_unlink(tmp)
+    end)
 
-      it("reopen db object.", function()
-        local db = sql:open(path)
-        local row = { title = "1", desc = "...." }
-        db:eval "create table if not exists todo(title text, desc text)"
-        db:eval("insert into todo(title, desc) values(:title, :desc)", row)
+    it("reopen db object.", function()
+      local db = sql:open(path)
+      local row = { title = "1", desc = "...." }
+      db:eval "create table if not exists todo(title text, desc text)"
+      db:eval("insert into todo(title, desc) values(:title, :desc)", row)
 
-        db:close()
-        eq(true, db.closed, "should be closed.")
+      db:close()
+      eq(true, db.closed, "should be closed.")
 
-        db:open()
-        eq(false, db.closed, "should be reopend.")
+      db:open()
+      eq(false, db.closed, "should be reopend.")
 
-        eq(path, db.uri, "uri should be identical to db.uri")
-        local res = db:eval "select * from todo"
-        eq(
-          row,
-          res[1],
-          vim.loop.fs_unlink(path),
-          "local row should equal db:eval result."
-        )
-      end)
-    end
-  )
+      eq(path, db.uri, "uri should be identical to db.uri")
+      local res = db:eval "select * from todo"
+      eq(row, res[1], vim.loop.fs_unlink(path), "local row should equal db:eval result.")
+    end)
+  end)
 
   describe(":open_with", function()
     it("works with initalized sql objects.", function()
@@ -191,17 +166,11 @@ describe("sql", function()
   describe(":eval", function()
     local db = sql:open()
     it("It evaluate should basic sqlite statement", function()
-      eq(
-        true,
-        db:eval "create table people(id integer primary key, name text, age  integer)"
-      )
+      eq(true, db:eval "create table people(id integer primary key, name text, age  integer)")
     end)
 
     it("returns true if the operation is successful", function()
-      eq(
-        true,
-        db:eval "create table if not exists todos(id, title text, desc text, created int)"
-      )
+      eq(true, db:eval "create table if not exists todos(id, title text, desc text, created int)")
     end)
 
     local row = {
@@ -220,35 +189,20 @@ describe("sql", function()
     }
 
     it("inserts lua table.", function()
-      eq(
-        true,
-        db:eval(
-          "insert into todos(id, title,desc,created) values(:id, :title, :desc, :created)",
-          row[1]
-        )
-      )
+      eq(true, db:eval("insert into todos(id, title,desc,created) values(:id, :title, :desc, :created)", row[1]))
     end)
 
-    it(
-      "selects everything from table and return lua table if only one row.",
-      function()
-        local res = db:eval "select * from todos"
-        eq(row[1], res[1])
-      end
-    )
+    it("selects everything from table and return lua table if only one row.", function()
+      local res = db:eval "select * from todos"
+      eq(row[1], res[1])
+    end)
 
     it("deletes from sql tables", function()
       eq(true, db:eval "delete from todos", "It should delete table content")
     end)
 
     it("inserts nested lua table.", function()
-      eq(
-        true,
-        db:eval(
-          "insert into todos(id,title,desc,created) values(:id, :title, :desc, :created)",
-          row
-        )
-      )
+      eq(true, db:eval("insert into todos(id,title,desc,created) values(:id, :title, :desc, :created)", row))
       eq(row, db:eval "select * from todos", "should equal")
     end)
 
@@ -307,12 +261,7 @@ describe("sql", function()
       ex_last_rowid = ex_last_rowid + 1
       local results = db:eval "select rowid, * from todos"
       eq(true, type(results) == "table", "It should be inserted.")
-      eq(
-        last_row_id,
-        results[1].rowid,
-        "It should be equals to the returned last inserted rowid "
-          .. last_row_id
-      )
+      eq(last_row_id, results[1].rowid, "It should be equals to the returned last inserted rowid " .. last_row_id)
       eq("TODO 1", results[1].title)
       eq("................", results[1].desc)
       db:eval "delete from todos"
@@ -336,11 +285,7 @@ describe("sql", function()
       local _, rowid = db:insert("todos", rows)
       ex_last_rowid = ex_last_rowid + #rows
       local store = db:eval "select rowid, * from todos"
-      eq(
-        rowid,
-        store[#store].rowid,
-        "It should be equals to the returned last inserted rowid " .. rowid
-      )
+      eq(rowid, store[#store].rowid, "It should be equals to the returned last inserted rowid " .. rowid)
       eq(3, vim.tbl_count(store))
       for _, v in ipairs(store) do
         eq(true, v.desc == "...")
@@ -541,10 +486,7 @@ describe("sql", function()
         { title = "TODO 2", desc = "................" },
       }
       db:eval("insert into todos(title, desc) values(:title, :desc)", rows)
-      db:delete(
-        "todos",
-        { { where = { title = "TODO 1" } }, { where = { title = "TODO 2" } } }
-      )
+      db:delete("todos", { { where = { title = "TODO 1" } }, { where = { title = "TODO 2" } } })
       local results = db:eval "select * from todos"
       eq(false, type(results) == "table")
     end)
@@ -557,14 +499,8 @@ describe("sql", function()
 
     it(".... pre", function()
       if vim.loop.fs_stat "/tmp/posts" == nil then
-        curl.get(
-          "https://jsonplaceholder.typicode.com/posts",
-          { output = "/tmp/posts" }
-        )
-        curl.get(
-          "https://jsonplaceholder.typicode.com/users",
-          { output = "/tmp/users" }
-        )
+        curl.get("https://jsonplaceholder.typicode.com/posts", { output = "/tmp/posts" })
+        curl.get("https://jsonplaceholder.typicode.com/users", { output = "/tmp/users" })
       end
 
       posts = vim.fn.json_decode(vim.fn.join(P.readlines "/tmp/posts", "\n"))
@@ -633,10 +569,7 @@ describe("sql", function()
     end)
 
     it("join tables.", function()
-      local res = db:select(
-        "posts",
-        { where = { id = 1 }, join = { posts = "userId", users = "id" } }
-      )
+      local res = db:select("posts", { where = { id = 1 }, join = { posts = "userId", users = "id" } })
       local expected = (function()
         for _, post in ipairs(posts) do
           if post["id"] == 1 then
@@ -659,10 +592,7 @@ describe("sql", function()
     end)
 
     it("return selected keys only", function()
-      local res = db:select(
-        "posts",
-        { where = { id = 1 }, keys = { "userId", "posts.body" } }
-      )
+      local res = db:select("posts", { where = { id = 1 }, keys = { "userId", "posts.body" } })
       local expected = (function()
         for _, post in ipairs(posts) do
           if post["id"] == 1 then

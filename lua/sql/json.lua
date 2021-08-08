@@ -185,12 +185,7 @@ local function codepoint_to_utf8(n)
   elseif n <= 0xffff then
     return string.char(f(n / 4096) + 224, f(n % 4096 / 64) + 128, n % 64 + 128)
   elseif n <= 0x10ffff then
-    return string.char(
-      f(n / 262144) + 240,
-      f(n % 262144 / 4096) + 128,
-      f(n % 4096 / 64) + 128,
-      n % 64 + 128
-    )
+    return string.char(f(n / 262144) + 240, f(n % 262144 / 4096) + 128, f(n % 4096 / 64) + 128, n % 64 + 128)
   end
   error(string.format("invalid unicode codepoint '%x'", n))
 end
@@ -228,11 +223,7 @@ local function parse_string(str, i)
         j = j + #hex
       else
         if not escape_chars[c] then
-          decode_error(
-            str,
-            j - 1,
-            "invalid escape char '" .. c .. "' in string"
-          )
+          decode_error(str, j - 1, "invalid escape char '" .. c .. "' in string")
         end
         res = res .. escape_char_map_inv[c]
       end

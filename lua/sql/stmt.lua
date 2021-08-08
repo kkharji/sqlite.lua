@@ -28,10 +28,7 @@ Stmt.__index = Stmt
 ---@see Stmt:__parse()
 ---@usage local stmt = Stmt:parse(db, "insert into todos (title,desc) values(:title, :desc)")
 function Stmt:parse(conn, stmt)
-  assert(
-    sqlite.type_of(conn) == sqlite.type_of_db_ptr,
-    "Invalid connection passed to stmt:parse"
-  )
+  assert(sqlite.type_of(conn) == sqlite.type_of_db_ptr, "Invalid connection passed to stmt:parse")
   assert(type(stmt) == "string", "Invalid second argument passed to stmt:parse")
   local o = {
     str = stmt,
@@ -51,10 +48,7 @@ function Stmt:__parse()
   local code = sqlite.prepare_v2(self.conn, self.str, #self.str, pstmt, nil)
   assert(
     code == flags.ok,
-    string.format(
-      "sql.nvim: couldn't parse sql statement, ERRMSG: %s",
-      sqlite.to_str(sqlite.errmsg(self.conn))
-    )
+    string.format("sql.nvim: couldn't parse sql statement, ERRMSG: %s", sqlite.to_str(sqlite.errmsg(self.conn)))
   )
   self.pstmt = pstmt[0]
 end
@@ -76,10 +70,7 @@ function Stmt:finalize()
   self.finalized = self.errcode == flags.ok
   assert(
     self.finalized,
-    string.format(
-      "sql.nvim: couldn't finalize statement, ERRMSG: %s",
-      sqlite.to_str(sqlite.errmsg(self.conn))
-    )
+    string.format("sql.nvim: couldn't finalize statement, ERRMSG: %s", sqlite.to_str(sqlite.errmsg(self.conn)))
   )
   return self.finalized
 end
@@ -250,10 +241,7 @@ end
 ---@usage Stmt:each(function(s)  print(s:val(1))  end)
 ---@see Stmt:step
 function Stmt:each(callback)
-  assert(
-    type(callback) == "function",
-    "stmt:each expected a function, got something else."
-  )
+  assert(type(callback) == "function", "stmt:each expected a function, got something else.")
   while self:step() == flags.row do
     callback(self)
   end

@@ -37,10 +37,7 @@ local get_key = function(query) -- TODO: refactor / move to utils
                 local tmp = {}
                 for _k, _v in u.opairs(v) do
                   if type(_v) == "table" then
-                    table.insert(
-                      tmp,
-                      string.format("%s=%s", _k, table.concat(_v, ","))
-                    )
+                    table.insert(tmp, string.format("%s=%s", _k, table.concat(_v, ",")))
                   else
                     table.insert(tmp, string.format("%s=%s", _k, _v))
                   end

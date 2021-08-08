@@ -51,10 +51,7 @@ local bind = function(o)
       k = o.k ~= nil and o.k or k
       v = M.sqlvalue(v)
       v = o.nonbind and ":" .. k or v
-      table.insert(
-        res,
-        string.format("%s" .. (o.nonbind and nil or " = ") .. specifier(v, o.nonbind), k, v)
-      )
+      table.insert(res, string.format("%s" .. (o.nonbind and nil or " = ") .. specifier(v, o.nonbind), k, v))
     end
     return table.concat(res, o.s)
   end

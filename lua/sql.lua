@@ -14,6 +14,18 @@ local created = function()
   return os.date "%Y-%m-%d %H:%M:%S"
 end
 
+---Creates a new sql.nvim object, without creating a connection to uri
+---|sql.new| is identical to |sql.open| but it without opening sqlite db connection.
+---@param uri string: if uri is nil, then create in memory database.
+---@usage `sql.new()`
+---@usage `sql.new("./path/to/sql.sqlite")`
+---@usage `sql:new("$ENV_VARABLE")`
+---@return table: sql.nvim object
+---@see |sql.open|
+function sql.new(uri, opts)
+  return sql:open(uri, opts, true)
+end
+
 ---Connect, or create new sqlite db, either in memory or via a {uri}.
 ---|sql.open| is identical to |sql.new| but it additionally opens the db
 ---@param uri string: if uri is nil, then create in memory database.
@@ -49,18 +61,6 @@ function sql:open(uri, opts, noconn)
 
   setmetatable(o, self)
   return o
-end
-
----Creates a new sql.nvim object, without creating a connection to uri
----|sql.new| is identical to |sql.open| but it without opening sqlite db connection.
----@param uri string: if uri is nil, then create in memory database.
----@usage `sql.new()`
----@usage `sql.new("./path/to/sql.sqlite")`
----@usage `sql:new("$ENV_VARABLE")`
----@return table: sql.nvim object
----@see |sql.open|
-function sql.new(uri, opts)
-  return sql:open(uri, opts, true)
 end
 
 ---closes sqlite db connection.
