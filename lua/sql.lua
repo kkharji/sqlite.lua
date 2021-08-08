@@ -355,7 +355,7 @@ function sql:delete(tbl, specs)
   a.is_sqltbl(self, tbl, "delete")
   local ret_vals = {}
   if not specs then
-    return clib.exec_stmt(self.conn, P.delete(tbl)) == 0 and true or last_errmsg(self.conn)
+    return clib.exec_stmt(self.conn, P.delete(tbl)) == 0 and true or clib.last_errmsg(self.conn)
   end
 
   specs = u.is_nested(specs) and specs or { specs }
@@ -395,12 +395,12 @@ function sql:select(tbl, spec)
   clib.wrap_stmts(self.conn, function()
     spec.select = spec.keys and spec.keys or spec.select
 
-    local stmt = stmt:parse(self.conn, P.select(tbl, spec))
-    stmt:each(function()
-      table.insert(ret, stmt:kv())
+    local s = stmt:parse(self.conn, P.select(tbl, spec))
+    stmt.each(s, function()
+      table.insert(ret, stmt.kv(s))
     end)
-    stmt:reset()
-    stmt:finalize()
+    stmt.reset(s)
+    stmt.finalize(s)
   end)
 
   return P.post_select(ret, types)
