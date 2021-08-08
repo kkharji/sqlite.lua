@@ -97,9 +97,9 @@ sql:eval({params})                                                *sql:eval()*
         boolean or table
 
     Usage: ~
-        db:eval("drop table if exists todos")
-        db:eval("select * from todos where id = ?", 1)
-        db:eval("insert into t(a, b) values(:a, :b)", {a = "1", b = 2021})
+        `db:eval("drop table if exists todos")`
+        `db:eval("select * from todos where id = ?", 1)`
+        `db:eval("insert into t(a, b) values(:a, :b)", {a = "1", b = 2021})`
 
 
 sql:isopen()                                                    *sql:isopen()*
@@ -134,28 +134,27 @@ sql:exists({name})                                              *sql:exists()*
         boolean
 
 
-sql:schema({tbl}, {info})                                       *sql:schema()*
-    get sql table {name} schema, if table doesn't exist then return empty
-    table.
+sql:schema({tbl_name}, {info})                                  *sql:schema()*
+    Get {name} table schema, if table doesn't exist then return empty table.
 
 
     Parameters: ~
-        {tbl}  (string)   the table name
-        {info} (boolean)  whether to return table info. default false.
+        {tbl_name} (string)   the table name
+        {info}     (boolean)  whether to return table info. default false.
 
     Return: ~
         table: list of keys or keys and their type.
 
 
-sql:create({name}, {schema})                                    *sql:create()*
+sql:create({tbl_name}, {schema})                                *sql:create()*
     Create a new sqlite db table with {name} based on {schema}. if
     {schema.ensure} then create only when it doesn't exists. similar to 'create
     if not exists'
 
 
     Parameters: ~
-        {name}   (string)  table name
-        {schema} (table)   the table keys/column and their types
+        {tbl_name} (string)  table name
+        {schema}   (table)   the table keys/column and their types
 
     Return: ~
         boolean
@@ -164,14 +163,14 @@ sql:create({name}, {schema})                                    *sql:create()*
         `db:create("todos", {id = {"int", "primary", "key"}, title = "text"})`
 
 
-sql:drop({name})                                                  *sql:drop()*
+sql:drop({tbl_name})                                              *sql:drop()*
     Create a new sqlite db table with {name} based on {schema}. if
     {schema.ensure} then create only when it doesn't exists. similar to 'create
     if not exists'
 
 
     Parameters: ~
-        {name} (string)  table name
+        {tbl_name} (string)  table name
 
     Return: ~
         boolean
@@ -180,26 +179,30 @@ sql:drop({name})                                                  *sql:drop()*
         `db:drop("todos")`
 
 
-sql:insert()                                                    *sql:insert()*
+sql:insert({tbl_name}, {rows})                                  *sql:insert()*
     Insert to lua table into sqlite database table.
 
+
+    Parameters: ~
+        {tbl_name} (string)  the table name
+        {rows}     (table)   rows to insert to the table.
 
     Return: ~
         boolean|integer: true incase the table was inserted successfully, and
         the last inserted row id.
 
     Usage: ~
-        db:insert("todos", { title = "new todo" })
+        `db:insert("todos", { title = "new todo" })`
 
 
-sql:update({tbl}, {specs})                                      *sql:update()*
+sql:update({tbl_name}, {specs})                                 *sql:update()*
     Update table row with where closure and list of values
 
 
     Parameters: ~
-        {tbl}   (string)  the name of the db table.
-        {specs} (table)   a {spec} or a list of {specs} with where and values
-                          key.
+        {tbl_name} (string)  the name of the db table.
+        {specs}    (table)   a {spec} or a list of {specs} with where and
+                             values key.
 
     Return: ~
         boolean: true incase the table was updated successfully.
@@ -209,36 +212,40 @@ sql:update({tbl}, {specs})                                      *sql:update()*
         }})`
 
 
-sql:delete({tbl}, {specs})                                      *sql:delete()*
+sql:delete({tbl_name}, {specs})                                 *sql:delete()*
     Delete a {tbl} row/rows based on the {specs} given. if no spec was given,
     then all the {tbl} content will be deleted.
 
 
     Parameters: ~
-        {tbl}   (string)  the name of the db table.
-        {specs} (table)   a {spec} or a list of {specs} with where and values
-                          key.
+        {tbl_name} (string)  the name of the db table.
+        {specs}    (table)   a {spec} or a list of {specs} with where and
+                             values key.
 
     Return: ~
         boolean: true if operation is successfully, false otherwise.
 
     Usage: ~
-        db:delete("todos")
-        db:delete("todos", { where = { id = 1 })
-        db:delete("todos", { where = { id = {1,2,3} })
+        `db:delete("todos")`
+        `db:delete("todos", { where = { id = 1 })`
+        `db:delete("todos", { where = { id = {1,2,3} })`
 
 
-sql:select()                                                    *sql:select()*
+sql:select({tbl_name}, {spec})                                  *sql:select()*
     Query from a table with where and join options
 
+
+    Parameters: ~
+        {tbl_name} (string)  the name of the db table to select on
+        {spec}     (table)   a {spec} with where and values key.
 
     Return: ~
         lua list of matching rows
 
     Usage: ~
-        db:get("todos") -- everything
-        db:get("todos", { where = { id = 1 })
-        db:get("todos", { limit = 5 })
+        `db:select("todos") -- everything`
+        `db:select("todos", { where = { id = 1 })`
+        `db:select("todos", { limit = 5 })`
 
 
 sql:table({tbl_name})                                            *sql:table()*
@@ -327,14 +334,14 @@ tbl:where({where})                                               *tbl:where()*
         nil or row
 
     Usage: ~
-        ---@usage: tbl:where{id = 1}
+        tbl:where{id = 1}
 
     See: ~
         |sql:select()|
 
 
 tbl:each({query}, {func})                                         *tbl:each()*
-    Iterate over {self.name} rows and execute {func}.
+    Iterate over table rows and execute {func}.
 
 
     Parameters: ~
@@ -387,12 +394,12 @@ tbl:insert({rows})                                              *tbl:insert()*
         |sql:insert()|
 
 
-tbl:remove({specs})                                             *tbl:remove()*
+tbl:remove({where})                                             *tbl:remove()*
     Same functionalities as |sql:delete()|
 
 
     Parameters: ~
-        {specs} (table)  specs.where
+        {where} (table)  define where as table
 
     Return: ~
         boolean
@@ -417,8 +424,7 @@ tbl:update({specs})                                             *tbl:update()*
 
 
 tbl:replace({rows})                                            *tbl:replace()*
-    Same functionalities as |tbl:add()|, but replaces {self.name} content with
-    {rows}
+    Same functionalities as |tbl:add()|, but replaces table content with {rows}
 
 
     Parameters: ~

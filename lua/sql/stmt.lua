@@ -9,12 +9,8 @@ Stmt.__index = Stmt
 ---@brief ]]
 ---@tag Stmt.lua
 
----@class sqlite3 @sqlite3 db object
----@class sqlite3_blob @sqlite3 blob object
----@class sqlite3_flag @sqlite3 error flag
-
 ---Create new object for {conn} to deal with sqlite {Stmt}
----@class Stmt @oject to deal with sqlite statements
+---@class Stmt @object to deal with sqlite statements
 ---@param conn sqlite3: the database connection.
 ---@param str string: the sqlite statement to be parsed.
 ---@return Stmt: collection of methods, applicable to the parsed statement.
