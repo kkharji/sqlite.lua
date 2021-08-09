@@ -18,8 +18,13 @@ local t = require "sql.table"
 local P = require "sql.parser"
 local flags = clib.flags
 
+---@class SQLDatabase
 local DB = {}
 DB.__index = DB
+
+---@class SQLQuerySpec
+---@field where table<string, any|any[]>
+---@field values table<string, any>
 
 ---@TODO: decide whether using os.time and epoch time would be better.
 ---@return string osdate
@@ -33,7 +38,7 @@ end
 ---@usage `require'sql'.new()` in memory
 ---@usage `require'sql'.new("./path/to/sql.sqlite")` to given path
 ---@usage `require'sql'.new("$ENV_VARABLE")` reading from env variable
----@return table: sql.nvim object
+---@return SQLDatabase
 ---@see sql.open
 function DB.new(uri, opts)
   return DB:open(uri, opts, true)
@@ -47,7 +52,7 @@ end
 ---@usage `require("sql"):open("$ENV_VARABLE")` reading from env variable
 ---@usage `db:open()` reopen connection if closed.
 ---@TODO: decide whether to add active_since.
----@return table: sql.nvim object
+---@return SQLDatabase
 function DB:open(uri, opts, noconn)
   local o = {}
 
@@ -76,9 +81,9 @@ function DB:open(uri, opts, noconn)
   return o
 end
 
----Close sqlite db connection.
+---Close sqlite db connection. returns true if closed, error otherwise.
 ---@usage `db:close()`
----@return boolean: true if closed, error otherwise.
+---@return boolean
 function DB:close()
   self.closed = self.closed or clib.close(self.conn) == 0
   a.should_close(self.conn, self.closed)
@@ -91,10 +96,11 @@ end
 ---Else {args[1]} need to be the uri and {args[2]} the function.
 ---The function should accept and use db object.
 ---@varargs If used as db method, then the {args[1]} should be a function, else {args[1]} and {args[2]}.
----@usage `require"sql".open_with("$ENV_VARABLE/path", function(db) db:eval("...") end)` use a db at uri
----@usage `db:with_open(function() db:insert{...} end)`
----@return table: sql.nvim object
+---@usage `require"sql".open_with("path", function(db) db:eval("...") end)` use a the sqlite db at path.
+---@usage `db:with_open(function() db:insert{...} end)` open db connection, execute insert and close.
 ---@overload func(self, uri, func(db))
+---@overload func(self, func(db))
+---@return any
 ---@see DB:open
 function DB:with_open(...)
   local args = { ... }
@@ -113,17 +119,17 @@ function DB:with_open(...)
   return res
 end
 
----Main sqlite interface. This function evaluates {statement} and if there are
----results from evaluating it then the function returns list of row(s). Else, it
----returns a boolean indecating whether the evaluation was successful - or not-
----Optionally, the function accept {params} which can be a dict of values corresponding
----to the sql statement or a list of unamed values.
+---Evaluates a sql {statement} and if there are results from evaluating it then
+---the function returns list of row(s). Else, it returns a boolean indecating
+---whether the evaluation was successful. Optionally, the function accept
+---{params} which can be a dict of values corresponding to the sql statement or
+---a list of unamed values.
 ---@param statement string or table: string representing the {statement} or a list of {statements}
----@param params table: params to be bind to {statement}, it can be a list or dict
----@usage `db:eval("drop table if exists todos")`
----@usage `db:eval("select * from todos where id = ?", 1)`
----@usage `db:eval("insert into t(a, b) values(:a, :b)", {a = "1", b = 2021})`
----@return boolean or table
+---@param params? table: params to be bind to {statement}, it can be a list or dict
+---@usage `db:eval("drop table if exists todos")` evaluate without any extra arguments.
+---@usage `db:eval("select * from todos where id = ?", 1)` evaluate with unamed value.
+---@usage `db:eval("insert into t(a, b) values(:a, :b)", {a = "1", b = 3})` evaluate with named arguments.
+---@return boolean | table
 function DB:eval(statement, params)
   local res = {}
   local s = stmt:parse(self.conn, statement)
@@ -176,13 +182,15 @@ function DB:eval(statement, params)
 end
 
 ---Predict returning true if db connection is active.
----@return boolean: true if db is opened, otherwise false.
+---@return boolean
+---@usage `if db:isopen() then db:close() end` use in if statement.
 function DB:isopen()
   return not self.closed
 end
 
----Predict returning true if db connection is deactivated.
----@return boolean: true if db is close, otherwise false.
+---Predict returning true if db connection is indeed closed.
+---@usage `if db:isclose() then db:open() end` use in if statement.
+---@return boolean
 function DB:isclose()
   return self.closed
 end
@@ -190,7 +198,7 @@ end
 ---Returns current connection status
 ---Get last error code
 ---@TODO: decide whether to keep this function
----@return table: msg,code,closed
+---@return @SQLDatabaseStatus { msg, code }
 function DB:status()
   return {
     msg = clib.last_errmsg(self.conn),
@@ -198,18 +206,19 @@ function DB:status()
   }
 end
 
----Check if a table with {name} exists in sqlite db
----@param name string: the table name.
+---Check if a table with {tbl_name} exists in sqlite db
+---@param tbl_name string: the table name.
+---@usage `if not db:exists("todo_tbl") then error("...") end`
 ---@return boolean
-function DB:exists(name)
-  local q = self:eval("select name from sqlite_master where name= ?", name)
+function DB:exists(tbl_name)
+  local q = self:eval("select name from sqlite_master where name= ?", tbl_name)
   return type(q) == "table" and true or false
 end
 
----Get {name} table schema, if table doesn't exist then return empty table.
----@param tbl_name string: the table name
----@param info boolean: whether to return table info. default false.
----@return table: list of keys or keys and their type.
+---Get {name} table schema, if table does not exist then return an empty table.
+---@param tbl_name string the table name
+---@param info boolean whether to return table info. default false.
+---@return table list of keys or keys and their type.
 function DB:schema(tbl_name, info)
   local sch = self:eval(string.format("pragma table_info(%s)", tbl_name))
   if type(sch) == "boolean" then
@@ -251,10 +260,11 @@ function DB:schema(tbl_name, info)
 end
 
 ---Create a new sqlite db table with {name} based on {schema}. if {schema.ensure} then
----create only when it doesn't exists. similar to 'create if not exists'
----@param tbl_name string: table name
----@param schema table: the table keys/column and their types
+---create only when it does not exists. similar to 'create if not exists'
+---@param tbl_name string table name
+---@param schema table the table keys/column and their types
 ---@usage `db:create("todos", {id = {"int", "primary", "key"}, title = "text"})`
+---create table with the given schema.
 ---@return boolean
 function DB:create(tbl_name, schema)
   return self:eval(P.create(tbl_name, schema))
@@ -263,18 +273,20 @@ end
 ---Create a new sqlite db table with {name} based on {schema}. if {schema.ensure} then
 ---create only when it doesn't exists. similar to 'create if not exists'
 ---@param tbl_name string: table name
----@usage `db:drop("todos")`
+---@usage `db:drop("todos")` drop table.
 ---@return boolean
 function DB:drop(tbl_name)
   return self:eval(P.drop(tbl_name))
 end
 
 ---Insert to lua table into sqlite database table.
+---returns true incase the table was inserted successfully, and the last
+---inserted row id.
 ---@param tbl_name string: the table name
 ---@param rows table: rows to insert to the table.
----@return boolean|integer: true incase the table was inserted successfully, and the last inserted row id.
----@usage `db:insert("todos", { title = "new todo" })`
----@TODO support unnamed or anonymous args
+---@return boolean|integer
+---@usage `db:insert("todos", { title = "new todo" })` single item.
+---@usage `db:insert("items", {  { name = "a"}, { name = "b" }, { name = "c" } })` insert multiple items.
 ---@TODO handle inconflict case
 function DB:insert(tbl_name, rows)
   a.is_sqltbl(self, tbl_name, "insert")
@@ -303,10 +315,13 @@ function DB:insert(tbl_name, rows)
 end
 
 ---Update table row with where closure and list of values
+---returns true incase the table was updated successfully.
 ---@param tbl_name string: the name of the db table.
----@param specs table: a {spec} or a list of {specs} with where and values key.
----@return boolean: true incase the table was updated successfully.
----@usage `db:update("todos", { where = { id = "1" }, values = { action = "DONE" }})`
+---@param specs SQLQuerySpec|SQLQuerySpec[]
+---@return boolean
+---@usage `db:update("todos", { where = { id = "1" }, values = { action = "DONE" }})` update id 1 with the given keys
+---@usage `db:update("todos", {{ where = { id = "1" }, values = { action = "DONE" }}, {...}, {...}})` multi updates.
+---@usage `db:update("todos", { where = { project = "sql.nvim" }, values = { status = "later" } )` update multiple rows
 function DB:update(tbl_name, specs)
   a.is_sqltbl(self, tbl_name, "update")
 
@@ -345,14 +360,14 @@ function DB:update(tbl_name, specs)
   return succ
 end
 
----Delete a {tbl} row/rows based on the {specs} given. if no spec was given,
----then all the {tbl} content will be deleted.
----@param tbl_name string: the name of the db table.
----@param specs table: a {spec} or a list of {specs} with where and values key.
+---Delete a {tbl_name} row/rows based on the {specs} given. if no spec was given,
+---then all the {tbl_name} content will be deleted.
+---@param tbl_name string the name of the db table.
+---@param specs SQLQuerySpec
 ---@return boolean: true if operation is successfully, false otherwise.
----@usage `db:delete("todos")`
----@usage `db:delete("todos", { where = { id = 1 })`
----@usage `db:delete("todos", { where = { id = {1,2,3} })`
+---@usage `db:delete("todos")` delete todos table content
+---@usage `db:delete("todos", { where = { id = 1 })` delete row that has id as 1
+---@usage `db:delete("todos", { where = { id = {1,2,3} })` delete all rows that has value of id 1 or 2 or 3
 function DB:delete(tbl_name, specs)
   a.is_sqltbl(self, tbl_name, "delete")
   local ret_vals = {}
@@ -381,11 +396,12 @@ end
 
 ---Query from a table with where and join options
 ---@param tbl_name string: the name of the db table to select on
----@param spec table: a {spec} with where and values key.
----@usage `db:select("todos") -- everything`
----@usage `db:select("todos", { where = { id = 1 })`
----@usage `db:select("todos", { limit = 5 })`
----@return lua list of matching rows
+---@param spec SQLQuerySpec
+---@usage `db:select("todos")` get everything
+---@usage `db:select("todos", { where = { id = 1 })` get row with id of 1
+---@usage `db:select("todos", { where = { status = {"later", "paused"} })` get row with status value of later or paused
+---@usage `db:select("todos", { limit = 5 })` get 5 items from todos table
+---@return table[]
 function DB:select(tbl_name, spec)
   a.is_sqltbl(self, tbl_name, "select")
   spec = spec or {}
