@@ -254,7 +254,7 @@ end
 ---@return table[]
 ---@usage `local res = t1:sort({ where = {id = {32,12,35}}})` return rows sort by id
 ---@usage `local res = t1:sort({ where = {id = {32,12,35}}}, "age")` return rows sort by age
----@usage `local res = t1:sort({where = {id = { 32,12,35 }}}, "age", function(a, b) return a > b end)` with custom function
+---@usage `local res = t1:sort({where = { ... }}, "age", function(a, b) return a > b end)` with custom function
 function tbl:sort(query, transform, comp)
   local res = self:get(query)
   local f = transform or function(r)
@@ -348,8 +348,8 @@ end
 ---@param opts table
 ---@return SQLTableExt
 function tbl:extend(db, name, schema)
-  local tbl = db:table(name, { schema = schema })
-  return setmetatable({ super = tbl }, { __index = tbl })
+  local t = self:new(db, name, { schema = schema })
+  return setmetatable({ super = t }, { __index = t })
 end
 
 return tbl

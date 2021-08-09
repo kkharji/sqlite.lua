@@ -26,6 +26,9 @@ DB.__index = DB
 ---@field where table
 ---@field values table
 
+---@class SQLDatabaseExt:SQLDatabase
+---@field super SQLDatabase
+
 ---return now date
 ---@TODO: decide whether using os.time and epoch time would be better.
 ---@return string osdate
@@ -426,14 +429,11 @@ function DB:table(tbl_name, opts)
   return t:new(self, tbl_name, opts)
 end
 
----@class SQLDatabaseExt:SQLDatabase
----@field super SQLDatabase
-
 ---Use to Extend SQLDatabase Object with extra sugar syntax and api.
 ---@param sql SQLDatabase
 ---@param tbl SQLTable
----@param opts table uri, opts, tbl_name, tbl_name ....
---@return SQLDatabase
+---@param opts table: uri, opts, tbl_name, tbl_name ....
+---@return SQLDatabase
 function DB:extend(opts)
   local db = self.new(opts.uri, opts.opts)
   ---@type SQLDatabase
