@@ -167,9 +167,9 @@ end
 ---Query the table and return results. If cache is enabled and the {query} has
 ---been ran before, then query results from cache will be returned.
 ---Returns empty table if no results
----@param query table query.where, query.keys, query.join
+---@param query: table query.where, query.keys, query.join
 ---@usage `projects:get()` get a list of all rows in project table.
----@usage `projects:get({ where = { status = "pending", client = "neovim" }})` get a list of all rows that are pending and neovim is the client.
+---@usage `projects:get({ where = { status = "pending", client = "neovim" }})`
 ---@usage `projects:get({ where = { status = "done" }, limit = 5})` get the last 5 done projects
 ---@return table
 ---@see DB:select
@@ -203,7 +203,8 @@ end
 ---Returns true only when rows is not emtpy.
 ---@param query table: query.where, query.keys, query.join
 ---@param func function: a function that expects a row
----@usage `todos:each({ where = { status = "pending"}, contains = { title = "fix*" } }, function(row)  print(row.title) end)`
+---@usage `let query = { where = { status = "pending"}, contains = { title = "fix*" } }`
+---@usage `todos:each(query, function(row)  print(row.title) end)`
 ---@return boolean
 function tbl:each(query, func)
   assert(type(func) == "function", "required a function as second params")
@@ -231,7 +232,8 @@ end
 ---Create a new table from iterating over {self.name} rows with {func}.
 ---@param query table: query.where, query.keys, query.join
 ---@param func function: a function that expects a row
----@usage `local t = todos:map({ where = { status = "pending"}, contains = { title = "fix*" } }, function(row) return row.title end)`
+---@usage `let query = { where = { status = "pending"}, contains = { title = "fix*" } }`
+---@usage `local t = todos:map(query, function(row) return row.title end)`
 ---@return table[]
 function tbl:map(query, func)
   assert(type(func) == "function", "required a function as second params")

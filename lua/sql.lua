@@ -23,9 +23,10 @@ local DB = {}
 DB.__index = DB
 
 ---@class SQLQuerySpec
----@field where table<string, any|any[]>
----@field values table<string, any>
+---@field where table
+---@field values table
 
+---return now date
 ---@TODO: decide whether using os.time and epoch time would be better.
 ---@return string osdate
 local created = function()
@@ -34,7 +35,8 @@ end
 
 ---Creates a new sql.nvim object, without creating a connection to uri.
 ---|DB.new| is identical to |DB:open| but it without opening sqlite db connection.
----@param uri string? path to db. if nil, then create in memory database.
+---@param uri string: path to db.if nil, then create in memory database.
+---@param opts table
 ---@usage `require'sql'.new()` in memory
 ---@usage `require'sql'.new("./path/to/sql.sqlite")` to given path
 ---@usage `require'sql'.new("$ENV_VARABLE")` reading from env variable
@@ -47,6 +49,7 @@ end
 ---Connect, or create new sqlite db, either in memory or via a {uri}.
 ---|DB:open| is identical to |DB.new| but it additionally opens the db
 ---@param uri string: if uri is nil, then create in memory database.
+---@param opts table
 ---@usage `require("sql"):open()` in memory.
 ---@usage `require("sql"):open("./path/to/sql.sqlite")` to given path.
 ---@usage `require("sql"):open("$ENV_VARABLE")` reading from env variable
@@ -91,8 +94,6 @@ end
 ---@varargs If used as db method, then the {args[1]} should be a function, else {args[1]} and {args[2]}.
 ---@usage `require"sql".open_with("path", function(db) db:eval("...") end)` use a the sqlite db at path.
 ---@usage `db:with_open(function() db:insert{...} end)` open db connection, execute insert and close.
----@overload func(self, uri, func(db))
----@overload func(self, func(db))
 ---@return any
 ---@see DB:open
 function DB:with_open(...)
@@ -209,11 +210,10 @@ function DB:exists(tbl_name)
 end
 
 ---Create a new sqlite db table with {name} based on {schema}. if {schema.ensure} then
----create only when it does not exists. similar to 'create if not exists'
+---create only when it does not exists. similar to 'create if not exists'.
 ---@param tbl_name string table name
 ---@param schema table the table keys/column and their types
----@usage `db:create("todos", {id = {"int", "primary", "key"}, title = "text"})`
----create table with the given schema.
+---@usage `db:create("todos", {id = {"int", "primary", "key"}, title = "text"})` create table with the given schema.
 ---@return boolean
 function DB:create(tbl_name, schema)
   return self:eval(P.create(tbl_name, schema))
