@@ -17,8 +17,9 @@ local a = require "sql.assert"
 local t = require "sql.table"
 local P = require "sql.parser"
 local flags = clib.flags
-local sql = {}
-sql.__index = sql
+
+local DB = {}
+DB.__index = DB
 
 ---@TODO: decide whether using os.time and epoch time would be better.
 ---@return string osdate
@@ -26,28 +27,28 @@ local created = function()
   return os.date "%Y-%m-%d %H:%M:%S"
 end
 
----Creates a new sql.nvim object, without creating a connection to uri
----|sql.new| is identical to |sql.open| but it without opening sqlite db connection.
----@param uri string: if uri is nil, then create in memory database.
----@usage `sql.new()`
----@usage `sql.new("./path/to/sql.sqlite")`
----@usage `sql:new("$ENV_VARABLE")`
+---Creates a new sql.nvim object, without creating a connection to uri.
+---|DB.new| is identical to |DB:open| but it without opening sqlite db connection.
+---@param uri string? path to db. if nil, then create in memory database.
+---@usage `require'sql'.new()` in memory
+---@usage `require'sql'.new("./path/to/sql.sqlite")` to given path
+---@usage `require'sql'.new("$ENV_VARABLE")` reading from env variable
 ---@return table: sql.nvim object
 ---@see sql.open
-function sql.new(uri, opts)
-  return sql:open(uri, opts, true)
+function DB.new(uri, opts)
+  return DB:open(uri, opts, true)
 end
 
 ---Connect, or create new sqlite db, either in memory or via a {uri}.
 ---|sql.open| is identical to |sql.new| but it additionally opens the db
 ---@param uri string: if uri is nil, then create in memory database.
----@usage `sql.open()`
----@usage `sql.open("./path/to/sql.sqlite")`
----@usage `sql:open("$ENV_VARABLE")`
+---@usage `require("sql"):open()` in memory.
+---@usage `require("sql"):open("./path/to/sql.sqlite")` to given path.
+---@usage `require("sql"):open("$ENV_VARABLE")` reading from env variable
 ---@usage `db:open()` reopen connection if closed.
 ---@TODO: decide whether to add active_since.
 ---@return table: sql.nvim object
-function sql:open(uri, opts, noconn)
+function DB:open(uri, opts, noconn)
   local o = {}
 
   if self.uri then
@@ -75,29 +76,30 @@ function sql:open(uri, opts, noconn)
   return o
 end
 
----closes sqlite db connection.
+---Close sqlite db connection.
 ---@usage `db:close()`
 ---@return boolean: true if closed, error otherwise.
-function sql:close()
+function DB:close()
   self.closed = self.closed or clib.close(self.conn) == 0
   a.should_close(self.conn, self.closed)
   return self.closed
 end
 
----Same as |sql:open| but closes db connection after executing {args[1]} or
+---Same as |DB:open| but closes db connection after executing {args[1]} or
 ---{args[2]} depending of how its called. if the function is called as a
 ---method to db object e.g. *db:with_open*, then {args[1]} must be a function.
 ---Else {args[1]} need to be the uri and {args[2]} the function.
 ---The function should accept and use db object.
 ---@varargs If used as db method, then the {args[1]} should be a function, else {args[1]} and {args[2]}.
----@usage `sql.open_with("$ENV_VARABLE/path", function(db) db:eval("...") end)`
+---@usage `require"sql".open_with("$ENV_VARABLE/path", function(db) db:eval("...") end)` use a db at uri
 ---@usage `db:with_open(function() db:insert{...} end)`
 ---@return table: sql.nvim object
----@see sql:open
-function sql:with_open(...)
+---@overload func(self, uri, func(db))
+---@see DB:open
+function DB:with_open(...)
   local args = { ... }
   if type(self) == "string" or not self then
-    self = sql:open(self)
+    self = DB:open(self)
   end
 
   local func = type(args[1]) == "function" and args[1] or args[2]
@@ -122,7 +124,7 @@ end
 ---@usage `db:eval("select * from todos where id = ?", 1)`
 ---@usage `db:eval("insert into t(a, b) values(:a, :b)", {a = "1", b = 2021})`
 ---@return boolean or table
-function sql:eval(statement, params)
+function DB:eval(statement, params)
   local res = {}
   local s = stmt:parse(self.conn, statement)
 
@@ -175,13 +177,13 @@ end
 
 ---Predict returning true if db connection is active.
 ---@return boolean: true if db is opened, otherwise false.
-function sql:isopen()
+function DB:isopen()
   return not self.closed
 end
 
 ---Predict returning true if db connection is deactivated.
 ---@return boolean: true if db is close, otherwise false.
-function sql:isclose()
+function DB:isclose()
   return self.closed
 end
 
@@ -189,7 +191,7 @@ end
 ---Get last error code
 ---@TODO: decide whether to keep this function
 ---@return table: msg,code,closed
-function sql:status()
+function DB:status()
   return {
     msg = clib.last_errmsg(self.conn),
     code = clib.last_errcode(self.conn),
@@ -199,7 +201,7 @@ end
 ---Check if a table with {name} exists in sqlite db
 ---@param name string: the table name.
 ---@return boolean
-function sql:exists(name)
+function DB:exists(name)
   local q = self:eval("select name from sqlite_master where name= ?", name)
   return type(q) == "table" and true or false
 end
@@ -208,7 +210,7 @@ end
 ---@param tbl_name string: the table name
 ---@param info boolean: whether to return table info. default false.
 ---@return table: list of keys or keys and their type.
-function sql:schema(tbl_name, info)
+function DB:schema(tbl_name, info)
   local sch = self:eval(string.format("pragma table_info(%s)", tbl_name))
   if type(sch) == "boolean" then
     return {}
@@ -254,7 +256,7 @@ end
 ---@param schema table: the table keys/column and their types
 ---@usage `db:create("todos", {id = {"int", "primary", "key"}, title = "text"})`
 ---@return boolean
-function sql:create(tbl_name, schema)
+function DB:create(tbl_name, schema)
   return self:eval(P.create(tbl_name, schema))
 end
 
@@ -263,7 +265,7 @@ end
 ---@param tbl_name string: table name
 ---@usage `db:drop("todos")`
 ---@return boolean
-function sql:drop(tbl_name)
+function DB:drop(tbl_name)
   return self:eval(P.drop(tbl_name))
 end
 
@@ -274,7 +276,7 @@ end
 ---@usage `db:insert("todos", { title = "new todo" })`
 ---@TODO support unnamed or anonymous args
 ---@TODO handle inconflict case
-function sql:insert(tbl_name, rows)
+function DB:insert(tbl_name, rows)
   a.is_sqltbl(self, tbl_name, "insert")
   local ret_vals = {}
   local info = self:schema(tbl_name, true)
@@ -305,7 +307,7 @@ end
 ---@param specs table: a {spec} or a list of {specs} with where and values key.
 ---@return boolean: true incase the table was updated successfully.
 ---@usage `db:update("todos", { where = { id = "1" }, values = { action = "DONE" }})`
-function sql:update(tbl_name, specs)
+function DB:update(tbl_name, specs)
   a.is_sqltbl(self, tbl_name, "update")
 
   local ret_vals = {}
@@ -351,7 +353,7 @@ end
 ---@usage `db:delete("todos")`
 ---@usage `db:delete("todos", { where = { id = 1 })`
 ---@usage `db:delete("todos", { where = { id = {1,2,3} })`
-function sql:delete(tbl_name, specs)
+function DB:delete(tbl_name, specs)
   a.is_sqltbl(self, tbl_name, "delete")
   local ret_vals = {}
   if not specs then
@@ -384,7 +386,7 @@ end
 ---@usage `db:select("todos", { where = { id = 1 })`
 ---@usage `db:select("todos", { limit = 5 })`
 ---@return lua list of matching rows
-function sql:select(tbl_name, spec)
+function DB:select(tbl_name, spec)
   a.is_sqltbl(self, tbl_name, "select")
   spec = spec or {}
   self.modified = false
@@ -411,8 +413,8 @@ end
 ---Create new sql-table object.
 ---@param tbl_name string: the name of the table. can be new or existing one.
 ---@return table
-function sql:table(tbl_name, opts)
+function DB:table(tbl_name, opts)
   return t:new(self, tbl_name, opts)
 end
 
-return sql
+return DB
