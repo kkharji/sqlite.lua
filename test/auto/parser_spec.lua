@@ -121,7 +121,7 @@ describe("parse", function()
         age = "int",
         ensure = true,
       }
-      local expected = "create table if not exists people(age int, id integer primary key, name text)"
+      local expected = "create table if not exists people(age int, id integer not null primary key, name text)"
       local passed = p.create("people", defs)
       eq(expected, passed, "should be identical")
     end)
