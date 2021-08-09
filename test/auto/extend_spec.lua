@@ -4,6 +4,9 @@ local testrui = "/tmp/extend_db"
 vim.loop.fs_unlink(testrui)
 
 describe("extend:", function()
+  ---@class Manager:SQLDatabaseExt
+  ---@field projects SQLTableExt
+  ---@field todos SQLTableExt
   local manager = sql:extend {
     uri = testrui,
     projects = {
@@ -18,7 +21,7 @@ describe("extend:", function()
       status = "text",
       completed = "boolean",
       details = "text",
-      -- foreign_keys = { client = "projects(id)", },
+      -- foreign_keys = { client = "projects.id", },
       -- KEY(client) REFERENCES projects(id)"
     },
     opts = {
@@ -55,7 +58,7 @@ describe("extend:", function()
     eq(true, manager.projects:remove(), "projects table should work.")
   end)
 
-  it("create a custom insert", function()
+  it("extending new object should work wihout issues", function()
     local sqlnvim = {
       title = "sql.nvim",
       objectives = {
@@ -65,20 +68,28 @@ describe("extend:", function()
       },
     }
 
-    manager.projects.insert = function(self)
+    local succ, id = manager.projects:insert(sqlnvim)
+    ---TODO: use id
+    -- eq(true, succ, "should have returned id.")
+
+    eq(true, manager.projects:remove(), "should remove after default insert.")
+
+    function manager.projects:insert()
       local succ, id = self.super:insert(sqlnvim)
       if not succ then
         error "operation faild"
       end
-      return id
+      return succ
     end
 
-    eq(1, manager.projects:insert(), "should have returned id.")
-    eq(
-      sqlnvim.title,
-      manager.projects:get({ where = { title = sqlnvim.title } })[1].title,
-      "should have inserted sqlnvim project"
-    )
+    local succ, id = manager.projects:insert()
+
+    -- eq(true, succ, "should have returned id.")
+
+    function manager.projects:get()
+      return self.super:get({ where = { title = sqlnvim.title } })[1].title
+    end
+
+    eq(sqlnvim.title, manager.projects:get(), "should have inserted sqlnvim project")
   end)
-  it("extending new object should work wihout issues", function() end)
 end)

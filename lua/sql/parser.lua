@@ -311,7 +311,7 @@ M.create = function(tbl, defs)
 
   for k, v in u.opairs(defs) do
     if type(v) == "boolean" then
-      table.insert(items, string.format("%s integer primary key", k))
+      table.insert(items, string.format("%s integer not null primary key", k))
     elseif type(v) ~= "table" then
       table.insert(items, string.format("%s %s", k, v))
     else
