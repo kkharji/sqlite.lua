@@ -55,6 +55,7 @@ M.flags = {
   ["done"] = 101,
 }
 
+---@class SQLOpts
 M.valid_pargma = {
   ["analysis_limit"] = true,
   ["application_id"] = true,
@@ -662,6 +663,9 @@ M.connect = function(uri, opts)
   for k, v in pairs(opts) do
     if not M.valid_pargma[k] then
       error("sql.nvim: " .. k .. " is not a valid pragma")
+    end
+    if type(k) == "boolean" then
+      k = "ON"
     end
     M.exec_stmt(conn[0], ("pragma %s = %s"):format(k, v))
   end
