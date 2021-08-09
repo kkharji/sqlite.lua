@@ -426,4 +426,10 @@ function DB:table(tbl_name, opts)
   return t:new(self, tbl_name, opts)
 end
 
+--@return SQLDatabase
+function DB:extend(extend_opts)
+  local extend = require "sql.extend"
+  return extend(self, t, extend_opts)
+end
+
 return DB
