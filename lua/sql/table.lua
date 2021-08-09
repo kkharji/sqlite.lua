@@ -203,12 +203,7 @@ end
 ---Returns true only when rows is not emtpy.
 ---@param query table: query.where, query.keys, query.join
 ---@param func function: a function that expects a row
----@usage `
---- todos:each({ where = { status = "pending"}, contains = { title = "fix*" } },
----   function(row)
----     print(row.title)
---- end)
----`
+---@usage `todos:each({ where = { status = "pending"}, contains = { title = "fix*" } }, function(row)  print(row.title) end)`
 ---@return boolean
 function tbl:each(query, func)
   assert(type(func) == "function", "required a function as second params")
@@ -236,12 +231,7 @@ end
 ---Create a new table from iterating over {self.name} rows with {func}.
 ---@param query table: query.where, query.keys, query.join
 ---@param func function: a function that expects a row
----@usage `
---- local t = todos:map({ where = { status = "pending"}, contains = { title = "fix*" } },
----   function(row)
----     return row.title
---- end)
----`
+---@usage `local t = todos:map({ where = { status = "pending"}, contains = { title = "fix*" } }, function(row) return row.title end)`
 ---@return table[]
 function tbl:map(query, func)
   assert(type(func) == "function", "required a function as second params")

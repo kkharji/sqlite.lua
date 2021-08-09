@@ -309,7 +309,7 @@ end
 ---Update table row with where closure and list of values
 ---returns true incase the table was updated successfully.
 ---@param tbl_name string: the name of the db table.
----@param specs SQLQuerySpec|SQLQuerySpec[]
+---@param specs SQLQuerySpec | SQLQuerySpec[]
 ---@return boolean
 ---@usage `db:update("todos", { where = { id = "1" }, values = { action = "DONE" }})` update id 1 with the given keys
 ---@usage `db:update("todos", {{ where = { id = "1" }, values = { action = "DONE" }}, {...}, {...}})` multi updates.
