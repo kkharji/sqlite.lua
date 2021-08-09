@@ -39,13 +39,13 @@ end
 ---@usage `require'sql'.new("./path/to/sql.sqlite")` to given path
 ---@usage `require'sql'.new("$ENV_VARABLE")` reading from env variable
 ---@return SQLDatabase
----@see sql.open
+---@see DB:open
 function DB.new(uri, opts)
   return DB:open(uri, opts, true)
 end
 
 ---Connect, or create new sqlite db, either in memory or via a {uri}.
----|sql.open| is identical to |sql.new| but it additionally opens the db
+---|DB:open| is identical to |DB.new| but it additionally opens the db
 ---@param uri string: if uri is nil, then create in memory database.
 ---@usage `require("sql"):open()` in memory.
 ---@usage `require("sql"):open("./path/to/sql.sqlite")` to given path.
