@@ -21,7 +21,7 @@ local sql = {}
 sql.__index = sql
 
 ---@TODO: decide whether using os.time and epoch time would be better.
----@return string|osdate
+---@return string osdate
 local created = function()
   return os.date "%Y-%m-%d %H:%M:%S"
 end
@@ -33,7 +33,7 @@ end
 ---@usage `sql.new("./path/to/sql.sqlite")`
 ---@usage `sql:new("$ENV_VARABLE")`
 ---@return table: sql.nvim object
----@see |sql.open|
+---@see sql.open
 function sql.new(uri, opts)
   return sql:open(uri, opts, true)
 end
@@ -93,7 +93,7 @@ end
 ---@usage `sql.open_with("$ENV_VARABLE/path", function(db) db:eval("...") end)`
 ---@usage `db:with_open(function() db:insert{...} end)`
 ---@return table: sql.nvim object
----@see sql:open()
+---@see sql:open
 function sql:with_open(...)
   local args = { ... }
   if type(self) == "string" or not self then
@@ -118,9 +118,9 @@ end
 ---to the sql statement or a list of unamed values.
 ---@param statement string or table: string representing the {statement} or a list of {statements}
 ---@param params table: params to be bind to {statement}, it can be a list or dict
----@usage db:eval("drop table if exists todos")
----@usage db:eval("select * from todos where id = ?", 1)
----@usage db:eval("insert into t(a, b) values(:a, :b)", {a = "1", b = 2021})
+---@usage `db:eval("drop table if exists todos")`
+---@usage `db:eval("select * from todos where id = ?", 1)`
+---@usage `db:eval("insert into t(a, b) values(:a, :b)", {a = "1", b = 2021})`
 ---@return boolean or table
 function sql:eval(statement, params)
   local res = {}
@@ -133,7 +133,7 @@ function sql:eval(statement, params)
     end)
     s:reset()
 
-    -- when the user run eval("select * from ?", "tbl")
+    -- when the user run eval("select * from ?", "tbl_name")
   elseif type(params) ~= "table" and statement:match "%?" then
     local value = P.sqlvalue(params)
     s:bind { value }
@@ -204,12 +204,12 @@ function sql:exists(name)
   return type(q) == "table" and true or false
 end
 
----get sql table {name} schema, if table doesn't exist then return empty table.
----@param tbl string: the table name
+---Get {name} table schema, if table doesn't exist then return empty table.
+---@param tbl_name string: the table name
 ---@param info boolean: whether to return table info. default false.
 ---@return table: list of keys or keys and their type.
-function sql:schema(tbl, info)
-  local sch = self:eval(string.format("pragma table_info(%s)", tbl))
+function sql:schema(tbl_name, info)
+  local sch = self:eval(string.format("pragma table_info(%s)", tbl_name))
   if type(sch) == "boolean" then
     return {}
   end
@@ -250,39 +250,39 @@ end
 
 ---Create a new sqlite db table with {name} based on {schema}. if {schema.ensure} then
 ---create only when it doesn't exists. similar to 'create if not exists'
----@param name string: table name
+---@param tbl_name string: table name
 ---@param schema table: the table keys/column and their types
 ---@usage `db:create("todos", {id = {"int", "primary", "key"}, title = "text"})`
 ---@return boolean
-function sql:create(name, schema)
-  return self:eval(P.create(name, schema))
+function sql:create(tbl_name, schema)
+  return self:eval(P.create(tbl_name, schema))
 end
 
 ---Create a new sqlite db table with {name} based on {schema}. if {schema.ensure} then
 ---create only when it doesn't exists. similar to 'create if not exists'
----@param name string: table name
+---@param tbl_name string: table name
 ---@usage `db:drop("todos")`
 ---@return boolean
-function sql:drop(name)
-  return self:eval(P.drop(name))
+function sql:drop(tbl_name)
+  return self:eval(P.drop(tbl_name))
 end
 
 ---Insert to lua table into sqlite database table.
----@params tbl string: the table name
----@params rows table: rows to insert to the table.
+---@param tbl_name string: the table name
+---@param rows table: rows to insert to the table.
 ---@return boolean|integer: true incase the table was inserted successfully, and the last inserted row id.
----@usage db:insert("todos", { title = "new todo" })
+---@usage `db:insert("todos", { title = "new todo" })`
 ---@TODO support unnamed or anonymous args
 ---@TODO handle inconflict case
-function sql:insert(tbl, rows)
-  a.is_sqltbl(self, tbl, "insert")
+function sql:insert(tbl_name, rows)
+  a.is_sqltbl(self, tbl_name, "insert")
   local ret_vals = {}
-  local info = self:schema(tbl, true)
+  local info = self:schema(tbl_name, true)
   local items = P.pre_insert(rows, info)
   local last_rowid
   clib.wrap_stmts(self.conn, function()
     for _, v in ipairs(items) do
-      local s = stmt:parse(self.conn, P.insert(tbl, { values = v }))
+      local s = stmt:parse(self.conn, P.insert(tbl_name, { values = v }))
       s:bind(v)
       s:step()
       s:bind_clear()
@@ -301,31 +301,31 @@ function sql:insert(tbl, rows)
 end
 
 ---Update table row with where closure and list of values
----@param tbl string: the name of the db table.
+---@param tbl_name string: the name of the db table.
 ---@param specs table: a {spec} or a list of {specs} with where and values key.
 ---@return boolean: true incase the table was updated successfully.
 ---@usage `db:update("todos", { where = { id = "1" }, values = { action = "DONE" }})`
-function sql:update(tbl, specs)
-  a.is_sqltbl(self, tbl, "update")
+function sql:update(tbl_name, specs)
+  a.is_sqltbl(self, tbl_name, "update")
 
   local ret_vals = {}
   if not specs then
     return false
   end
-  local info = self:schema(tbl, true)
+  local info = self:schema(tbl_name, true)
   specs = u.is_nested(specs) and specs or { specs }
 
   clib.wrap_stmts(self.conn, function()
     for _, v in ipairs(specs) do
-      if self:select(tbl, { where = v.where })[1] then
-        local s = stmt:parse(self.conn, P.update(tbl, { set = v.values, where = v.where }))
+      if self:select(tbl_name, { where = v.where })[1] then
+        local s = stmt:parse(self.conn, P.update(tbl_name, { set = v.values, where = v.where }))
         s:bind(P.pre_insert(v.values, info)[1])
         s:step()
         s:reset()
         s:bind_clear()
         table.insert(ret_vals, s:finalize())
       else
-        local res = self:insert(tbl, u.tbl_extend("keep", v.values, v.where))
+        local res = self:insert(tbl_name, u.tbl_extend("keep", v.values, v.where))
         table.insert(ret_vals, res)
       end
     end
@@ -345,23 +345,23 @@ end
 
 ---Delete a {tbl} row/rows based on the {specs} given. if no spec was given,
 ---then all the {tbl} content will be deleted.
----@param tbl string: the name of the db table.
+---@param tbl_name string: the name of the db table.
 ---@param specs table: a {spec} or a list of {specs} with where and values key.
 ---@return boolean: true if operation is successfully, false otherwise.
----@usage db:delete("todos")
----@usage db:delete("todos", { where = { id = 1 })
----@usage db:delete("todos", { where = { id = {1,2,3} })
-function sql:delete(tbl, specs)
-  a.is_sqltbl(self, tbl, "delete")
+---@usage `db:delete("todos")`
+---@usage `db:delete("todos", { where = { id = 1 })`
+---@usage `db:delete("todos", { where = { id = {1,2,3} })`
+function sql:delete(tbl_name, specs)
+  a.is_sqltbl(self, tbl_name, "delete")
   local ret_vals = {}
   if not specs then
-    return clib.exec_stmt(self.conn, P.delete(tbl)) == 0 and true or clib.last_errmsg(self.conn)
+    return clib.exec_stmt(self.conn, P.delete(tbl_name)) == 0 and true or clib.last_errmsg(self.conn)
   end
 
   specs = u.is_nested(specs) and specs or { specs }
   clib.wrap_stmts(self.conn, function()
     for _, spec in ipairs(specs) do
-      local s = stmt:parse(self.conn, P.delete(tbl, { where = spec and spec.where or nil }))
+      local s = stmt:parse(self.conn, P.delete(tbl_name, { where = spec and spec.where or nil }))
       s:step()
       s:reset()
       table.insert(ret_vals, s:finalize())
@@ -378,24 +378,26 @@ function sql:delete(tbl, specs)
 end
 
 ---Query from a table with where and join options
----@usage db:get("todos") -- everything
----@usage db:get("todos", { where = { id = 1 })
----@usage db:get("todos", { limit = 5 })
+---@param tbl_name string: the name of the db table to select on
+---@param spec table: a {spec} with where and values key.
+---@usage `db:select("todos") -- everything`
+---@usage `db:select("todos", { where = { id = 1 })`
+---@usage `db:select("todos", { limit = 5 })`
 ---@return lua list of matching rows
-function sql:select(tbl, spec)
-  a.is_sqltbl(self, tbl, "select")
+function sql:select(tbl_name, spec)
+  a.is_sqltbl(self, tbl_name, "select")
   spec = spec or {}
   self.modified = false
 
   local ret = {}
-  local types = self:schema(tbl)
+  local types = self:schema(tbl_name)
 
   self.modified = false
 
   clib.wrap_stmts(self.conn, function()
     spec.select = spec.keys and spec.keys or spec.select
 
-    local s = stmt:parse(self.conn, P.select(tbl, spec))
+    local s = stmt:parse(self.conn, P.select(tbl_name, spec))
     stmt.each(s, function()
       table.insert(ret, stmt.kv(s))
     end)

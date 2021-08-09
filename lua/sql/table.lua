@@ -154,7 +154,7 @@ end
 ---query results from cache will be returned.
 ---@param query table: query.where, query.keys, query.join
 ---@return table: empty table if no result
----@see sql:select()
+---@see sql:select
 function tbl:get(query)
   query = query or { query = { all = 1 } }
   local cache = cache_get(self, query)
@@ -175,13 +175,13 @@ end
 ---query results from cache will be returned.
 ---@param where table: where key values
 ---@return nil or row
----@usage: tbl:where{id = 1}
----@see sql:select()
+---@usage tbl:where{id = 1}
+---@see sql:select
 function tbl:where(where)
   return where and self:get({ where = where })[1] or nil
 end
 
----Iterate over {self.name} rows and execute {func}.
+---Iterate over table rows and execute {func}.
 ---@param query table: query.where, query.keys, query.join
 ---@param func function: a function that expects a row
 ---@return boolean: true if rows ~= empty table
@@ -249,7 +249,7 @@ end
 
 ---Same functionalities as |sql:insert()|
 ---@param rows table: a row or a group of rows
----@see sql:insert()
+---@see sql:insert
 ---@return boolean|integer
 function tbl:insert(rows)
   return run(function()
@@ -265,14 +265,14 @@ function tbl:insert(rows)
 end
 
 ---Same functionalities as |sql:delete()|
----@param specs table: specs.where
----@see sql:delete()
+---@param where table: define where as table
+---@see sql:delete
 ---@return boolean
-function tbl:remove(specs)
+function tbl:remove(where)
   return run(function()
-    local succ = self.db:delete(self.name, specs)
+    local succ = self.db:delete(self.name, where)
     if not self.nocache then
-      cache_clear(self, succ, specs)
+      cache_clear(self, succ, where)
     end
     return succ
   end, self)
@@ -280,7 +280,7 @@ end
 
 ---Same functionalities as |sql:update()|
 ---@param specs table: a table or a list of tables with where and values keys.
----@see sql:update()
+---@see sql:update
 ---@return boolean
 function tbl:update(specs)
   return run(function()
@@ -292,10 +292,10 @@ function tbl:update(specs)
   end, self)
 end
 
----Same functionalities as |tbl:add()|, but replaces {self.name} content with {rows}
+---Same functionalities as |tbl:add()|, but replaces table content with {rows}
 ---@param rows table: a row or a group of rows
----@see sql:delete()
----@see sql:insert()
+---@see sql:delete
+---@see sql:insert
 ---@return boolean
 function tbl:replace(rows)
   return run(function()

@@ -95,9 +95,9 @@ describe("stmt", function()
     end)
   end)
 
-  describe(":type(i)     ", function()
+  describe(":convert_type(i)     ", function()
     it("returns the type of columns/keys by idx.", function()
-      eq("string", s:type(1))
+      eq("string", s:convert_type(1))
     end)
   end)
 

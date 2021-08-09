@@ -3,9 +3,12 @@ name: Tests
 on: [push, pull_request]
 
 jobs:
-  x64-ubuntu:
-    name: X64-ubuntu
-    runs-on: ubuntu-20.04
+  x64:
+    name: x64
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, ubuntu-20.04]
     steps:
       - uses: actions/checkout@v2
       - run: date +%F > todays-date
@@ -29,9 +32,12 @@ jobs:
           source github-actions-setup.sh nightly-x64
           make test
 
-  appimage-ubuntu:
-    name: Appimage-ubuntu
-    runs-on: ubuntu-20.04
+  appimage:
+    name: appimage
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, ubuntu-20.04]
     steps:
       - uses: actions/checkout@v2
       - run: date +%F > todays-date

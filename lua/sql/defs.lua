@@ -577,6 +577,10 @@ ffi.cdef [[
                   sqlite3_int64 szBuf, unsigned mFlags);
 ]]
 
+---@class sqlite3 @sqlite3 db object
+---@class sqlite3_blob @sqlite3 blob object
+---@class sqlite3_flag @sqlite3 error flag
+
 M.to_str = function(ptr, len)
   if ptr == nil then
     return
