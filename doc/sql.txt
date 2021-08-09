@@ -8,153 +8,119 @@ https://github.com/tami5/sql.nvim
   :h sql
   :h sql.table
 
-sql.new({uri})                                                     *sql.new()*
-    Creates a new sql.nvim object, without creating a connection to uri
-    |sql.new| is identical to |sql.open| but it without opening sqlite db
+DB.new()                                                            *DB.new()*
+    Creates a new sql.nvim object, without creating a connection to uri.
+    |DB.new| is identical to |DB:open| but it without opening sqlite db
     connection.
 
 
-    Parameters: ~
-        {uri} (string)  if uri is nil, then create in memory database.
-
     Return: ~
-        table: sql.nvim object
+        SQLDatabase
 
     Usage: ~
-        `sql.new()`
-        `sql.new("./path/to/sql.sqlite")`
-        `sql:new("$ENV_VARABLE")`
+        `require'sql'.new()` in memory
+        `require'sql'.new("./path/to/sql.sqlite")` to given path
+        `require'sql'.new("$ENV_VARABLE")` reading from env variable
 
     See: ~
-        |sql.open()|
+        |DB:open()|
 
 
-sql:open({uri})                                                   *sql:open()*
+DB:open({uri})                                                     *DB:open()*
     Connect, or create new sqlite db, either in memory or via a {uri}.
-    |sql.open| is identical to |sql.new| but it additionally opens the db
+    |DB:open| is identical to |DB.new| but it additionally opens the db
 
 
     Parameters: ~
         {uri} (string)  if uri is nil, then create in memory database.
 
     Return: ~
-        table: sql.nvim object
+        SQLDatabase
 
     Usage: ~
-        `sql.open()`
-        `sql.open("./path/to/sql.sqlite")`
-        `sql:open("$ENV_VARABLE")`
+        `require("sql"):open()` in memory.
+        `require("sql"):open("./path/to/sql.sqlite")` to given path.
+        `require("sql"):open("$ENV_VARABLE")` reading from env variable
         `db:open()` reopen connection if closed.
 
 
-sql:close()                                                      *sql:close()*
-    closes sqlite db connection.
+DB:close()                                                        *DB:close()*
+    Close sqlite db connection. returns true if closed, error otherwise.
 
 
     Return: ~
-        boolean: true if closed, error otherwise.
+        boolean
 
     Usage: ~
         `db:close()`
 
 
-sql:with_open()                                              *sql:with_open()*
-    Same as |sql:open| but closes db connection after executing {args[1]} or
-    {args[2]} depending of how its called. if the function is called as a
-    method to db object e.g. *db:with_open*, then {args[1]} must be a function.
-    Else {args[1]} need to be the uri and {args[2]} the function. The function
-    should accept and use db object.
-
-
-    Varargs: ~
-        If used as db method, then the {args[1]} should be a function, else
-        {args[1]} and {args[2]}.
-
-    Return: ~
-        table: sql.nvim object
-
-    Usage: ~
-        `sql.open_with("$ENV_VARABLE/path", function(db) db:eval("...") end)`
-        `db:with_open(function() db:insert{...} end)`
-
-    See: ~
-        |sql:open()|
-
-
-sql:eval({params})                                                *sql:eval()*
-    Main sqlite interface. This function evaluates {statement} and if there are
-    results from evaluating it then the function returns list of row(s). Else,
-    it returns a boolean indecating whether the evaluation was successful - or
-    not- Optionally, the function accept {params} which can be a dict of values
-    corresponding to the sql statement or a list of unamed values.
-
-
-    Parameters: ~
-        {params} (table)  params to be bind to {statement}, it can be a list
-                          or dict
-
-    Return: ~
-        boolean or table
-
-    Usage: ~
-        `db:eval("drop table if exists todos")`
-        `db:eval("select * from todos where id = ?", 1)`
-        `db:eval("insert into t(a, b) values(:a, :b)", {a = "1", b = 2021})`
-
-
-sql:isopen()                                                    *sql:isopen()*
+DB:isopen()                                                      *DB:isopen()*
     Predict returning true if db connection is active.
 
 
     Return: ~
-        boolean: true if db is opened, otherwise false.
+        boolean
+
+    Usage: ~
+        `if db:isopen() then db:close() end` use in if statement.
 
 
-sql:isclose()                                                  *sql:isclose()*
-    Predict returning true if db connection is deactivated.
+DB:isclose()                                                    *DB:isclose()*
+    Predict returning true if db connection is indeed closed.
 
-
-    Return: ~
-        boolean: true if db is close, otherwise false.
-
-
-sql:status()                                                    *sql:status()*
-    Returns current connection status Get last error code
-
-
-
-sql:exists({name})                                              *sql:exists()*
-    Check if a table with {name} exists in sqlite db
-
-
-    Parameters: ~
-        {name} (string)  the table name.
 
     Return: ~
         boolean
 
+    Usage: ~
+        `if db:isclose() then db:open() end` use in if statement.
 
-sql:schema({tbl_name}, {info})                                  *sql:schema()*
-    Get {name} table schema, if table doesn't exist then return empty table.
+
+DB:status()                                                      *DB:status()*
+    Returns current connection status Get last error code
 
 
-    Parameters: ~
-        {tbl_name} (string)   the table name
-        {info}     (boolean)  whether to return table info. default false.
+
+DB:eval()                                                          *DB:eval()*
+    Evaluates a sql {statement} and if there are results from evaluating it
+    then the function returns list of row(s). Else, it returns a boolean
+    indecating whether the evaluation was successful. Optionally, the function
+    accept {params} which can be a dict of values corresponding to the sql
+    statement or a list of unamed values.
+
 
     Return: ~
-        table: list of keys or keys and their type.
+        boolean | table
+
+    Usage: ~
+        `db:eval("drop table if exists todos")` evaluate without any extra
+        arguments.
+        `db:eval("select * from todos where id = ?", 1)` evaluate with unamed
+        value.
+        `db:eval("insert into t(a, b) values(:a, :b)", {a = "1", b = 3})`
+        evaluate with named arguments.
 
 
-sql:create({tbl_name}, {schema})                                *sql:create()*
-    Create a new sqlite db table with {name} based on {schema}. if
-    {schema.ensure} then create only when it doesn't exists. similar to 'create
-    if not exists'
+DB:exists({tbl_name})                                            *DB:exists()*
+    Check if a table with {tbl_name} exists in sqlite db
 
 
     Parameters: ~
-        {tbl_name} (string)  table name
-        {schema}   (table)   the table keys/column and their types
+        {tbl_name} (string)  the table name.
+
+    Return: ~
+        boolean
+
+    Usage: ~
+        `if not db:exists("todo_tbl") then error("...") end`
+
+
+DB:create()                                                      *DB:create()*
+    Create a new sqlite db table with {name} based on {schema}. if
+    {schema.ensure} then create only when it does not exists. similar to
+    'create if not exists'
+
 
     Return: ~
         boolean
@@ -163,10 +129,8 @@ sql:create({tbl_name}, {schema})                                *sql:create()*
         `db:create("todos", {id = {"int", "primary", "key"}, title = "text"})`
 
 
-sql:drop({tbl_name})                                              *sql:drop()*
-    Create a new sqlite db table with {name} based on {schema}. if
-    {schema.ensure} then create only when it doesn't exists. similar to 'create
-    if not exists'
+DB:drop({tbl_name})                                                *DB:drop()*
+    Remove {tbl_name} from database
 
 
     Parameters: ~
@@ -176,11 +140,21 @@ sql:drop({tbl_name})                                              *sql:drop()*
         boolean
 
     Usage: ~
-        `db:drop("todos")`
+        `db:drop("todos")` drop table.
 
 
-sql:insert({tbl_name}, {rows})                                  *sql:insert()*
-    Insert to lua table into sqlite database table.
+DB:schema()                                                      *DB:schema()*
+    Get {name} table schema, if table does not exist then return an empty
+    table.
+
+
+    Return: ~
+        table list of keys or keys and their type.
+
+
+DB:insert({tbl_name}, {rows})                                    *DB:insert()*
+    Insert to lua table into sqlite database table. returns true incase the
+    table was inserted successfully, and the last inserted row id.
 
 
     Parameters: ~
@@ -188,67 +162,73 @@ sql:insert({tbl_name}, {rows})                                  *sql:insert()*
         {rows}     (table)   rows to insert to the table.
 
     Return: ~
-        boolean|integer: true incase the table was inserted successfully, and
-        the last inserted row id.
+        boolean|integer
 
     Usage: ~
-        `db:insert("todos", { title = "new todo" })`
+        `db:insert("todos", { title = "new todo" })` single item.
+        `db:insert("items", { { name = "a"}, { name = "b" }, { name = "c" }
+        })` insert multiple items.
 
 
-sql:update({tbl_name}, {specs})                                 *sql:update()*
-    Update table row with where closure and list of values
+DB:update({tbl_name}, {specs})                                   *DB:update()*
+    Update table row with where closure and list of values returns true incase
+    the table was updated successfully.
 
 
     Parameters: ~
-        {tbl_name} (string)  the name of the db table.
-        {specs}    (table)   a {spec} or a list of {specs} with where and
-                             values key.
+        {tbl_name} (string)                       the name of the db table.
+        {specs}    (SQLQuerySpec|SQLQuerySpec[])  
 
     Return: ~
-        boolean: true incase the table was updated successfully.
+        boolean
 
     Usage: ~
         `db:update("todos", { where = { id = "1" }, values = { action = "DONE"
-        }})`
+        }})` update id 1 with the given keys
+        `db:update("todos", {{ where = { id = "1" }, values = { action =
+        "DONE" }}, {...}, {...}})` multi updates.
+        `db:update("todos", { where = { project = "sql.nvim" }, values = {
+        status = "later" } )` update multiple rows
 
 
-sql:delete({tbl_name}, {specs})                                 *sql:delete()*
-    Delete a {tbl} row/rows based on the {specs} given. if no spec was given,
-    then all the {tbl} content will be deleted.
+DB:delete({specs})                                               *DB:delete()*
+    Delete a {tbl_name} row/rows based on the {specs} given. if no spec was
+    given, then all the {tbl_name} content will be deleted.
 
 
     Parameters: ~
-        {tbl_name} (string)  the name of the db table.
-        {specs}    (table)   a {spec} or a list of {specs} with where and
-                             values key.
+        {specs} (SQLQuerySpec)  
 
     Return: ~
         boolean: true if operation is successfully, false otherwise.
 
     Usage: ~
-        `db:delete("todos")`
-        `db:delete("todos", { where = { id = 1 })`
-        `db:delete("todos", { where = { id = {1,2,3} })`
+        `db:delete("todos")` delete todos table content
+        `db:delete("todos", { where = { id = 1 })` delete row that has id as 1
+        `db:delete("todos", { where = { id = {1,2,3} })` delete all rows that
+        has value of id 1 or 2 or 3
 
 
-sql:select({tbl_name}, {spec})                                  *sql:select()*
+DB:select({tbl_name}, {spec})                                    *DB:select()*
     Query from a table with where and join options
 
 
     Parameters: ~
-        {tbl_name} (string)  the name of the db table to select on
-        {spec}     (table)   a {spec} with where and values key.
+        {tbl_name} (string)        the name of the db table to select on
+        {spec}     (SQLQuerySpec)  
 
     Return: ~
-        lua list of matching rows
+        table[]
 
     Usage: ~
-        `db:select("todos") -- everything`
-        `db:select("todos", { where = { id = 1 })`
-        `db:select("todos", { limit = 5 })`
+        `db:select("todos")` get everything
+        `db:select("todos", { where = { id = 1 })` get row with id of 1
+        `db:select("todos", { where = { status = {"later", "paused"} })` get
+        row with status value of later or paused
+        `db:select("todos", { limit = 5 })` get 5 items from todos table
 
 
-sql:table({tbl_name})                                            *sql:table()*
+DB:table({tbl_name})                                              *DB:table()*
     Create new sql-table object.
 
 
@@ -257,74 +237,104 @@ sql:table({tbl_name})                                            *sql:table()*
                              one.
 
     Return: ~
-        table
+        SQLTable
 
 
 
 ================================================================================
-tbl:schema({schema})                                            *tbl:schema()*
+tbl:new({db}, {opts})                                              *tbl:new()*
+    Create new sql table object
+
+
+    Parameters: ~
+        {db}   (SQLDatabase)   
+        {opts} (SQLTableOpts)  
+
+    Return: ~
+        SQLTable
+
+
+tbl:schema()                                                    *tbl:schema()*
     Create or change {self.name} schema. If no {schema} is given, then it
     return current the used schema.
 
 
-    Parameters: ~
-        {schema} (table)  table schema definition
-
     Return: ~
-        table: list of keys or keys and their type.
+        table table<string, string>
+
+    Usage: ~
+        `projects:schema()` get project table schema.
+        `projects:schema({...})` mutate project table schema
 
 
 tbl:drop()                                                        *tbl:drop()*
-    Same functionalities as |sql:drop()|, if the table is already drooped then
-    it returns false
+    Remove table from database, if the table is already drooped then it returns
+    false.
 
 
     Return: ~
         boolean
+
+    Usage: ~
+        `todos:drop()` drop todos table content.
+
+    See: ~
+        |DB:drop()|
 
 
 tbl:empty()                                                      *tbl:empty()*
-    Predicate that returns true if the table is empty
+    Predicate that returns true if the table is empty.
 
 
     Return: ~
         boolean
+
+    Usage: ~
+        `if todos:empty() then echo "no more todos, you are free :D" end`
 
 
 tbl:exists()                                                    *tbl:exists()*
-    Predicate that returns true if the table exists
+    Predicate that returns true if the table exists.
 
 
     Return: ~
         boolean
 
+    Usage: ~
+        `if not goals:exists() then error("I'm disappointed in you ") end`
+
 
 tbl:count()                                                      *tbl:count()*
-    The count of the rows in {self.name}.
+    Get the current number of rows in the table
 
 
     Return: ~
-        number: number of rows in {self.name}
+        number
 
 
-tbl:get({query})                                                   *tbl:get()*
-    Query the table and return results. If the {query} has been ran before,
-    then query results from cache will be returned.
+tbl:get()                                                          *tbl:get()*
+    Query the table and return results. If cache is enabled and the {query} has
+    been ran before, then query results from cache will be returned. Returns
+    empty table if no results
 
-
-    Parameters: ~
-        {query} (table)  query.where, query.keys, query.join
 
     Return: ~
-        table: empty table if no result
+        table
+
+    Usage: ~
+        `projects:get()` get a list of all rows in project table.
+        `projects:get({ where = { status = "pending", client = "neovim" }})`
+        get a list of all rows that are pending and neovim is the client.
+        `projects:get({ where = { status = "done" }, limit = 5})` get the last
+        5 done projects
 
     See: ~
-        |sql:select()|
+        |DB:select()|
 
 
 tbl:where({where})                                               *tbl:where()*
-    Get first match from a table based on keys query results from cache will be
-    returned.
+    Get first match. If cache is enabled and the {query} has been ran before,
+    then query results from cache will be returned.
 
 
     Parameters: ~
@@ -334,14 +344,15 @@ tbl:where({where})                                               *tbl:where()*
         nil or row
 
     Usage: ~
-        tbl:where{id = 1}
+        `tbl:where{id = 1}`
 
     See: ~
-        |sql:select()|
+        |DB:select()|
 
 
 tbl:each({query}, {func})                                         *tbl:each()*
-    Iterate over table rows and execute {func}.
+    Iterate over table rows and execute {func}. Returns true only when rows is
+    not emtpy.
 
 
     Parameters: ~
@@ -349,7 +360,11 @@ tbl:each({query}, {func})                                         *tbl:each()*
         {func}  (function)  a function that expects a row
 
     Return: ~
-        boolean: true if rows ~= empty table
+        boolean
+
+    Usage: ~
+        `todos:each({ where = { status = "pending"}, contains = { title =
+        "fix*" } }, function(row) print(row.title) end)`
 
 
 tbl:map({query}, {func})                                           *tbl:map()*
@@ -361,7 +376,11 @@ tbl:map({query}, {func})                                           *tbl:map()*
         {func}  (function)  a function that expects a row
 
     Return: ~
-        boolean: true if rows ~= empty table
+        table[]
+
+    Usage: ~
+        `local t = todos:map({ where = { status = "pending"}, contains = {
+        title = "fix*" } }, function(row) return row.title end)`
 
 
 tbl:sort({query}, {comp})                                         *tbl:sort()*
@@ -377,11 +396,19 @@ tbl:sort({query}, {comp})                                         *tbl:sort()*
                             operator
 
     Return: ~
-        table: list of sorted values
+        table[]
+
+    Usage: ~
+        `local res = t1:sort({ where = {id = {32,12,35}}})` return rows sort
+        by id
+        `local res = t1:sort({ where = {id = {32,12,35}}}, "age")` return rows
+        sort by age
+        `local res = t1:sort({where = {id = { 32,12,35 }}}, "age", function(a,
+        b) return a > b end)` with custom function
 
 
 tbl:insert({rows})                                              *tbl:insert()*
-    Same functionalities as |sql:insert()|
+    Same functionalities as |DB:insert()|
 
 
     Parameters: ~
@@ -390,26 +417,36 @@ tbl:insert({rows})                                              *tbl:insert()*
     Return: ~
         boolean|integer
 
+    Usage: ~
+        `todos:insert { title = "stop writing examples :D" }` insert single
+        item.
+        `todos:insert { { ... }, { ... } }` insert multiple items
+
     See: ~
-        |sql:insert()|
+        |DB:insert()|
 
 
 tbl:remove({where})                                             *tbl:remove()*
-    Same functionalities as |sql:delete()|
+    Same functionalities as |DB:delete()|
 
 
     Parameters: ~
-        {where} (table)  define where as table
+        {where} (table)  
 
     Return: ~
         boolean
 
+    Usage: ~
+        `todos:remove()` remove todos table content.
+        `todos:insert{ project = "neovim" }` remove all todos where project ==
+        "neovim".
+
     See: ~
-        |sql:delete()|
+        |DB:delete()|
 
 
 tbl:update({specs})                                             *tbl:update()*
-    Same functionalities as |sql:update()|
+    Same functionalities as |DB:update()|
 
 
     Parameters: ~
@@ -420,11 +457,11 @@ tbl:update({specs})                                             *tbl:update()*
         boolean
 
     See: ~
-        |sql:update()|
+        |DB:update()|
 
 
 tbl:replace({rows})                                            *tbl:replace()*
-    Same functionalities as |tbl:add()|, but replaces table content with {rows}
+    replaces table content with {rows}
 
 
     Parameters: ~
@@ -434,8 +471,8 @@ tbl:replace({rows})                                            *tbl:replace()*
         boolean
 
     See: ~
-        |sql:delete()|
-        |sql:insert()|
+        |DB:delete()|
+        |DB:insert()|
 
 
 
