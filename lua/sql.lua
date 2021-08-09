@@ -54,9 +54,17 @@ end
 ---@TODO: decide whether to add active_since.
 ---@return SQLDatabase
 function DB:open(uri, opts, noconn)
-  local o = {}
-
-  if self.uri then
+  if not self.uri then
+    uri = type(uri) == "string" and u.expand(uri) or ":memory:"
+    return setmetatable({
+      uri = uri,
+      conn = not noconn and clib.connect(uri, opts) or nil,
+      closed = noconn and true or false,
+      sqlite_opts = opts,
+      modified = false,
+      created = not noconn and created() or nil,
+    }, self)
+  else
     if self.closed or self.closed == nil then
       self.conn = clib.connect(self.uri, self.sqlite_opts)
       self.created = created()
@@ -64,21 +72,6 @@ function DB:open(uri, opts, noconn)
     end
     return self
   end
-
-  o.sqlite_opts = opts
-  o.uri = type(uri) == "string" and u.expand(uri) or ":memory:"
-
-  if noconn then
-    o.closed = true
-  else
-    o.closed = false
-    o.modified = false
-    o.conn = clib.connect(o.uri, opts)
-    o.created = created()
-  end
-
-  setmetatable(o, self)
-  return o
 end
 
 ---Close sqlite db connection. returns true if closed, error otherwise.
