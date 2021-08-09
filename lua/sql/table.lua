@@ -86,10 +86,11 @@ function tbl:new(db, name, opts)
   return o
 end
 
----Create or change {self.name} schema. If no {schema} is given,
----then it return current the used schema.
----@param schema table<string, string> table schema definition
----@return table table<string, string>
+---Create or change table schema. If no {schema} is given,
+---then it return current the used schema if it exists or empty table otherwise.
+---On change schema it returns boolean indecting success.
+---@param schema table: table schema definition
+---@return table table | boolean
 ---@usage `projects:schema()` get project table schema.
 ---@usage `projects:schema({...})` mutate project table schema
 function tbl:schema(schema)
@@ -167,11 +168,11 @@ end
 ---Query the table and return results. If cache is enabled and the {query} has
 ---been ran before, then query results from cache will be returned.
 ---Returns empty table if no results
----@param query: table query.where, query.keys, query.join
+---@param query table: query.where, query.keys, query.join
+---@return table
 ---@usage `projects:get()` get a list of all rows in project table.
 ---@usage `projects:get({ where = { status = "pending", client = "neovim" }})`
 ---@usage `projects:get({ where = { status = "done" }, limit = 5})` get the last 5 done projects
----@return table
 ---@see DB:select
 function tbl:get(query)
   query = query or { query = { all = 1 } }
@@ -202,7 +203,7 @@ end
 ---Iterate over table rows and execute {func}.
 ---Returns true only when rows is not emtpy.
 ---@param query table: query.where, query.keys, query.join
----@param func function: a function that expects a row
+---@param func function: func(row)
 ---@usage `let query = { where = { status = "pending"}, contains = { title = "fix*" } }`
 ---@usage `todos:each(query, function(row)  print(row.title) end)`
 ---@return boolean
@@ -248,7 +249,7 @@ end
 ---running `transform (v)` on all values. `transform` may also be a string name property  sort by.
 ---`comp` is a comparison function. Adopted from Moses.lua
 ---@param query table: query.where, query.keys, query.join
----@param transform function or string: a `transform` function to sort elements. Defaults to @{identity}
+---@param transform function: a `transform` function to sort elements. Defaults to @{identity}
 ---@param comp function: a comparison function, defaults to the `<` operator
 ---@return table[]
 ---@usage `local res = t1:sort({ where = {id = {32,12,35}}})` return rows sort by id
@@ -293,7 +294,7 @@ function tbl:insert(rows)
 end
 
 ---Same functionalities as |DB:delete()|
----@param where table
+---@param where table: query
 ---@see DB:delete
 ---@return boolean
 ---@usage `todos:remove()` remove todos table content.

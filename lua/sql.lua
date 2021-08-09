@@ -36,7 +36,7 @@ end
 ---Creates a new sql.nvim object, without creating a connection to uri.
 ---|DB.new| is identical to |DB:open| but it without opening sqlite db connection.
 ---@param uri string: path to db.if nil, then create in memory database.
----@param opts table
+---@param opts table: sqlite db options see https://www.sqlite.org/pragma.html
 ---@usage `require'sql'.new()` in memory
 ---@usage `require'sql'.new("./path/to/sql.sqlite")` to given path
 ---@usage `require'sql'.new("$ENV_VARABLE")` reading from env variable
@@ -54,7 +54,6 @@ end
 ---@usage `require("sql"):open("./path/to/sql.sqlite")` to given path.
 ---@usage `require("sql"):open("$ENV_VARABLE")` reading from env variable
 ---@usage `db:open()` reopen connection if closed.
----@TODO: decide whether to add active_since.
 ---@return SQLDatabase
 function DB:open(uri, opts, noconn)
   if not self.uri then
@@ -92,9 +91,9 @@ end
 ---Else {args[1]} need to be the uri and {args[2]} the function.
 ---The function should accept and use db object.
 ---@varargs If used as db method, then the {args[1]} should be a function, else {args[1]} and {args[2]}.
+---@return any
 ---@usage `require"sql".open_with("path", function(db) db:eval("...") end)` use a the sqlite db at path.
 ---@usage `db:with_open(function() db:insert{...} end)` open db connection, execute insert and close.
----@return any
 ---@see DB:open
 function DB:with_open(...)
   local args = { ... }
@@ -143,8 +142,8 @@ end
 ---whether the evaluation was successful. Optionally, the function accept
 ---{params} which can be a dict of values corresponding to the sql statement or
 ---a list of unamed values.
----@param statement string or table: string representing the {statement} or a list of {statements}
----@param params? table: params to be bind to {statement}, it can be a list or dict
+---@param statement any: string representing the {statement} or a list of {statements}
+---@param params table: params to be bind to {statement}, it can be a list or dict or nil
 ---@usage `db:eval("drop table if exists todos")` evaluate without any extra arguments.
 ---@usage `db:eval("select * from todos where id = ?", 1)` evaluate with unamed value.
 ---@usage `db:eval("insert into t(a, b) values(:a, :b)", {a = "1", b = 3})` evaluate with named arguments.
@@ -211,8 +210,8 @@ end
 
 ---Create a new sqlite db table with {name} based on {schema}. if {schema.ensure} then
 ---create only when it does not exists. similar to 'create if not exists'.
----@param tbl_name string table name
----@param schema table the table keys/column and their types
+---@param tbl_name string: table name
+---@param schema table: the table keys/column and their types
 ---@usage `db:create("todos", {id = {"int", "primary", "key"}, title = "text"})` create table with the given schema.
 ---@return boolean
 function DB:create(tbl_name, schema)
@@ -228,8 +227,8 @@ function DB:drop(tbl_name)
 end
 
 ---Get {name} table schema, if table does not exist then return an empty table.
----@param tbl_name string the table name
----@param info boolean whether to return table info. default false.
+---@param tbl_name string: the table name.
+---@param info boolean: whether to return table info. default false.
 ---@return table list of keys or keys and their type.
 function DB:schema(tbl_name, info)
   local sch = self:eval(string.format("pragma table_info(%s)", tbl_name))
@@ -354,7 +353,7 @@ end
 
 ---Delete a {tbl_name} row/rows based on the {specs} given. if no spec was given,
 ---then all the {tbl_name} content will be deleted.
----@param tbl_name string the name of the db table.
+---@param tbl_name string: the name of the db table.
 ---@param specs SQLQuerySpec
 ---@return boolean: true if operation is successfully, false otherwise.
 ---@usage `db:delete("todos")` delete todos table content
@@ -419,7 +418,9 @@ function DB:select(tbl_name, spec)
 end
 
 ---Create new sql-table object.
+---If {opts}.ensure = false, on each run it will drop the table and recreate it.
 ---@param tbl_name string: the name of the table. can be new or existing one.
+---@param opts table: {schema, ensure (defalut true)}
 ---@return SQLTable
 function DB:table(tbl_name, opts)
   return t:new(self, tbl_name, opts)
