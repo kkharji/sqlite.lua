@@ -219,8 +219,7 @@ function DB:create(tbl_name, schema)
   return self:eval(P.create(tbl_name, schema))
 end
 
----Create a new sqlite db table with {name} based on {schema}. if {schema.ensure} then
----create only when it doesn't exists. similar to 'create if not exists'
+---Remove {tbl_name} from database
 ---@param tbl_name string: table name
 ---@usage `db:drop("todos")` drop table.
 ---@return boolean
@@ -421,7 +420,7 @@ end
 
 ---Create new sql-table object.
 ---@param tbl_name string: the name of the table. can be new or existing one.
----@return table
+---@return SQLTable
 function DB:table(tbl_name, opts)
   return t:new(self, tbl_name, opts)
 end

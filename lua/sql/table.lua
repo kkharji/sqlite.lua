@@ -1,8 +1,13 @@
 local u = require "sql.utils"
 local luv = require "luv"
 
+---@class SQLTable
 local tbl = {}
 tbl.__index = tbl
+
+---@class SQLTableOpts
+---@field schema table<string, string>
+---@field nocache boolean whether to disable cache, default true.
 
 local cache_clear = function(self, succ, change)
   if succ then
@@ -52,6 +57,11 @@ local run = (function()
   end
 end)()
 
+---Create new sql table object
+---@param db SQLDatabase
+---@param name string table name
+---@param opts SQLTableOpts
+---@return SQLTable
 function tbl:new(db, name, opts)
   opts = opts or {}
   local o = {}
@@ -62,13 +72,12 @@ function tbl:new(db, name, opts)
   o.mtime = o.mtime and o.mtime.mtime.sec
   o.tbl_schema = opts.schema
   o.nocache = opts.nocache
-  -- db:close/open changes this value, not sql:change commands
 
   setmetatable(o, self)
 
   run(function()
     if o.tbl_schema then
-      o.tbl_schema.ensure = true
+      o.tbl_schema.ensure = o.tbl_schema.ensure and o.tbl_schema.ensure or true
       o.db:create(o.name, o.tbl_schema)
     end
     o.tbl_exists = o.db:exists(o.name)
@@ -79,8 +88,10 @@ end
 
 ---Create or change {self.name} schema. If no {schema} is given,
 ---then it return current the used schema.
----@param schema table: table schema definition
----@return table: list of keys or keys and their type.
+---@param schema table<string, string> table schema definition
+---@return table table<string, string>
+---@usage `projects:schema()` get project table schema.
+---@usage `projects:schema({...})` mutate project table schema
 function tbl:schema(schema)
   local res
   return run(function()
@@ -106,8 +117,9 @@ function tbl:schema(schema)
   end, self)
 end
 
----Same functionalities as |sql:drop()|, if the table is already drooped
----then it returns false
+---Remove table from database, if the table is already drooped then it returns false.
+---@usage `todos:drop()` drop todos table content.
+---@see DB:drop
 ---@return boolean
 function tbl:drop()
   return run(function()
@@ -124,13 +136,15 @@ function tbl:drop()
   end, self)
 end
 
----Predicate that returns true if the table is empty
+---Predicate that returns true if the table is empty.
+---@usage `if todos:empty() then echo "no more todos, you are free :D" end`
 ---@return boolean
 function tbl:empty()
   return self:exists() and self:count() == 0 or false
 end
 
----Predicate that returns true if the table exists
+---Predicate that returns true if the table exists.
+---@usage `if not goals:exists() then error("I'm disappointed in you ") end`
 ---@return boolean
 function tbl:exists()
   return run(function()
@@ -138,8 +152,8 @@ function tbl:exists()
   end, self)
 end
 
----The count of the rows in {self.name}.
----@return number: number of rows in {self.name}
+---Get the current number of rows in the table
+---@return number
 function tbl:count()
   return run(function()
     if not self.db:exists(self.name) then
@@ -150,11 +164,15 @@ function tbl:count()
   end, self)
 end
 
----Query the table and return results. If the {query} has been ran before, then
----query results from cache will be returned.
----@param query table: query.where, query.keys, query.join
----@return table: empty table if no result
----@see sql:select
+---Query the table and return results. If cache is enabled and the {query} has
+---been ran before, then query results from cache will be returned.
+---Returns empty table if no results
+---@param query table query.where, query.keys, query.join
+---@usage `projects:get()` get a list of all rows in project table.
+---@usage `projects:get({ where = { status = "pending", client = "neovim" }})` get a list of all rows that are pending and neovim is the client.
+---@usage `projects:get({ where = { status = "done" }, limit = 5})` get the last 5 done projects
+---@return table
+---@see DB:select
 function tbl:get(query)
   query = query or { query = { all = 1 } }
   local cache = cache_get(self, query)
@@ -171,20 +189,27 @@ function tbl:get(query)
   end, self)
 end
 
----Get first match from a table based on keys
----query results from cache will be returned.
+---Get first match. If cache is enabled and the {query} has
+---been ran before, then query results from cache will be returned.
 ---@param where table: where key values
 ---@return nil or row
----@usage tbl:where{id = 1}
----@see sql:select
+---@usage `tbl:where{id = 1}`
+---@see DB:select
 function tbl:where(where)
   return where and self:get({ where = where })[1] or nil
 end
 
 ---Iterate over table rows and execute {func}.
+---Returns true only when rows is not emtpy.
 ---@param query table: query.where, query.keys, query.join
 ---@param func function: a function that expects a row
----@return boolean: true if rows ~= empty table
+---@usage `
+--- todos:each({ where = { status = "pending"}, contains = { title = "fix*" } },
+---   function(row)
+---     print(row.title)
+--- end)
+---`
+---@return boolean
 function tbl:each(query, func)
   assert(type(func) == "function", "required a function as second params")
 
@@ -211,7 +236,13 @@ end
 ---Create a new table from iterating over {self.name} rows with {func}.
 ---@param query table: query.where, query.keys, query.join
 ---@param func function: a function that expects a row
----@return boolean: true if rows ~= empty table
+---@usage `
+--- local t = todos:map({ where = { status = "pending"}, contains = { title = "fix*" } },
+---   function(row)
+---     return row.title
+--- end)
+---`
+---@return table[]
 function tbl:map(query, func)
   assert(type(func) == "function", "required a function as second params")
   local res = {}
@@ -227,7 +258,10 @@ end
 ---@param query table: query.where, query.keys, query.join
 ---@param transform function or string: a `transform` function to sort elements. Defaults to @{identity}
 ---@param comp function: a comparison function, defaults to the `<` operator
----@return table: list of sorted values
+---@return table[]
+---@usage `local res = t1:sort({ where = {id = {32,12,35}}})` return rows sort by id
+---@usage `local res = t1:sort({ where = {id = {32,12,35}}}, "age")` return rows sort by age
+---@usage `local res = t1:sort({where = {id = { 32,12,35 }}}, "age", function(a, b) return a > b end)` with custom function
 function tbl:sort(query, transform, comp)
   local res = self:get(query)
   local f = transform or function(r)
@@ -247,9 +281,11 @@ function tbl:sort(query, transform, comp)
   return res
 end
 
----Same functionalities as |sql:insert()|
+---Same functionalities as |DB:insert()|
 ---@param rows table: a row or a group of rows
----@see sql:insert
+---@see DB:insert
+---@usage `todos:insert { title = "stop writing examples :D" }` insert single item.
+---@usage `todos:insert { { ... }, { ... } }` insert multiple items
 ---@return boolean|integer
 function tbl:insert(rows)
   return run(function()
@@ -264,10 +300,12 @@ function tbl:insert(rows)
   end, self)
 end
 
----Same functionalities as |sql:delete()|
----@param where table: define where as table
----@see sql:delete
+---Same functionalities as |DB:delete()|
+---@param where table
+---@see DB:delete
 ---@return boolean
+---@usage `todos:remove()` remove todos table content.
+---@usage `todos:insert{ project = "neovim" }` remove all todos where project == "neovim".
 function tbl:remove(where)
   return run(function()
     local succ = self.db:delete(self.name, where)
@@ -278,9 +316,9 @@ function tbl:remove(where)
   end, self)
 end
 
----Same functionalities as |sql:update()|
+---Same functionalities as |DB:update()|
 ---@param specs table: a table or a list of tables with where and values keys.
----@see sql:update
+---@see DB:update
 ---@return boolean
 function tbl:update(specs)
   return run(function()
@@ -292,10 +330,10 @@ function tbl:update(specs)
   end, self)
 end
 
----Same functionalities as |tbl:add()|, but replaces table content with {rows}
+---replaces table content with {rows}
 ---@param rows table: a row or a group of rows
----@see sql:delete
----@see sql:insert
+---@see DB:delete
+---@see DB:insert
 ---@return boolean
 function tbl:replace(rows)
   return run(function()
