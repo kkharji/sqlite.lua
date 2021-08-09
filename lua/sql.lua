@@ -426,4 +426,26 @@ function DB:table(tbl_name, opts)
   return t:new(self, tbl_name, opts)
 end
 
-return DB
+---@class SQLDatabaseExt:SQLDatabase
+---@field super SQLDatabase
+
+---Use to Extend SQLDatabase Object with extra sugar syntax and api.
+---@param sql SQLDatabase
+---@param tbl SQLTable
+---@param opts table uri, opts, tbl_name, tbl_name ....
+--@return SQLDatabase
+function DB:extend(opts)
+  local db = self.new(opts.uri, opts.opts)
+  ---@type SQLDatabase
+  local cls = setmetatable({ super = db }, { __index = db })
+
+  for tbl_name, schema in pairs(opts) do
+    if tbl_name ~= "uri" and tbl_name ~= "opts" then
+      cls[tbl_name] = t:extend(db, tbl_name, schema)
+    end
+  end
+
+  return cls
+end
+
+return setmetatable(DB, { __call = DB.extend })

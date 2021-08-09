@@ -339,4 +339,17 @@ function tbl:replace(rows)
   end, self)
 end
 
+---@class SQLTableExt:SQLTable
+---@field super SQLTable
+
+---Extend Sqlite Table Object.
+---@param db SQLDatabase
+---@param name string
+---@param opts table
+---@return SQLTableExt
+function tbl:extend(db, name, schema)
+  local tbl = db:table(name, { schema = schema })
+  return setmetatable({ super = tbl }, { __index = tbl })
+end
+
 return tbl
