@@ -112,6 +112,31 @@ function DB:with_open(...)
   return res
 end
 
+---Predict returning true if db connection is active.
+---@return boolean
+---@usage `if db:isopen() then db:close() end` use in if statement.
+function DB:isopen()
+  return not self.closed
+end
+
+---Predict returning true if db connection is indeed closed.
+---@usage `if db:isclose() then db:open() end` use in if statement.
+---@return boolean
+function DB:isclose()
+  return self.closed
+end
+
+---Returns current connection status
+---Get last error code
+---@TODO: decide whether to keep this function
+---@return @SQLDatabaseStatus { msg, code }
+function DB:status()
+  return {
+    msg = clib.last_errmsg(self.conn),
+    code = clib.last_errcode(self.conn),
+  }
+end
+
 ---Evaluates a sql {statement} and if there are results from evaluating it then
 ---the function returns list of row(s). Else, it returns a boolean indecating
 ---whether the evaluation was successful. Optionally, the function accept
@@ -174,31 +199,6 @@ function DB:eval(statement, params)
   return res
 end
 
----Predict returning true if db connection is active.
----@return boolean
----@usage `if db:isopen() then db:close() end` use in if statement.
-function DB:isopen()
-  return not self.closed
-end
-
----Predict returning true if db connection is indeed closed.
----@usage `if db:isclose() then db:open() end` use in if statement.
----@return boolean
-function DB:isclose()
-  return self.closed
-end
-
----Returns current connection status
----Get last error code
----@TODO: decide whether to keep this function
----@return @SQLDatabaseStatus { msg, code }
-function DB:status()
-  return {
-    msg = clib.last_errmsg(self.conn),
-    code = clib.last_errcode(self.conn),
-  }
-end
-
 ---Check if a table with {tbl_name} exists in sqlite db
 ---@param tbl_name string: the table name.
 ---@usage `if not db:exists("todo_tbl") then error("...") end`
@@ -206,6 +206,26 @@ end
 function DB:exists(tbl_name)
   local q = self:eval("select name from sqlite_master where name= ?", tbl_name)
   return type(q) == "table" and true or false
+end
+
+---Create a new sqlite db table with {name} based on {schema}. if {schema.ensure} then
+---create only when it does not exists. similar to 'create if not exists'
+---@param tbl_name string table name
+---@param schema table the table keys/column and their types
+---@usage `db:create("todos", {id = {"int", "primary", "key"}, title = "text"})`
+---create table with the given schema.
+---@return boolean
+function DB:create(tbl_name, schema)
+  return self:eval(P.create(tbl_name, schema))
+end
+
+---Create a new sqlite db table with {name} based on {schema}. if {schema.ensure} then
+---create only when it doesn't exists. similar to 'create if not exists'
+---@param tbl_name string: table name
+---@usage `db:drop("todos")` drop table.
+---@return boolean
+function DB:drop(tbl_name)
+  return self:eval(P.drop(tbl_name))
 end
 
 ---Get {name} table schema, if table does not exist then return an empty table.
@@ -250,26 +270,6 @@ function DB:schema(tbl_name, info)
   }
 
   return info and obj or obj.types
-end
-
----Create a new sqlite db table with {name} based on {schema}. if {schema.ensure} then
----create only when it does not exists. similar to 'create if not exists'
----@param tbl_name string table name
----@param schema table the table keys/column and their types
----@usage `db:create("todos", {id = {"int", "primary", "key"}, title = "text"})`
----create table with the given schema.
----@return boolean
-function DB:create(tbl_name, schema)
-  return self:eval(P.create(tbl_name, schema))
-end
-
----Create a new sqlite db table with {name} based on {schema}. if {schema.ensure} then
----create only when it doesn't exists. similar to 'create if not exists'
----@param tbl_name string: table name
----@usage `db:drop("todos")` drop table.
----@return boolean
-function DB:drop(tbl_name)
-  return self:eval(P.drop(tbl_name))
 end
 
 ---Insert to lua table into sqlite database table.
