@@ -8,20 +8,43 @@ https://github.com/tami5/sql.nvim
   :h sql
   :h sql.table
 
+SQLDatabase                                                      *SQLDatabase*
+
+
+
+SQLQuerySpec                                                    *SQLQuerySpec*
+
+
+    Fields: ~
+        {where}  (table)
+        {values} (table)
+
+
 SQLDatabaseExt                                                *SQLDatabaseExt*
     SQLDatabase
 
     Fields: ~
-        {super} (SQLDatabase)  
+        {super} (SQLDatabase)
 
 
 
 ================================================================================
+SQLTable                                                            *SQLTable*
+
+
+
+SQLTableOpts                                                    *SQLTableOpts*
+
+
+    Fields: ~
+        {schema} (table<string, string>)
+
+
 SQLTableExt                                                      *SQLTableExt*
     SQLTable
 
     Fields: ~
-        {super} (SQLTable)  
+        {super} (SQLTable)
 
 
 tbl:new({db}, {opts})                                              *tbl:new()*
@@ -29,8 +52,8 @@ tbl:new({db}, {opts})                                              *tbl:new()*
 
 
     Parameters: ~
-        {db}   (SQLDatabase)   
-        {opts} (SQLTableOpts)  
+        {db}   (SQLDatabase)
+        {opts} (SQLTableOpts)
 
     Return: ~
         SQLTable
@@ -195,8 +218,8 @@ tbl:sort({query}, {transform}, {comp})                            *tbl:sort()*
         by id
         `local res = t1:sort({ where = {id = {32,12,35}}}, "age")` return rows
         sort by age
-        `local res = t1:sort({where = {id = { 32,12,35 }}}, "age", function(a,
-        b) return a > b end)` with custom function
+        `local res = t1:sort({where = { ... }}, "age", function(a, b) return a
+        > b end)` with custom function
 
 
 tbl:insert({rows})                                              *tbl:insert()*
@@ -272,9 +295,9 @@ tbl:extend({db}, {name}, {opts})                                *tbl:extend()*
 
 
     Parameters: ~
-        {db}   (SQLDatabase)  
-        {name} (string)       
-        {opts} (table)        
+        {db}   (SQLDatabase)
+        {name} (string)
+        {opts} (table)
 
     Return: ~
         SQLTableExt
