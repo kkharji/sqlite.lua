@@ -47,11 +47,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMIT_MSG: |
-            [docgen] Update doc/sql.txt
-            skip-checks: true
+            📝 DOC: Update doc/sql.txt
+            skip-checks: false
         run: |
           git config user.email "actions@github"
-          git config user.name "Github Actions"
+          git config user.name "Actions"
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
           git add doc/
           # Only commit and push if we have changes
