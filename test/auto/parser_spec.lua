@@ -146,6 +146,37 @@ describe("parse", function()
       local expected = "create table people(id integer not null primary key, name text default unknown)"
       eq(expected, passed, "should be identical")
     end)
+
+    it("key-pair: type", function()
+      local defs = {
+        id = true,
+        name = { type = "text" },
+      }
+      local passed = p.create("people", defs)
+      local expected = "create table people(id integer not null primary key, name text)"
+      eq(expected, passed, "should be identical")
+    end)
+
+    it("foreign key", function()
+      local defs = {
+        id = true,
+        name = { "text", default = "unknown" },
+        job_id = {
+          type = "integer",
+          reference = "jobs.id",
+        },
+      }
+      local passed = p.create("people", defs)
+      local expected = {
+        "create table people(",
+        "id integer not null primary key, ",
+        "job_id integer references jobs(id), ",
+        "name text default unknown",
+        ")",
+      }
+
+      eq(table.concat(expected, ""), passed, "should be identical")
+    end)
   end)
 
   describe("[order by]", function()
