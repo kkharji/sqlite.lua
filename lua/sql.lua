@@ -437,7 +437,7 @@ end
 function DB:extend(opts)
   local db = self.new(opts.uri, opts.opts)
   ---@type SQLDatabase
-  local cls = setmetatable({ super = db }, { __index = db })
+  local cls = setmetatable({ db = db }, { __index = db })
 
   for tbl_name, schema in pairs(opts) do
     if tbl_name ~= "uri" and tbl_name ~= "opts" then

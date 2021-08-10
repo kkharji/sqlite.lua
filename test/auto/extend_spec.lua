@@ -7,7 +7,7 @@ describe("extend:", function()
   ---@class Manager:SQLDatabaseExt
   ---@field projects SQLTableExt
   ---@field todos SQLTableExt
-  local manager = sql:extend {
+  local manager = sql {
     uri = testrui,
     projects = {
       id = true,
@@ -21,8 +21,6 @@ describe("extend:", function()
       status = "text",
       completed = "boolean",
       details = "text",
-      -- foreign_keys = { client = "projects.id", },
-      -- KEY(client) REFERENCES projects(id)"
     },
     opts = {
       foreign_keys = true,
@@ -41,20 +39,20 @@ describe("extend:", function()
     eq("table", type(manager.todos), "should have added sql table object for todos")
   end)
 
-  it("access normal operations without self.super", function()
+  it("access normal operations without self.db", function()
     eq("function", type(manager.insert), "should have added insert function.")
     eq("function", type(manager.open), "should have added open function.")
     eq("function", type(manager.close), "should have added close function.")
     eq("function", type(manager.with_open), "should have added with_open.")
     eq("function", type(manager.table), "should have added table.")
-    eq("function", type(manager.super.insert), "should have added insert function.")
-    eq("function", type(manager.super.open), "should have added open function.")
-    eq("function", type(manager.super.close), "should have added close function.")
-    eq("function", type(manager.super.with_open), "should have added with_open.")
-    eq("function", type(manager.super.table), "should have added table.")
+    eq("function", type(manager.db.insert), "should have added insert function.")
+    eq("function", type(manager.db.open), "should have added open function.")
+    eq("function", type(manager.db.close), "should have added close function.")
+    eq("function", type(manager.db.with_open), "should have added with_open.")
+    eq("function", type(manager.db.table), "should have added table.")
     manager:open()
     eq(true, manager:eval "insert into projects(title) values('sql.nvim')", "should insert.")
-    eq("table", type(manager:eval("select * from projects")[1]), "should be have content even with self.super.")
+    eq("table", type(manager:eval("select * from projects")[1]), "should be have content even with self.db.")
     eq(true, manager.projects:remove(), "projects table should work.")
   end)
 
@@ -75,7 +73,7 @@ describe("extend:", function()
     eq(true, manager.projects:remove(), "should remove after default insert.")
 
     function manager.projects:insert()
-      local succ, id = self.super:insert(sqlnvim)
+      local succ, id = self.tbl:insert(sqlnvim)
       if not succ then
         error "operation faild"
       end
@@ -87,7 +85,7 @@ describe("extend:", function()
     -- eq(true, succ, "should have returned id.")
 
     function manager.projects:get()
-      return self.super:get({ where = { title = sqlnvim.title } })[1].title
+      return self.tbl:get({ where = { title = sqlnvim.title } })[1].title
     end
 
     eq(sqlnvim.title, manager.projects:get(), "should have inserted sqlnvim project")

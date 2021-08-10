@@ -349,7 +349,7 @@ end
 ---@return SQLTableExt
 function tbl:extend(db, name, schema)
   local t = self:new(db, name, { schema = schema })
-  return setmetatable({ super = t }, { __index = t })
+  return setmetatable({ tbl = t }, { __index = t })
 end
 
 return tbl
