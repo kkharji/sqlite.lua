@@ -1,6 +1,13 @@
 local luv = require "luv"
 local M = {}
 
+M.if_nil = function(a, b)
+  if a == nil then
+    return b
+  end
+  return a
+end
+
 M.is_str = function(s)
   return type(s) == "string"
 end

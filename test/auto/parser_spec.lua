@@ -103,6 +103,7 @@ describe("parse", function()
       local passed = p.create("todos", defs)
       eq(expected, passed, "should be identical")
     end)
+
     it("ensure that the table is created", function()
       local defs = {
         id = { "integer", "primary", "key" },
@@ -114,6 +115,7 @@ describe("parse", function()
       local passed = p.create("people", defs)
       eq(expected, passed, "should be identical")
     end)
+
     it("ensure that the table is created with a key being true", function()
       local defs = {
         id = true,
@@ -123,6 +125,25 @@ describe("parse", function()
       }
       local expected = "create table if not exists people(age int, id integer not null primary key, name text)"
       local passed = p.create("people", defs)
+      eq(expected, passed, "should be identical")
+    end)
+
+    it("key-pair: nullable & unique", function()
+      local defs = {
+        id = true,
+        name = { "text", nullable = false, unique = true },
+      }
+      local passed = p.create("people", defs)
+      local expected = "create table people(id integer not null primary key, name text unique not null)"
+      eq(expected, passed, "should be identical")
+    end)
+    it("key-pair: default value", function()
+      local defs = {
+        id = true,
+        name = { "text", default = "unknown" },
+      }
+      local passed = p.create("people", defs)
+      local expected = "create table people(id integer not null primary key, name text default unknown)"
       eq(expected, passed, "should be identical")
     end)
   end)
@@ -163,6 +184,7 @@ describe("parse", function()
       eq(expected, passed, "should be identical")
     end)
   end)
+
   describe("[distinct]", function()
     -- remove duplicate from result set
     it("with single key", function()
@@ -175,6 +197,7 @@ describe("parse", function()
       eq(expected, passed, "should be identical")
     end)
   end)
+
   describe("[limit]", function()
     it("with limit as number", function()
       local defs = {
@@ -204,6 +227,7 @@ describe("parse", function()
       eq(expected, passed, "should be identical")
     end)
   end)
+
   describe("[glob]/contains", function()
     it("with single key", function()
       local defs = {

@@ -315,6 +315,9 @@ M.create = function(tbl, defs)
     elseif type(v) ~= "table" then
       table.insert(items, string.format("%s %s", k, v))
     else
+      _ = u.if_nil(v.unique, false) and table.insert(v, "unique")
+      _ = u.if_nil(v.nullable, nil) == false and table.insert(v, "not null")
+      _ = u.if_nil(v.default, nil) and table.insert(v, "default " .. v.default)
       table.insert(items, string.format("%s %s", k, table.concat(v, " ")))
     end
   end
