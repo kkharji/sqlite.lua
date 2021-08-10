@@ -32,29 +32,25 @@ jobs:
           source github-actions-setup.sh nightly-x64
           make test
 
-  macos:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-11.0]
-        include:
-          - os: macos-11.0
-            manager: brew
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+  # macos:
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     matrix:
+  #       os: [macos-11.0]
+  #   steps:
+  #     - uses: actions/checkout@v2
 
-      - name: "brew update"
-        run: brew update
+  #     - name: "brew update"
+  #       run: brew update
 
-      - name: neovim
-        run: brew install neovim --HEAD
+  #     - name: neovim
+  #       run: brew install neovim --HEAD
 
-      - name: Prepare
-        run: |
-          mkdir -p ~/.local/share/nvim/site/pack/vendor/start
-          git clone --depth 1 https://github.com/nvim-lua/plenary.nvim ~/.local/share/nvim/site/pack/vendor/start/plenary.nvim
-          ln -s $(pwd) ~/.local/share/nvim/site/pack/vendor/start
+  #     - name: Prepare
+  #       run: |
+  #         mkdir -p ~/.local/share/nvim/site/pack/vendor/start
+  #         git clone --depth 1 https://github.com/nvim-lua/plenary.nvim ~/.local/share/nvim/site/pack/vendor/start/plenary.nvim
+  #         ln -s $(pwd) ~/.local/share/nvim/site/pack/vendor/start
 
-      - name: Run tests
-        run: make test
+  #     - name: Run tests
+  #       run: make test
