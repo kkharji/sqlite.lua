@@ -177,6 +177,51 @@ describe("parse", function()
 
       eq(table.concat(expected, ""), passed, "should be identical")
     end)
+
+    it("foreign key + single action", function()
+      local defs = {
+        id = true,
+        name = { "text", default = "unknown" },
+        job_id = {
+          type = "integer",
+          reference = "jobs.id",
+          on_update = "cascade",
+        },
+      }
+      local passed = p.create("people", defs)
+      local expected = {
+        "create table people(",
+        "id integer not null primary key, ",
+        "job_id integer references jobs(id) on update cascade, ",
+        "name text default unknown",
+        ")",
+      }
+
+      eq(table.concat(expected, ""), passed, "should be identical")
+    end)
+
+    it("foreign key + multi action", function()
+      local defs = {
+        id = true,
+        name = { "text", default = "unknown" },
+        job_id = {
+          type = "integer",
+          reference = "jobs.id",
+          on_update = "cascade",
+          on_delete = "null",
+        },
+      }
+      local passed = p.create("people", defs)
+      local expected = {
+        "create table people(",
+        "id integer not null primary key, ",
+        "job_id integer references jobs(id) on update cascade on delete set null, ",
+        "name text default unknown",
+        ")",
+      }
+
+      eq(table.concat(expected, ""), passed, "should be identical")
+    end)
   end)
 
   describe("[order by]", function()

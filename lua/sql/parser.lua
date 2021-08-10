@@ -296,6 +296,13 @@ M.delete = function(tbl, opts)
   return type(where) == "string" and method .. " " .. where or method
 end
 
+local format_action = function(value, update)
+  local stmt = update and "on update" or "on delete"
+  local preappend = (value:match "default" or value:match "null") and " set " or " "
+
+  return stmt .. preappend .. value
+end
+
 ---Parse table create statement
 ---@param tbl string: table name
 ---@param defs table: keys and type pairs
@@ -315,11 +322,14 @@ M.create = function(tbl, defs)
     elseif type(v) ~= "table" then
       table.insert(items, string.format("%s %s", k, v))
     else
-      _ = u.if_nil(v.type, nil) and table.insert(v, v.type)
+      local _ = u.if_nil(v.type, nil) and table.insert(v, v.type)
       _ = u.if_nil(v.unique, false) and table.insert(v, "unique")
       _ = u.if_nil(v.nullable, nil) == false and table.insert(v, "not null")
       _ = u.if_nil(v.default, nil) and table.insert(v, "default " .. v.default)
       _ = u.if_nil(v.reference, nil) and table.insert(v, "references " .. string.gsub(v.reference, "%.", "(") .. ")")
+      _ = u.if_nil(v.on_update, nil) and table.insert(v, format_action(v.on_update, true))
+      _ = u.if_nil(v.on_delete, nil) and table.insert(v, format_action(v.on_delete))
+
       table.insert(items, string.format("%s %s", k, table.concat(v, " ")))
     end
   end
