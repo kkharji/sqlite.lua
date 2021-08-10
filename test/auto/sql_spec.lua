@@ -687,6 +687,17 @@ describe("sql", function()
       local sch = db:schema "test"
       eq("text", sch.title, "should not be nil")
     end)
+    it("auto enable foreign_keys on usage", function()
+      db:create("test_keys", {
+        id = true,
+        title = "text",
+        project = {
+          type = "integer",
+          reference = "projects.id",
+        },
+      })
+      eq(1, db:eval("pragma foreign_keys")[1].foreign_keys)
+    end)
     db:close()
   end)
 

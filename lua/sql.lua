@@ -218,7 +218,11 @@ end
 ---@usage `db:create("todos", {id = {"int", "primary", "key"}, title = "text"})` create table with the given schema.
 ---@return boolean
 function DB:create(tbl_name, schema)
-  return self:eval(P.create(tbl_name, schema))
+  local req = P.create(tbl_name, schema)
+  if req:match "reference" then
+    self:eval "pragma foreign_keys = ON"
+  end
+  return self:eval(req)
 end
 
 ---Remove {tbl_name} from database
