@@ -1,7 +1,11 @@
+---@brief [[
+---Abstraction to produce more readable code.
+---@brief ]]
+---@tag table.lua
 local u = require "sql.utils"
 local luv = require "luv"
 
----@class SQLTable
+---@class SQLTable @Main table class
 local tbl = {}
 tbl.__index = tbl
 
