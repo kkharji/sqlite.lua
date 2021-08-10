@@ -48,9 +48,10 @@ end
 ---returned 'let me id or 'boolean.
 ---When the ret values < 0 then the function didn't do anything.
 ---@param ret table
+---@param succ boolean all items are truthful
 ---@return boolean
-M.should_update = function(ret)
-  assert(#ret > 0, errors.wrong_input)
+M.should_update = function(ret, succ)
+  assert(#ret > 0 and succ, errors.wrong_input)
   return true
 end
 

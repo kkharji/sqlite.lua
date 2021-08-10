@@ -338,7 +338,8 @@ function DB:update(tbl_name, specs)
         s:step()
         s:reset()
         s:bind_clear()
-        table.insert(ret_vals, s:finalize())
+        s:finalize()
+        table.insert(ret_vals, clib.last_errcode(self.conn) == 0)
       else
         local res = self:insert(tbl_name, u.tbl_extend("keep", v.values, v.where))
         table.insert(ret_vals, res)
@@ -346,15 +347,15 @@ function DB:update(tbl_name, specs)
     end
   end)
 
-  a.should_update(ret_vals)
+  -- error(vim.inspect(ret_vals))
 
   local succ = u.all(ret_vals, function(_, v)
     return v
   end)
 
-  if succ then
-    self.modified = true
-  end
+  a.should_update(ret_vals, succ)
+  self.modified = true
+
   return succ
 end
 
