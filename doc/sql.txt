@@ -9,22 +9,26 @@ https://github.com/tami5/sql.nvim
   :h sql.table
 
 SQLDatabase                                                      *SQLDatabase*
-
+    Main sql.nvim object.
 
 
 SQLQuerySpec                                                    *SQLQuerySpec*
-
-
-    Fields: ~
-        {where}  (table)
-        {values} (table)
-
-
-SQLDatabaseExt                                                *SQLDatabaseExt*
-    SQLDatabase
+    Query spec that are passed to a number of db: methods.
 
     Fields: ~
-        {super} (SQLDatabase)
+        {where}  (table)  key and value
+        {values} (table)  key and value to updated.
+
+
+SQLDatabaseExt : SQLDatabase                                  *SQLDatabaseExt*
+    Extend sql.nvim object
+
+    Parents: ~
+        |SQLDatabase|
+
+    Fields: ~
+        {db} (SQLDatabase)  fallback when the user overwrite @SQLDatabaseExt
+                            methods .
 
 
 
@@ -34,25 +38,28 @@ SQLTable                                                            *SQLTable*
 
 
 SQLTableOpts                                                    *SQLTableOpts*
-
+    Supported sql.table configurations.
 
     Fields: ~
-        {schema} (table<string, string>)
+        {schema}  (table)    <string, string>
+        {nocache} (boolean)  whether to disable cache, default true.
 
 
 SQLTableExt                                                      *SQLTableExt*
     SQLTable
 
     Fields: ~
-        {super} (SQLTable)
+        {tbl} (SQLTable)  fallback when the user overwrite @SQLTableExt
+                          methods.
 
 
-tbl:new({db}, {opts})                                              *tbl:new()*
+tbl:new({db}, {name}, {opts})                                      *tbl:new()*
     Create new sql table object
 
 
     Parameters: ~
         {db}   (SQLDatabase)
+        {name} (string)        table name
         {opts} (SQLTableOpts)
 
     Return: ~
