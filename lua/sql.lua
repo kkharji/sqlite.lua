@@ -448,4 +448,6 @@ function DB:extend(opts)
   return cls
 end
 
-return setmetatable(DB, { __call = DB.extend })
+DB = setmetatable(DB, { __call = DB.extend })
+
+return DB
