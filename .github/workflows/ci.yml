@@ -33,8 +33,7 @@ jobs:
           make test
 
   macos:
-    name: darwin
-    runs-on: "macos-11"
+    runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
       - name: neovim
