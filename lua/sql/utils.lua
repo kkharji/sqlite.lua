@@ -149,6 +149,18 @@ M.map = function(t, f)
   return _t
 end
 
+M.foreachv = function(t, f)
+  for i, v in M.opairs(t) do
+    f(i, v)
+  end
+end
+
+M.foreach = function(t, f)
+  for k, v in pairs(t) do
+    f(k, v)
+  end
+end
+
 M.mapv = function(t, f)
   local _t = {}
   for i, value in M.opairs(t) do

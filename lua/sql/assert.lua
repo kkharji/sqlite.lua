@@ -8,6 +8,7 @@ local errors = {
   close_fail = "database connection didn't get closed, ERRMSG: %s",
   eval_fail = "eval has failed to execute statement, ERRMSG: %s",
   wrong_input = "can't parse your input. Make sure that you used that function correctly",
+  missing_req_key = "(insert) missing a required key: %s",
 }
 
 for key, value in pairs(errors) do
@@ -51,6 +52,11 @@ end
 M.should_update = function(ret)
   assert(#ret > 0, errors.wrong_input)
   return true
+end
+
+M.missing_req_key = function(val, key)
+  assert(val, errors.missing_req_key:format(key))
+  return false
 end
 
 return M
