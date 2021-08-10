@@ -33,9 +33,20 @@ jobs:
           make test
 
   macos:
-    runs-on: macos-11
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-11.0]
+        include:
+          - os: macos-11.0
+            manager: brew
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: "brew update"
+        run: brew update
+
       - name: neovim
         run: brew install neovim --HEAD
 
