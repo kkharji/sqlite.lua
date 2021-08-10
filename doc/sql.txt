@@ -31,10 +31,311 @@ SQLDatabaseExt : SQLDatabase                                  *SQLDatabaseExt*
                             methods .
 
 
+DB.new({uri}, {opts})                                               *DB.new()*
+    Creates a new sql.nvim object, without creating a connection to uri.
+    |DB.new| is identical to |DB:open| but it without opening sqlite db
+    connection.
+
+
+    Parameters: ~
+        {uri}  (string)  path to db.if nil, then create in memory database.
+        {opts} (table)   sqlite db options see
+                         https://www.sqlite.org/pragma.html
+
+    Return: ~
+        SQLDatabase
+
+    Usage: ~
+        `require'sql'.new()` in memory
+        `require'sql'.new("./path/to/sql.sqlite")` to given path
+        `require'sql'.new("$ENV_VARABLE")` reading from env variable
+
+    See: ~
+        |DB:open()|
+
+
+DB:open({uri}, {opts})                                             *DB:open()*
+    Connect, or create new sqlite db, either in memory or via a {uri}.
+    |DB:open| is identical to |DB.new| but it additionally opens the db
+
+
+    Parameters: ~
+        {uri}  (string)  if uri is nil, then create in memory database.
+        {opts} (table)
+
+    Return: ~
+        SQLDatabase
+
+    Usage: ~
+        `require("sql"):open()` in memory.
+        `require("sql"):open("./path/to/sql.sqlite")` to given path.
+        `require("sql"):open("$ENV_VARABLE")` reading from env variable
+        `db:open()` reopen connection if closed.
+
+
+DB:close()                                                        *DB:close()*
+    Close sqlite db connection. returns true if closed, error otherwise.
+
+
+    Return: ~
+        boolean
+
+    Usage: ~
+        `db:close()`
+
+
+DB:with_open()                                                *DB:with_open()*
+    Same as |DB:open| but closes db connection after executing {args[1]} or
+    {args[2]} depending of how its called. if the function is called as a
+    method to db object e.g. *db:with_open*, then {args[1]} must be a function.
+    Else {args[1]} need to be the uri and {args[2]} the function. The function
+    should accept and use db object.
+
+
+    Varargs: ~
+        If used as db method, then the {args[1]} should be a function, else
+        {args[1]} and {args[2]}.
+
+    Return: ~
+        any
+
+    Usage: ~
+        `require"sql".open_with("path", function(db) db:eval("...") end)` use
+        a the sqlite db at path.
+        `db:with_open(function() db:insert{...} end)` open db connection,
+        execute insert and close.
+
+    See: ~
+        |DB:open()|
+
+
+DB:isopen()                                                      *DB:isopen()*
+    Predict returning true if db connection is active.
+
+
+    Return: ~
+        boolean
+
+    Usage: ~
+        `if db:isopen() then db:close() end` use in if statement.
+
+
+DB:isclose()                                                    *DB:isclose()*
+    Predict returning true if db connection is indeed closed.
+
+
+    Return: ~
+        boolean
+
+    Usage: ~
+        `if db:isclose() then db:open() end` use in if statement.
+
+
+DB:status()                                                      *DB:status()*
+    Returns current connection status Get last error code
+
+
+    Return: ~
+        SQLDatabaseStatus { msg, code }
+
+
+DB:eval({statement}, {params})                                     *DB:eval()*
+    Evaluates a sql {statement} and if there are results from evaluating it
+    then the function returns list of row(s). Else, it returns a boolean
+    indecating whether the evaluation was successful. Optionally, the function
+    accept {params} which can be a dict of values corresponding to the sql
+    statement or a list of unamed values.
+
+
+    Parameters: ~
+        {statement} (any)    string representing the {statement} or a list of
+                             {statements}
+        {params}    (table)  params to be bind to {statement}, it can be a
+                             list or dict or nil
+
+    Return: ~
+        boolean | table
+
+    Usage: ~
+        `db:eval("drop table if exists todos")` evaluate without any extra
+        arguments.
+        `db:eval("select * from todos where id = ?", 1)` evaluate with unamed
+        value.
+        `db:eval("insert into t(a, b) values(:a, :b)", {a = "1", b = 3})`
+        evaluate with named arguments.
+
+
+DB:exists({tbl_name})                                            *DB:exists()*
+    Check if a table with {tbl_name} exists in sqlite db
+
+
+    Parameters: ~
+        {tbl_name} (string)  the table name.
+
+    Return: ~
+        boolean
+
+    Usage: ~
+        `if not db:exists("todo_tbl") then error("...") end`
+
+
+DB:create({tbl_name}, {schema})                                  *DB:create()*
+    Create a new sqlite db table with {name} based on {schema}. if
+    {schema.ensure} then create only when it does not exists. similar to
+    'create if not exists'.
+
+
+    Parameters: ~
+        {tbl_name} (string)  table name
+        {schema}   (table)   the table keys/column and their types
+
+    Return: ~
+        boolean
+
+    Usage: ~
+        `db:create("todos", {id = {"int", "primary", "key"}, title = "text"})`
+        create table with the given schema.
+
+
+DB:drop({tbl_name})                                                *DB:drop()*
+    Remove {tbl_name} from database
+
+
+    Parameters: ~
+        {tbl_name} (string)  table name
+
+    Return: ~
+        boolean
+
+    Usage: ~
+        `db:drop("todos")` drop table.
+
+
+DB:schema({tbl_name}, {info})                                    *DB:schema()*
+    Get {name} table schema, if table does not exist then return an empty
+    table.
+
+
+    Parameters: ~
+        {tbl_name} (string)   the table name.
+        {info}     (boolean)  whether to return table info. default false.
+
+    Return: ~
+        table list of keys or keys and their type.
+
+
+DB:insert({tbl_name}, {rows})                                    *DB:insert()*
+    Insert to lua table into sqlite database table. returns true incase the
+    table was inserted successfully, and the last inserted row id.
+
+
+    Parameters: ~
+        {tbl_name} (string)  the table name
+        {rows}     (table)   rows to insert to the table.
+
+    Return: ~
+        boolean|integer
+
+    Usage: ~
+        `db:insert("todos", { title = "new todo" })` single item.
+        `db:insert("items", { { name = "a"}, { name = "b" }, { name = "c" }
+        })` insert multiple items.
+
+
+DB:update({tbl_name}, {specs})                                   *DB:update()*
+    Update table row with where closure and list of values returns true incase
+    the table was updated successfully.
+
+
+    Parameters: ~
+        {tbl_name} (string)                       the name of the db table.
+        {specs}    (SQLQuerySpec|SQLQuerySpec[])
+
+    Return: ~
+        boolean
+
+    Usage: ~
+        `db:update("todos", { where = { id = "1" }, values = { action = "DONE"
+        }})` update id 1 with the given keys
+        `db:update("todos", {{ where = { id = "1" }, values = { action =
+        "DONE" }}, {...}, {...}})` multi updates.
+        `db:update("todos", { where = { project = "sql.nvim" }, values = {
+        status = "later" } )` update multiple rows
+
+
+DB:delete({tbl_name}, {specs})                                   *DB:delete()*
+    Delete a {tbl_name} row/rows based on the {specs} given. if no spec was
+    given, then all the {tbl_name} content will be deleted.
+
+
+    Parameters: ~
+        {tbl_name} (string)        the name of the db table.
+        {specs}    (SQLQuerySpec)
+
+    Return: ~
+        boolean: true if operation is successfully, false otherwise.
+
+    Usage: ~
+        `db:delete("todos")` delete todos table content
+        `db:delete("todos", { where = { id = 1 })` delete row that has id as 1
+        `db:delete("todos", { where = { id = {1,2,3} })` delete all rows that
+        has value of id 1 or 2 or 3
+
+
+DB:select({tbl_name}, {spec})                                    *DB:select()*
+    Query from a table with where and join options
+
+
+    Parameters: ~
+        {tbl_name} (string)        the name of the db table to select on
+        {spec}     (SQLQuerySpec)
+
+    Return: ~
+        table[]
+
+    Usage: ~
+        `db:select("todos")` get everything
+        `db:select("todos", { where = { id = 1 })` get row with id of 1
+        `db:select("todos", { where = { status = {"later", "paused"} })` get
+        row with status value of later or paused
+        `db:select("todos", { limit = 5 })` get 5 items from todos table
+
+
+DB:table({tbl_name}, {opts})                                      *DB:table()*
+    Create new sql-table object. If {opts}.ensure = false, on each run it will
+    drop the table and recreate it.
+
+
+    Parameters: ~
+        {tbl_name} (string)  the name of the table. can be new or existing
+                             one.
+        {opts}     (table)   {schema, ensure (defalut true)}
+
+    Return: ~
+        SQLTable
+
+
+DB:extend({sql}, {tbl}, {opts})                                  *DB:extend()*
+    Use to Extend SQLDatabase Object with extra sugar syntax and api.
+
+
+    Parameters: ~
+        {sql}  (SQLDatabase)
+        {tbl}  (SQLTable)
+        {opts} (table)        uri, opts, tbl_name, tbl_name ....
+
+    Return: ~
+        SQLDatabase
+
+
 
 ================================================================================
-SQLTable                                                            *SQLTable*
+                                                                     *table.lua*
 
+Abstraction to produce more readable code.
+
+SQLTable                                                            *SQLTable*
+    Main table class
 
 
 SQLTableOpts                                                    *SQLTableOpts*
