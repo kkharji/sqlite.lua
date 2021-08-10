@@ -18,19 +18,19 @@ local t = require "sql.table"
 local P = require "sql.parser"
 local flags = clib.flags
 
----@class SQLDatabase
+---@class SQLDatabase @Main sql.nvim object.
 local DB = {}
 DB.__index = DB
 
----@class SQLQuerySpec
----@field where table
----@field values table
+---@class SQLQuerySpec @Query spec that are passed to a number of db: methods.
+---@field where table: key and value
+---@field values table: key and value to updated.
 
----@class SQLDatabaseExt:SQLDatabase
----@field super SQLDatabase
+---@class SQLDatabaseExt:SQLDatabase @Extend sql.nvim object
+---@field db SQLDatabase: fallback when the user overwrite @SQLDatabaseExt methods .
 
 ---return now date
----@TODO: decide whether using os.time and epoch time would be better.
+---@todo: decide whether using os.time and epoch time would be better.
 ---@return string osdate
 local created = function()
   return os.date "%Y-%m-%d %H:%M:%S"
@@ -131,8 +131,8 @@ end
 
 ---Returns current connection status
 ---Get last error code
----@TODO: decide whether to keep this function
----@return @SQLDatabaseStatus { msg, code }
+---@todo: decide whether to keep this function
+---@return SQLDatabaseStatus { msg, code }
 function DB:status()
   return {
     msg = clib.last_errmsg(self.conn),
@@ -281,7 +281,7 @@ end
 ---@return boolean|integer
 ---@usage `db:insert("todos", { title = "new todo" })` single item.
 ---@usage `db:insert("items", {  { name = "a"}, { name = "b" }, { name = "c" } })` insert multiple items.
----@TODO handle inconflict case
+---@todo handle inconflict case
 function DB:insert(tbl_name, rows)
   a.is_sqltbl(self, tbl_name, "insert")
   local ret_vals = {}
@@ -436,7 +436,7 @@ end
 ---@return SQLDatabase
 function DB:extend(opts)
   local db = self.new(opts.uri, opts.opts)
-  ---@type SQLDatabase
+  --@type SQLDatabase
   local cls = setmetatable({ db = db }, { __index = db })
 
   for tbl_name, schema in pairs(opts) do

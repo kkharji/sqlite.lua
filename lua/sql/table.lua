@@ -5,9 +5,9 @@ local luv = require "luv"
 local tbl = {}
 tbl.__index = tbl
 
----@class SQLTableOpts
----@field schema table<string, string>
----@field nocache boolean whether to disable cache, default true.
+---@class SQLTableOpts @Supported sql.table configurations.
+---@field schema table: <string, string>
+---@field nocache boolean: whether to disable cache, default true.
 
 local cache_clear = function(self, succ, change)
   if succ then
@@ -59,7 +59,7 @@ end)()
 
 ---Create new sql table object
 ---@param db SQLDatabase
----@param name string table name
+---@param name string: table name
 ---@param opts SQLTableOpts
 ---@return SQLTable
 function tbl:new(db, name, opts)
@@ -340,7 +340,7 @@ function tbl:replace(rows)
 end
 
 ---@class SQLTableExt:SQLTable
----@field super SQLTable
+---@field tbl SQLTable: fallback when the user overwrite @SQLTableExt methods.
 
 ---Extend Sqlite Table Object.
 ---@param db SQLDatabase
