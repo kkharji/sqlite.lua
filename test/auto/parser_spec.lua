@@ -157,6 +157,21 @@ describe("parse", function()
       eq(expected, passed, "should be identical")
     end)
 
+    it("primary key", function()
+      local defs = {
+        id = { type = "integer", pk = true },
+        name = { type = "text", default = "noname" },
+      }
+      local passed = p.create("people", defs)
+      local expected = {
+        "create table people(",
+        "id integer primary key, ",
+        "name text default noname",
+        ")",
+      }
+
+      eq(table.concat(expected, ""), passed, "should be identical")
+    end)
     it("foreign key", function()
       local defs = {
         id = true,
