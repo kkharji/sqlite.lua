@@ -3,6 +3,17 @@ local eq = assert.are.same
 
 describe("parse", function()
   local tbl = "todo"
+  describe("[insert]", function()
+    it("post function without key in values", function()
+      eq(
+        "insert into todo (date, id) values(date('now'), :id)",
+        p.insert(tbl, { values = {
+          date = "date('now')",
+          id = 1,
+        } })
+      )
+    end)
+  end)
 
   describe("[all]", function()
     it("select all", function()

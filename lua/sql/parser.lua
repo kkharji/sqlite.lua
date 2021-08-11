@@ -100,7 +100,7 @@ local pkeys = function(defs, kv)
   defs = u.is_nested(defs) and defs[1] or defs
 
   local keys = {}
-  for k, _ in pairs(defs) do
+  for k, _ in u.opairs(defs) do
     tinsert(keys, k)
   end
 
@@ -119,8 +119,12 @@ local pvalues = function(defs, kv)
   defs = u.is_nested(defs) and defs[1] or defs
 
   local keys = {}
-  for k, _ in pairs(defs) do
-    tinsert(keys, ":" .. k)
+  for k, v in u.opairs(defs) do
+    if type(v) == "string" and v:match "%a+%(.+%)" then
+      tinsert(keys, v)
+    else
+      tinsert(keys, ":" .. k)
+    end
   end
 
   return ("values(%s)"):format(tconcat(keys, ", "))

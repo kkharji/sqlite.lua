@@ -349,6 +349,16 @@ describe("sql", function()
       eq('["list","of","lines"]', res[1].data)
       db:eval "drop table test"
     end)
+
+    it("evaluates sqlite functions", function()
+      db:eval "create table test(id integer, date text)"
+      db:insert("test", { id = 1, date = db.F.date("now", "+1 day") })
+
+      local res = db:eval [[select * from test]]
+      eq("2021-08-12", res[1].date)
+      db:eval "drop table test"
+    end)
+
     db:close()
   end)
 
