@@ -31,6 +31,14 @@ SQLDatabaseExt : SQLDatabase                                  *SQLDatabaseExt*
                             methods .
 
 
+SQLDatabaseStatus                                          *SQLDatabaseStatus*
+
+
+    Fields: ~
+        {msg}  (string)
+        {code} (sqlite3_flag)
+
+
 DB.new({uri}, {opts})                                               *DB.new()*
     Creates a new sql.nvim object, without creating a connection to uri.
     |DB.new| is identical to |DB:open| but it without opening sqlite db
@@ -136,7 +144,7 @@ DB:status()                                                      *DB:status()*
 
 
     Return: ~
-        SQLDatabaseStatus { msg, code }
+        SQLDatabaseStatus
 
 
 DB:eval({statement}, {params})                                     *DB:eval()*
@@ -336,6 +344,9 @@ Abstraction to produce more readable code.
 
 SQLTable                                                            *SQLTable*
     Main table class
+
+    Fields: ~
+        {db} (SQLDatabase)  database in which the tbl is part of.
 
 
 SQLTableOpts                                                    *SQLTableOpts*
