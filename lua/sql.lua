@@ -336,16 +336,17 @@ function DB:update(tbl_name, specs)
 
   clib.wrap_stmts(self.conn, function()
     for _, v in ipairs(specs) do
+      v.set = v.set and v.set or v.values
       if self:select(tbl_name, { where = v.where })[1] then
-        local s = stmt:parse(self.conn, P.update(tbl_name, { set = v.values, where = v.where }))
-        s:bind(P.pre_insert(v.values, info)[1])
+        local s = stmt:parse(self.conn, P.update(tbl_name, { set = v.set, where = v.where }))
+        s:bind(P.pre_insert(v.set, info)[1])
         s:step()
         s:reset()
         s:bind_clear()
         s:finalize()
         a.should_modify(self:status())
       else
-        local res = self:insert(tbl_name, u.tbl_extend("keep", v.values, v.where))
+        local res = self:insert(tbl_name, u.tbl_extend("keep", v.set, v.where))
         table.insert(ret_vals, res)
       end
     end
