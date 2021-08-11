@@ -588,7 +588,7 @@ tbl:insert({rows})                                              *tbl:insert()*
         {rows} (table)  a row or a group of rows
 
     Return: ~
-        boolean|integer
+        integer: last inserted id
 
     Usage: ~
         `todos:insert { title = "stop writing examples :D" }` insert single
