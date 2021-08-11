@@ -15,6 +15,10 @@ jobs:
       matrix:
         os: [ubuntu-18.04, ubuntu-20.04]
         include:
+          - os: ubuntu-18.04
+            url: https://github.com/neovim/neovim/releases/download/nightly/nvim-linux64.tar.gz
+            manager: sudo apt-get
+            packages: sqlite3 libsqlite3-dev
           - os: ubuntu-20.04
             url: https://github.com/neovim/neovim/releases/download/nightly/nvim-linux64.tar.gz
             manager: sudo apt-get
