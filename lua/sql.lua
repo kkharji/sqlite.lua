@@ -447,6 +447,20 @@ function DB:extend(opts)
   return cls
 end
 
+---Execute and return first result. Use only to execute sqlite functions
+---otherwise use DB:eval
+---@param statement string
+---@return table
+function DB:exec(statement)
+  local s = stmt:parse(self.conn, "select " .. statement)
+  local val
+  s:step()
+  val = s:val(0)
+  s:reset()
+  s:finalize()
+  return val
+end
+
 ---Sqlite functions
 DB.F = {}
 
