@@ -280,7 +280,7 @@ end
 ---@see DB:insert
 ---@usage `todos:insert { title = "stop writing examples :D" }` insert single item.
 ---@usage `todos:insert { { ... }, { ... } }` insert multiple items
----@return boolean|integer
+---@return integer: last inserted id
 function tbl:insert(rows)
   return run(function()
     local succ, last_rowid = self.db:insert(self.name, rows)
@@ -290,7 +290,7 @@ function tbl:insert(rows)
     if succ then
       self.has_content = self:count() ~= 0 or false
     end
-    return succ, last_rowid
+    return last_rowid
   end, self)
 end
 
