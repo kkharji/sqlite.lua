@@ -410,4 +410,139 @@ describe("table", function()
   end)
 
   clean()
+  describe("foreign key: ", function()
+    local db = sql:open(nil)
+    local artists = db:table("artists", {
+      id = { type = "integer", pk = true },
+      name = "text",
+    })
+    local tracks = db:table("tracks", {
+      id = "integer",
+      name = "text",
+      artist = {
+        type = "integer",
+        reference = "artists.id",
+      },
+    })
+
+    artists:insert {
+      { id = 1, name = "Dean Martin" },
+      { id = 2, name = "Frank Sinatra" },
+    }
+
+    tracks:insert {
+      { id = 11, name = "That's Amore", artist = 1 },
+      { id = 12, name = "Christmas Blues", artist = 1 },
+      { id = 13, name = "My Way", artist = 2 },
+    }
+
+    local function try(self, action, args)
+      return pcall(self[action], self, args)
+    end
+
+    tracks.try = try
+    artists.try = try
+
+    it("foreign_keys enabled", function()
+      eq(1, db:eval("pragma foreign_keys")[1].foreign_keys)
+    end)
+
+    it("sqlite.org foreignkeys example no.1", function()
+      eq(
+        false,
+        tracks:try("insert", { id = 4, name = "Mr. Bojangles", artist = 3 }),
+        "fails when artist with id of 3 doesn't exists"
+      )
+      eq(
+        true,
+        tracks:try("insert", { id = 4, name = "Mr. Bojangles" }),
+        "passes, since artist here in null and it is nullable in schema definition."
+      )
+      eq(
+        false,
+        tracks:try("update", { values = { artist = 3 }, where = { name = "Mr. Bojangles" } }),
+        "fails on update as well."
+      )
+      eq(
+        true,
+        artists:try("insert", { id = 3, name = "Sammy Davis Jr." }),
+        "pases as it normall would without foregin keys"
+      )
+      eq(
+        true,
+        tracks:try("update", { values = { artist = 3 }, where = { name = "Mr. Bojangles" } }),
+        "passes, now that artist of id 3 is created"
+      )
+      eq(
+        true,
+        tracks:try("insert", { id = 15, name = "Boogie Woogie", artist = 3 }),
+        "passes since artist of id 3 is created"
+      )
+      eq(
+        false,
+        artists:try("remove", { where = { name = "Frank Sinatra" } }),
+        "fails due to existing rows refering to it."
+      )
+      eq(
+        true,
+        tracks:try("remove", { where = { name = "My Way" } }),
+        "pases, so that the artist refered by this row can be deleted."
+      )
+      eq(
+        true,
+        artists:try("remove", { where = { name = "Frank Sinatra" } }),
+        "passes since nothing referencing that artist is referencing it "
+      )
+      eq(
+        false,
+        artists:try("update", { values = { id = 4 }, where = { name = "Dean Martin" } }),
+        "fails since there is a record referencing it "
+      )
+      eq(
+        true,
+        tracks:try("remove", { name = { "That's Amore", "Christmas Blues" } }),
+        "passes, thus enabling the artist id above to be updated"
+      )
+      eq(
+        true,
+        artists:try("update", { values = { id = 4 }, where = { name = "Dean Martin" } }),
+        "fails since there is a record referencing it "
+      )
+    end)
+
+    it("on_update & on_delete actions", function()
+      tracks:schema {
+        id = "integer",
+        name = "text",
+        artist = {
+          type = "integer",
+          reference = "artists.id",
+          on_update = "cascade",
+          on_delete = "cascade",
+        },
+      }
+      tracks:insert {
+        { id = 11, name = "That's Amore", artist = 3 },
+        { id = 12, name = "Christmas Blues", artist = 3 },
+        { id = 13, name = "My Way", artist = 4 },
+        { id = 14, name = "Return to Me", artist = 4 },
+      }
+      eq(
+        true,
+        artists:try("update", { where = { name = "Dean Martin" }, set = { id = 100 } }),
+        "pases without issues since we have on_update cascade."
+      )
+      eq(
+        true,
+        next(tracks:get { where = { artist = 100 } }) ~= nil,
+        "changes are reflect in tracks table. This means all row referencing Dean Martin get updated"
+      )
+      eq(
+        true,
+        artists:try("remove", { where = { name = "Dean Martin" } }),
+        "pases without issues since we have on_delete cascade."
+      )
+      eq(true, next(tracks:get { where = { artist = 100 } }) == nil, "shouldn't be any rows referencing Dean Martin")
+    end)
+  end)
 end)

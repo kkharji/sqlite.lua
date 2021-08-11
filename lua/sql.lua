@@ -366,7 +366,7 @@ end
 ---@usage `db:delete("todos", { where = { id = {1,2,3} })` delete all rows that has value of id 1 or 2 or 3
 function DB:delete(tbl_name, specs)
   a.is_sqltbl(self, tbl_name, "delete")
-  local ret_vals = {}
+
   if not specs then
     return clib.exec_stmt(self.conn, P.delete(tbl_name)) == 0 and true or clib.last_errmsg(self.conn)
   end

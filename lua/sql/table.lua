@@ -6,6 +6,7 @@ local u = require "sql.utils"
 local luv = require "luv"
 
 ---@class SQLTable @Main table class
+---@field db SQLDatabase: database in which the tbl is part of.
 local tbl = {}
 tbl.__index = tbl
 
@@ -41,25 +42,16 @@ local cache_get = function(self, query)
   return self.cache[u.query_key(query)]
 end
 
-local run = (function()
-  local ensure = function(self)
-    if not self.db:exists(self.name) and self.tbl_schema then
-      return self.db:create(self.name, self.tbl_schema)
-    end
+local run = function(func, self)
+  local _run = function()
+    return func() -- shoud pass tbl name?
   end
 
-  return function(func, self)
-    local _run = function()
-      ensure(self)
-      return func() -- shoud pass tbl name?
-    end
-
-    if self.db.closed then
-      return self.db:with_open(_run)
-    end
-    return _run()
+  if self.db.closed then
+    return self.db:with_open(_run)
   end
-end)()
+  return _run()
+end
 
 ---Create new sql table object
 ---@param db SQLDatabase
@@ -68,24 +60,28 @@ end)()
 ---@return SQLTable
 function tbl:new(db, name, opts)
   opts = opts or {}
-  local o = {}
-  o.cache = {}
-  o.db = db
-  o.name = name
-  o.mtime = luv.fs_stat(o.db.uri)
-  o.mtime = o.mtime and o.mtime.mtime.sec
-  o.tbl_schema = opts.schema
-  o.nocache = opts.nocache
 
-  setmetatable(o, self)
+  local stat = luv.fs_stat(db.uri)
+  local nocache = u.if_nil(opts.nocache, true)
+  opts.nocache = nil
+  local schema = u.if_nil(opts.schema, opts)
+
+  local o = setmetatable({
+    cache = {},
+    db = db,
+    name = name,
+    mtime = stat and stat.mtime.sec,
+    tbl_schema = schema,
+    nocache = nocache,
+  }, self)
 
   run(function()
-    if o.tbl_schema then
-      o.tbl_schema.ensure = o.tbl_schema.ensure and o.tbl_schema.ensure or true
-      o.db:create(o.name, o.tbl_schema)
-    end
     o.tbl_exists = o.db:exists(o.name)
     o.has_content = o.tbl_exists and o:count() ~= 0 or false
+    if o.tbl_schema and next(o.tbl_schema) ~= nil then
+      o.tbl_schema.ensure = u.if_nil(o.tbl_schema.ensure, true)
+      o:schema(o.tbl_schema)
+    end
   end, o)
   return o
 end
@@ -97,6 +93,7 @@ end
 ---@return table table | boolean
 ---@usage `projects:schema()` get project table schema.
 ---@usage `projects:schema({...})` mutate project table schema
+---@todo do alter when updating the schema instead of droping it completely
 function tbl:schema(schema)
   local res
   return run(function()
