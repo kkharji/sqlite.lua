@@ -1,6 +1,8 @@
 local u = require "sql.utils"
 local json = require "sql.json"
-
+local tinsert = table.insert
+local tconcat = table.concat
+local a = require "sql.assert"
 local M = {}
 
 ---@brief [[
@@ -14,11 +16,17 @@ local M = {}
 
 ---handle sqlite datatype interop
 M.sqlvalue = function(v)
-  if type(v) == "boolean" then
-    return v == true and 1 or 0
-  else
-    return v == nil and "null" or v
+  return type(v) == "boolean" and (v == true and 1 or 0) or (v == nil and "null" or v)
+end
+
+M.luavalue = function(v, schema_type)
+  if schema_type == "luatable" or schema_type == "json" then
+    return json.decode(v)
+  elseif schema_type == "boolean" then
+    return v == 0 and false or true
   end
+
+  return v
 end
 
 ---string.format specifier based on value type
@@ -44,16 +52,16 @@ local bind = function(o)
   o.s = o.s or ", "
   if not o.kv then
     o.v = o.v ~= nil and M.sqlvalue(o.v) or "?"
-    return string.format("%s = " .. specifier(o.v), o.k, o.v)
+    return ("%s = " .. specifier(o.v)):format(o.k, o.v)
   else
     local res = {}
     for k, v in u.opairs(o.kv) do
       k = o.k ~= nil and o.k or k
       v = M.sqlvalue(v)
       v = o.nonbind and ":" .. k or v
-      table.insert(res, string.format("%s" .. (o.nonbind and nil or " = ") .. specifier(v, o.nonbind), k, v))
+      tinsert(res, string.format("%s" .. (o.nonbind and nil or " = ") .. specifier(v, o.nonbind), k, v))
     end
-    return table.concat(res, o.s)
+    return tconcat(res, o.s)
   end
 end
 
@@ -64,57 +72,58 @@ local pcontains = function(defs)
   end
   local items = {}
   for k, v in u.opairs(defs) do
+    local head = "%s glob " .. specifier(k)
+
     if type(v) == "table" then
-      table.insert(
-        items,
-        table.concat(
-          u.map(v, function(_v)
-            return string.format("%s glob " .. specifier(k), k, M.sqlvalue(_v))
-          end),
-          " or "
-        )
-      )
+      local val = u.map(v, function(_v)
+        return head:format(k, M.sqlvalue(_v))
+      end)
+      tinsert(items, tconcat(val, " or "))
     else
-      table.insert(items, string.format("%s glob " .. specifier(k), k, v))
+      tinsert(items, head:format(k, v))
     end
   end
-  return table.concat(items, " ")
+
+  return tconcat(items, " ")
 end
 
 ---Format values part of sql statement
 ---@params defs table: key/value pairs defining sqlite table keys.
 ---@params defs kv: whether to bind by named keys.
 local pkeys = function(defs, kv)
-  if not defs then
+  kv = kv == nil and true or kv
+
+  if not defs or not kv then
     return {}
   end
-  kv = kv == nil and true or kv
-  if kv then
-    local keys = {}
-    defs = u.is_nested(defs) and defs[1] or defs
-    for k, _ in pairs(defs) do
-      table.insert(keys, k)
-    end
-    return string.format("(%s)", table.concat(keys, ", "))
+
+  defs = u.is_nested(defs) and defs[1] or defs
+
+  local keys = {}
+  for k, _ in pairs(defs) do
+    tinsert(keys, k)
   end
+
+  return ("(%s)"):format(tconcat(keys, ", "))
 end
 
 ---Format values part of sql statement, usually used with select method.
 ---@params defs table: key/value pairs defining sqlite table keys.
 ---@params defs kv: whether to bind by named keys.
 local pvalues = function(defs, kv)
-  if not defs then
+  kv = kv == nil and true or kv -- TODO: check if defs is key value pairs instead
+  if not defs or not kv then
     return {}
   end
-  kv = kv == nil and true or kv -- TODO: check if defs is key value pairs instead
-  if kv then
-    local keys = {}
-    defs = u.is_nested(defs) and defs[1] or defs
-    for k, _ in pairs(defs) do
-      table.insert(keys, ":" .. k)
-    end
-    return string.format("values(%s)", table.concat(keys, ", "))
+
+  defs = u.is_nested(defs) and defs[1] or defs
+
+  local keys = {}
+  for k, _ in pairs(defs) do
+    tinsert(keys, ":" .. k)
   end
+
+  return ("values(%s)"):format(tconcat(keys, ", "))
 end
 
 ---Format where part of a sql statement.
@@ -125,53 +134,38 @@ local pwhere = function(defs, name, join, contains)
   if not defs and not contains then
     return {}
   end
-  local where = {}
 
+  local where = {}
   if defs then
     for k, v in u.opairs(defs) do
       k = join and name .. "." .. k or k
+
       if type(v) ~= "table" then
-        table.insert(
-          where,
-          bind {
-            v = v,
-            k = k,
-            s = " and ",
-          }
-        )
+        tinsert(where, bind { v = v, k = k, s = " and " })
       else
-        table.insert(where, "(" .. bind {
-          kv = v,
-          k = k,
-          s = " or ",
-        } .. ")")
+        tinsert(where, "(" .. bind { kv = v, k = k, s = " or " } .. ")")
       end
     end
   end
 
   if contains then
-    table.insert(where, pcontains(contains))
+    tinsert(where, pcontains(contains))
   end
 
-  return "where " .. table.concat(where, " and ")
+  return ("where %s"):format(tconcat(where, " and "))
 end
 
 local plimit = function(defs)
   if not defs then
     return {}
   end
+
   local type = type(defs)
-  local limit
+  local istbl = (type == "table" and defs[2])
+  local offset = "limit %s offset %s"
+  local limit = "limit %s"
 
-  if type == "number" then
-    limit = "limit " .. defs
-  elseif type == "table" and defs[2] then
-    limit = string.format("limit %s offset %s", defs[1], defs[2])
-  else
-    limit = "limit " .. defs[1]
-  end
-
-  return limit
+  return istbl and offset:format(defs[1], defs[2]) or limit:format(type == "number" and defs or defs[1])
 end
 
 ---Format set part of sql statement, usually used with update method.
@@ -180,6 +174,7 @@ local pset = function(defs)
   if not defs then
     return {}
   end
+
   return "set " .. bind { kv = defs, nonbind = true }
 end
 
@@ -196,7 +191,7 @@ local pjoin = function(defs, name)
     for k, v in pairs(defs) do
       if k ~= name then
         target = k
-        return string.format("%s.%s =", k, v)
+        return ("%s.%s ="):format(k, v)
       end
     end
   end)()
@@ -204,12 +199,12 @@ local pjoin = function(defs, name)
   local select = (function()
     for k, v in pairs(defs) do
       if k == name then
-        return string.format("%s.%s", k, v)
+        return ("%s.%s"):format(k, v)
       end
     end
   end)()
 
-  return string.format("inner join %s on %s %s", target, on, select)
+  return ("inner join %s on %s %s"):format(target, on, select)
 end
 
 local porder_by = function(defs)
@@ -217,23 +212,26 @@ local porder_by = function(defs)
   if not defs then
     return {}
   end
+
+  local fmt = "%s %s"
   local items = {}
+
   for v, k in u.opairs(defs) do
     if type(k) == "table" then
       for _, _k in u.opairs(k) do
-        table.insert(items, string.format("%s %s", _k, v))
+        tinsert(items, fmt:format(_k, v))
       end
     else
-      table.insert(items, string.format("%s %s", k, v))
+      tinsert(items, fmt:format(k, v))
     end
   end
 
-  return string.format("order by %s", table.concat(items, ", "))
+  return ("order by %s"):format(tconcat(items, ", "))
 end
 
 local partial = function(method, tbl, opts)
   opts = opts or {}
-  return table.concat(
+  return tconcat(
     u.flatten {
       method,
       pkeys(opts.values),
@@ -254,15 +252,9 @@ end
 M.select = function(tbl, opts)
   opts = opts or {}
   local cmd = opts.unique and "select distinct %s" or "select %s"
-  local select
-  if u.is_tbl(opts.select) then
-    select = table.concat(opts.select, ", ")
-  elseif type(opts.select) == "string" then
-    select = opts.select
-  else
-    select = "*"
-  end
-  local stmt = string.format(cmd .. " from %s", select, tbl)
+  local t = type(opts.select)
+  local select = t == "string" and opts.select or (t == "table" and tconcat(opts.select, ", ") or "*")
+  local stmt = (cmd .. " from %s"):format(select, tbl)
   local method = opts.join and stmt .. " " .. pjoin(opts.join, tbl) or stmt
   return partial(method, tbl, opts)
 end
@@ -272,7 +264,7 @@ end
 ---@param opts table: lists of options: valid{ set, where }
 ---@return string: the update sql statement.
 M.update = function(tbl, opts)
-  local method = string.format("update %s", tbl)
+  local method = ("update %s"):format(tbl)
   return partial(method, tbl, opts)
 end
 
@@ -281,7 +273,7 @@ end
 ---@param opts table: lists of options: valid{ where }
 ---@return string: the insert sql statement.
 M.insert = function(tbl, opts)
-  local method = string.format("insert into %s", tbl)
+  local method = ("insert into %s"):format(tbl)
   return partial(method, tbl, opts)
 end
 
@@ -291,9 +283,16 @@ end
 ---@return string: the delete sql statement.
 M.delete = function(tbl, opts)
   opts = opts or {}
-  local method = string.format("delete from %s", tbl)
+  local method = ("delete from %s"):format(tbl)
   local where = pwhere(opts.where)
   return type(where) == "string" and method .. " " .. where or method
+end
+
+local format_action = function(value, update)
+  local stmt = update and "on update" or "on delete"
+  local preappend = (value:match "default" or value:match "null") and " set " or " "
+
+  return stmt .. preappend .. value
 end
 
 ---Parse table create statement
@@ -311,70 +310,70 @@ M.create = function(tbl, defs)
 
   for k, v in u.opairs(defs) do
     if type(v) == "boolean" then
-      table.insert(items, string.format("%s integer not null primary key", k))
+      tinsert(items, k .. " integer not null primary key")
     elseif type(v) ~= "table" then
-      table.insert(items, string.format("%s %s", k, v))
+      tinsert(items, string.format("%s %s", k, v))
     else
-      table.insert(items, string.format("%s %s", k, table.concat(v, " ")))
+      local _
+      _ = u.if_nil(v.type, nil) and tinsert(v, v.type)
+      _ = u.if_nil(v.unique, false) and tinsert(v, "unique")
+      _ = u.if_nil(v.nullable, nil) == false and tinsert(v, "not null")
+      _ = u.if_nil(v.pk, nil) and tinsert(v, "primary key")
+      _ = u.if_nil(v.default, nil) and tinsert(v, "default " .. v.default)
+      _ = u.if_nil(v.reference, nil) and tinsert(v, ("references %s"):format(v.reference:gsub("%.", "(") .. ")"))
+      _ = u.if_nil(v.on_update, nil) and tinsert(v, format_action(v.on_update, true))
+      _ = u.if_nil(v.on_delete, nil) and tinsert(v, format_action(v.on_delete))
+
+      tinsert(items, ("%s %s"):format(k, tconcat(v, " ")))
     end
   end
 
-  return string.format("create table %s(%s)", tbl, table.concat(items, ", "))
+  return ("create table %s(%s)"):format(tbl, tconcat(items, ", "))
 end
 
 ---Parse table drop statement
 ---@param tbl string: table name
 ---@return string: the drop sql statement.
 M.drop = function(tbl)
-  return string.format("drop table %s", tbl)
+  return "drop table " .. tbl
 end
 
 ---Preporcess data insert to sql db.
 ---for now it's mainly used to for parsing lua tables and boolean values.
 ---It throws when a schema key is required and doesn't exists.
----@param rows table inserted row.
+---@param rows tinserted row.
 ---@param schema table tbl schema with extra info
 ---@return table pre processed rows
 M.pre_insert = function(rows, schema)
   rows = u.is_nested(rows) and rows or { rows }
-
   for _, row in ipairs(rows) do
-    for k, _ in pairs(schema.req) do
-      if not row[k] then
-        error("sql.nvim: (insert) missing a required key: " .. k)
-      end
-    end
-
-    for k, v in pairs(row) do
-      if schema.types[k] == "luatable" or schema.types[k] == "json" then
-        row[k] = json.encode(v)
-      end
-
-      if type(v) == "boolean" then
-        row[k] = v == true and 1 or 0
-      end
-    end
+    u.foreach(schema.req, function(k)
+      a.missing_req_key(row[k], k)
+    end)
+    u.foreach(row, function(k, v)
+      local is_json = schema.types[k] == "luatable" or schema.types[k] == "json"
+      row[k] = is_json and json.encode(v) or M.sqlvalue(v)
+    end)
   end
-
   return rows
 end
 
 ---Postprocess data queried from a sql db. for now it is mainly used
 ---to for parsing json values to lua table.
----@param rows table inserted row.
+---@param rows tinserted row.
 ---@param schema table tbl schema
 ---@return table pre processed rows
 ---@TODO support boolean values.
 M.post_select = function(rows, types)
   local is_nested = u.is_nested(rows)
   rows = is_nested and rows or { rows }
+
   for _, row in ipairs(rows) do
     for k, v in pairs(row) do
-      if types[k] == "luatable" or types[k] == "json" then
-        row[k] = json.decode(v)
-      end
+      row[k] = M.luavalue(v, types[k])
     end
   end
+
   return is_nested and rows or rows[1]
 end
 

@@ -1,6 +1,13 @@
 local luv = require "luv"
 local M = {}
 
+M.if_nil = function(a, b)
+  if a == nil then
+    return b
+  end
+  return a
+end
+
 M.is_str = function(s)
   return type(s) == "string"
 end
@@ -140,6 +147,18 @@ M.map = function(t, f)
     _t[v and kv or k] = v or kv
   end
   return _t
+end
+
+M.foreachv = function(t, f)
+  for i, v in M.opairs(t) do
+    f(i, v)
+  end
+end
+
+M.foreach = function(t, f)
+  for k, v in pairs(t) do
+    f(k, v)
+  end
 end
 
 M.mapv = function(t, f)

@@ -129,10 +129,14 @@ function DB:isclose()
   return self.closed
 end
 
+---@class SQLDatabaseStatus
+---@field msg string
+---@field code sqlite3_flag
+
 ---Returns current connection status
 ---Get last error code
 ---@todo: decide whether to keep this function
----@return SQLDatabaseStatus { msg, code }
+---@return SQLDatabaseStatus
 function DB:status()
   return {
     msg = clib.last_errmsg(self.conn),
@@ -218,7 +222,11 @@ end
 ---@usage `db:create("todos", {id = {"int", "primary", "key"}, title = "text"})` create table with the given schema.
 ---@return boolean
 function DB:create(tbl_name, schema)
-  return self:eval(P.create(tbl_name, schema))
+  local req = P.create(tbl_name, schema)
+  if req:match "reference" then
+    self:eval "pragma foreign_keys = ON"
+  end
+  return self:eval(req)
 end
 
 ---Remove {tbl_name} from database
@@ -328,30 +336,24 @@ function DB:update(tbl_name, specs)
 
   clib.wrap_stmts(self.conn, function()
     for _, v in ipairs(specs) do
+      v.set = v.set and v.set or v.values
       if self:select(tbl_name, { where = v.where })[1] then
-        local s = stmt:parse(self.conn, P.update(tbl_name, { set = v.values, where = v.where }))
-        s:bind(P.pre_insert(v.values, info)[1])
+        local s = stmt:parse(self.conn, P.update(tbl_name, { set = v.set, where = v.where }))
+        s:bind(P.pre_insert(v.set, info)[1])
         s:step()
         s:reset()
         s:bind_clear()
-        table.insert(ret_vals, s:finalize())
+        s:finalize()
+        a.should_modify(self:status())
       else
-        local res = self:insert(tbl_name, u.tbl_extend("keep", v.values, v.where))
+        local res = self:insert(tbl_name, u.tbl_extend("keep", v.set, v.where))
         table.insert(ret_vals, res)
       end
     end
   end)
 
-  a.should_update(ret_vals)
-
-  local succ = u.all(ret_vals, function(_, v)
-    return v
-  end)
-
-  if succ then
-    self.modified = true
-  end
-  return succ
+  self.modified = true
+  return true
 end
 
 ---Delete a {tbl_name} row/rows based on the {specs} given. if no spec was given,
@@ -364,7 +366,7 @@ end
 ---@usage `db:delete("todos", { where = { id = {1,2,3} })` delete all rows that has value of id 1 or 2 or 3
 function DB:delete(tbl_name, specs)
   a.is_sqltbl(self, tbl_name, "delete")
-  local ret_vals = {}
+
   if not specs then
     return clib.exec_stmt(self.conn, P.delete(tbl_name)) == 0 and true or clib.last_errmsg(self.conn)
   end
@@ -375,17 +377,14 @@ function DB:delete(tbl_name, specs)
       local s = stmt:parse(self.conn, P.delete(tbl_name, { where = spec and spec.where or nil }))
       s:step()
       s:reset()
-      table.insert(ret_vals, s:finalize())
+      s:finalize()
+      a.should_modify(self:status())
     end
   end)
 
-  local succ = u.all(ret_vals, function(_, v)
-    return v
-  end)
-  if succ then
-    self.modified = true
-  end
-  return succ
+  self.modified = true
+
+  return true
 end
 
 ---Query from a table with where and join options

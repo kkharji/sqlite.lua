@@ -7,7 +7,8 @@ local errors = {
   not_sqltbl = "can not execute %s, %s doesn't exists.",
   close_fail = "database connection didn't get closed, ERRMSG: %s",
   eval_fail = "eval has failed to execute statement, ERRMSG: %s",
-  wrong_input = "can't parse your input. Make sure that you used that function correctly",
+  failed_ops = "operation failed, ERRMSG: %s",
+  missing_req_key = "(insert) missing a required key: %s",
 }
 
 for key, value in pairs(errors) do
@@ -46,11 +47,16 @@ end
 ---This because in update we insert and expect some value
 ---returned 'let me id or 'boolean.
 ---When the ret values < 0 then the function didn't do anything.
----@param ret table
+---@param status SQLDatabaseStatus
 ---@return boolean
-M.should_update = function(ret)
-  assert(#ret > 0, errors.wrong_input)
+M.should_modify = function(status)
+  assert(status.code == 0, errors.failed_ops:format(status.msg))
   return true
+end
+
+M.missing_req_key = function(val, key)
+  assert(val, errors.missing_req_key:format(key))
+  return false
 end
 
 return M

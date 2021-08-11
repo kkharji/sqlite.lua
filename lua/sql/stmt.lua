@@ -35,7 +35,11 @@ function Stmt:__parse()
   local code = sqlite.prepare_v2(self.conn, self.str, #self.str, pstmt, nil)
   assert(
     code == flags.ok,
-    string.format("sql.nvim: couldn't parse sql statement, ERRMSG: %s", sqlite.to_str(sqlite.errmsg(self.conn)))
+    string.format(
+      "sql.nvim: sql statement parse, , stmt: `%s`, err: `(`%s`)`",
+      self.str,
+      sqlite.to_str(sqlite.errmsg(self.conn))
+    )
   )
   self.pstmt = pstmt[0]
 end
