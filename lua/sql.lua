@@ -93,21 +93,21 @@ function DB:extend(opts)
   local cls = {}
   cls.db = self.new(opts.uri, opts.opts)
   cls.is_initialized = false
-  cls.init = function(self)
-    if self.is_initialized then
+  cls.init = function(o)
+    if o.is_initialized then
       return
     end
     for tbl_name, schema in pairs(opts) do
       if tbl_name ~= "uri" and tbl_name ~= "opts" and u.is_tbl(schema) then
-        self[tbl_name] = t:extend(self.db, tbl_name, schema)
+        o[tbl_name] = t:extend(o.db, tbl_name, schema)
       end
     end
   end
 
   setmetatable(cls, {
     __index = cls.db,
-    __call = function(self, opts)
-      self:extend(opts)
+    __call = function(o, _opts)
+      o:extend(_opts)
     end,
   })
 
@@ -473,11 +473,11 @@ DB.F = {}
 
 local customstr = function(str)
   local mt = getmetatable(str)
-  mt.__add = function(a, b)
-    return a .. " + " .. b
+  mt.__add = function(_a, _b)
+    return _a .. " + " .. _b
   end
-  mt.__sub = function(a, b)
-    return a .. " - " .. b
+  mt.__sub = function(_a, _b)
+    return _a .. " - " .. _b
   end
   return str
 end
