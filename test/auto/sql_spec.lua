@@ -352,10 +352,10 @@ describe("sql", function()
 
     it("evaluates sqlite functions", function()
       db:eval "create table test(id integer, date text)"
-      db:insert("test", { id = 1, date = db.F.date("now", "+1 day") })
+      db:insert("test", { id = 1, date = db.sqlstrftime "%H:%M:%S" })
 
       local res = db:eval [[select * from test]]
-      eq("2021-08-12", res[1].date)
+      eq(os.date "!%H:%M:%S", res[1].date)
       db:eval "drop table test"
     end)
 

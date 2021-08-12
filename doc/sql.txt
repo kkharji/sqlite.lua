@@ -336,12 +336,7 @@ DB:extend({sql}, {tbl}, {opts})                                  *DB:extend()*
         SQLDatabase
 
 
-DB.F()                                                                *DB.F()*
-    Sqlite functions
-
-
-
-DB.F.strftime()                                              *DB.F.strftime()*
+DB.sqlstrftime()                                            *DB.sqlstrftime()*
     %d 	day of month: 00 %f 	fractional seconds: SS.SSS %H 	hour: 00-24 %j 	day
     of year: 001-366 %J 	Julian day number %m 	month: 01-12 %M 	minute: 00-59 
     %s 	seconds since 1970-01-01 %S 	seconds: 00-59 %w 	day of week 0-6 with
@@ -352,27 +347,27 @@ DB.F.strftime()                                              *DB.F.strftime()*
         string: string representation or TEXT when evaluated.
 
     Usage: ~
-        `strftime('%Y %m %d','now')` -> 2021 8 11
-        `strftime('%H %M %S %s','now')` -> 12 40 18 1414759218
-        `strftime('%s','now') - strftime('%s','2014-10-07 02:34:56')` ->
+        `sqlstrftime('%Y %m %d','now')` -> 2021 8 11
+        `sqlstrftime('%H %M %S %s','now')` -> 12 40 18 1414759218
+        `sqlstrftime('%s','now') - strftime('%s','2014-10-07 02:34:56')` ->
         2110042
 
 
-DB.F.julianday()                                            *DB.F.julianday()*
+DB.sqljulianday()                                          *DB.sqljulianday()*
     Return the number of days since noon in Greenwich on November 24, 4714 B.C.
 
 
     Usage: ~
-        `julianday('now')` -> 2021 8 11
-        `julianday('now') - julianday('1947-08-15')` -> 24549.5019360879
+        `sqljulianday('now')` -> 2021 8 11
+        `sqljulianday('now') - julianday('1947-08-15')` -> 24549.5019360879
 
 
-DB.F.datetime()                                              *DB.F.datetime()*
+DB.sqldatetime()                                            *DB.sqldatetime()*
     Returns date as "YYYY-MM-DD HH:MM:SS"
 
 
     Usage: ~
-        `datetime('now')` -> 2021-8-11 11:31:52
+        `sqldatetime('now')` -> 2021-8-11 11:31:52
 
 
 
@@ -588,7 +583,7 @@ tbl:insert({rows})                                              *tbl:insert()*
         {rows} (table)  a row or a group of rows
 
     Return: ~
-        boolean|integer
+        integer: last inserted id
 
     Usage: ~
         `todos:insert { title = "stop writing examples :D" }` insert single
