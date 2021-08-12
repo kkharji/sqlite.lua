@@ -447,9 +447,6 @@ function DB:extend(opts)
   return cls
 end
 
----Sqlite functions
-DB.F = {}
-
 local customstr = function(str)
   local mt = getmetatable(str)
   mt.__add = function(a, b)
@@ -478,10 +475,10 @@ end
 ---     %% 	%
 ---@param timestring string timestamp to format 'deafult now'
 ---@return string: string representation or TEXT when evaluated.
----@usage `strftime('%Y %m %d','now')` -> 2021 8 11
----@usage `strftime('%H %M %S %s','now')` -> 12 40 18 1414759218
----@usage `strftime('%s','now') - strftime('%s','2014-10-07 02:34:56')` -> 2110042
-DB.F.strftime = function(format, timestring)
+---@usage `sqlstrftime('%Y %m %d','now')` -> 2021 8 11
+---@usage `sqlstrftime('%H %M %S %s','now')` -> 12 40 18 1414759218
+---@usage `sqlstrftime('%s','now') - strftime('%s','2014-10-07 02:34:56')` -> 2110042
+DB.sqlstrftime = function(format, timestring)
   local str = [[strftime('%s', '%s')]]
   return customstr(str:format(format, timestring or "now"))
 end
@@ -489,9 +486,9 @@ end
 ---Return the number of days since noon in Greenwich on November 24, 4714 B.C.
 ---@param timestring string timestamp to format 'deafult now'
 ---@return string: string representation or REAL when evaluated.
----@usage `julianday('now')` -> 2021 8 11
----@usage `julianday('now') - julianday('1947-08-15')` -> 24549.5019360879
-DB.F.julianday = function(timestring)
+---@usage `sqljulianday('now')` -> 2021 8 11
+---@usage `sqljulianday('now') - julianday('1947-08-15')` -> 24549.5019360879
+DB.sqljulianday = function(timestring)
   local str = [[julianday('%s')]]
   return customstr(str:format(timestring or "now"))
 end
@@ -499,8 +496,8 @@ end
 ---Returns date as "YYYY-MM-DD HH:MM:SS"
 ---@param timestring string timestamp to format 'deafult now'
 ---@return string: string representation or  "YYYY-MM-DD HH:MM:SS"
----@usage `datetime('now')` -> 2021-8-11 11:31:52
-DB.F.datetime = function(timestring)
+---@usage `sqldatetime('now')` -> 2021-8-11 11:31:52
+DB.sqldatetime = function(timestring)
   local str = [[datetime('%s')]]
   return customstr(str:format(timestring or "now"))
 end
@@ -509,10 +506,10 @@ end
 ---@param timestring string timestamp to format 'deafult now'
 ---@param modifier string: e.g. +60 seconds, +15 minutes
 ---@return string: string representation or "HH:MM:SS"
----@usage `time()` -> "12:50:01"
----@usage `time('2014-10-07 15:45:57.005678')` -> 15:45:57
----@usage `time('now','+60 seconds')` 15:45:57 + 60 seconds
-DB.F.time = function(timestring, modifier)
+---@usage `sqltime()` -> "12:50:01"
+---@usage `sqltime('2014-10-07 15:45:57.005678')` -> 15:45:57
+---@usage `sqltime('now','+60 seconds')` 15:45:57 + 60 seconds
+DB.sqltime = function(timestring, modifier)
   local str = [[time('%s')]]
   if modifier then
     str = [[time('%s', '%s')]]
@@ -526,10 +523,10 @@ end
 ---@param timestring string timestamp to format 'deafult now'
 ---@param modifier string: e.g. +2 month, +1 year
 ---@return string: string representation or "HH:MM:SS"
----@usage `date()` -> 2021-08-31
----@usage `date('2021-08-07')` -> 2021-08-07
----@usage `date('now','+2 month')` -> 2021-10-07
-DB.F.date = function(timestring, modifier)
+---@usage `sqldate()` -> 2021-08-31
+---@usage `sqldate('2021-08-07')` -> 2021-08-07
+---@usage `sqldate('now','+2 month')` -> 2021-10-07
+DB.sqldate = function(timestring, modifier)
   local str = [[date('%s')]]
   if modifier then
     str = [[date('%s', '%s')]]
