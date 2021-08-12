@@ -26,9 +26,9 @@ DB.__index = DB
 ---@field where table: key and value
 ---@field values table: key and value to updated.
 
----@class SQLDatabaseExt:SQLDatabase @Extend sql.nvim object
+---@class SQLDatabaseExt: SQLDatabase @Extend sql.nvim object
 ---@field db SQLDatabase: fallback when the user overwrite @SQLDatabaseExt methods .
----@field init function: initalize tables
+---@field init function(self): initalize tables
 
 ---return now date
 ---@todo: decide whether using os.time and epoch time would be better.
@@ -93,13 +93,16 @@ function DB:extend(opts)
   local cls = {}
   cls.db = self.new(opts.uri, opts.opts)
   cls.is_initialized = false
-  cls.init = function(o)
+
+  cls.db.init = function(o)
     if o.is_initialized then
-      return
+      error "sql.nvim: trying to initialize previously initialize sql extended object."
+    else
+      o.is_initialized = true
     end
     for tbl_name, schema in pairs(opts) do
       if tbl_name ~= "uri" and tbl_name ~= "opts" and u.is_tbl(schema) then
-        o[tbl_name] = t:extend(o.db, tbl_name, schema)
+        o[tbl_name] = t:extend(o, tbl_name, schema)
       end
     end
   end

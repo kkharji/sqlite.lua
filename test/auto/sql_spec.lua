@@ -733,14 +733,14 @@ describe("sql", function()
 
   describe("extend:", function()
     local testrui = "/tmp/extend_db"
-    vim.loop.fs_unlink(testrui)
+    local testrui2 = "/tmp/extend_db2"
 
     ---@class Manager:SQLDatabaseExt
     ---@field projects SQLTableExt
     ---@field todos SQLTableExt
     local manager = sql {
       uri = testrui,
-      init = false,
+      init = true,
       projects = {
         id = true,
         title = "text",
@@ -758,10 +758,6 @@ describe("sql", function()
         foreign_keys = true,
       },
     }
-
-    --- MUST BE EXCUTE TO INIT TABLES
-    manager:init()
-
     it("process opts and set sql table objects", function()
       eq("/tmp/extend_db", manager.uri, "should set self.uri.")
       eq(true, manager.closed, "should construct without openning connection.")
@@ -819,5 +815,43 @@ describe("sql", function()
 
       eq(sqlnvim.title, manager.projects:get(), "should have inserted sqlnvim project")
     end)
+
+    it("control initialization", function()
+      local cache = sql {
+        uri = "/tmp/extend_db2",
+        files = { id = true, name = "text" },
+        projects = { id = true, name = "text" },
+      }
+
+      eq(false, cache.is_initialized, "shouldn't be initialized")
+      eq(true, not cache.projects, "project table shouldn't exists")
+      eq(false, not cache.db, "we should have the sql object here.")
+
+      cache:init()
+    end)
+
+    it("don't initialize and work when overwritten init", function()
+      local cache = sql {
+        uri = "/tmp/extend_db2",
+        files = { id = true, name = "text" },
+        projects = { id = true, name = "text" },
+      }
+
+      function cache:init(opts)
+        self.db:init()
+        cache.opts = opts
+      end
+
+      cache:init()
+
+      eq(false, pcall(cache.init, cache, "should fail because we're trying to initialize the object twice."))
+
+      -- eq("function", type(cache.projects.get), "project should be initialized and get should be a function")
+      -- cache.projects:insert { name = "xx" }
+
+      -- eq(cache.projects:where({ name = "xx" }).name, "should work")
+    end)
+    vim.loop.fs_unlink(testrui)
+    vim.loop.fs_unlink(testrui2)
   end)
 end)
