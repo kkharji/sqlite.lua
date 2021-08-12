@@ -449,11 +449,11 @@ end
 
 local customstr = function(str)
   local mt = getmetatable(str)
-  mt.__add = function(a, b)
-    return a .. " + " .. b
+  mt.__add = function(_a, _b)
+    return _a .. " + " .. _b
   end
-  mt.__sub = function(a, b)
-    return a .. " - " .. b
+  mt.__sub = function(_a, _b)
+    return _a .. " - " .. _b
   end
   return str
 end
