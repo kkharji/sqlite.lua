@@ -11,6 +11,10 @@ https://github.com/tami5/sql.nvim
 SQLDatabase                                                      *SQLDatabase*
     Main sql.nvim object.
 
+    Fields: ~
+        {uri}  (string)        database uri
+        {conn} (sqlite3_blob)  sqlite connection c object.
+
 
 SQLQuerySpec                                                    *SQLQuerySpec*
     Query spec that are passed to a number of db: methods.
@@ -27,8 +31,9 @@ SQLDatabaseExt : SQLDatabase                                  *SQLDatabaseExt*
         |SQLDatabase|
 
     Fields: ~
-        {db} (SQLDatabase)  fallback when the user overwrite @SQLDatabaseExt
-                            methods .
+        {db}   (SQLDatabase)  fallback when the user overwrite @SQLDatabaseExt
+                              methods .
+        {init} (function)
 
 
 SQLDatabaseStatus                                          *SQLDatabaseStatus*
@@ -79,6 +84,23 @@ DB:open({uri}, {opts})                                             *DB:open()*
         `require("sql"):open("./path/to/sql.sqlite")` to given path.
         `require("sql"):open("$ENV_VARABLE")` reading from env variable
         `db:open()` reopen connection if closed.
+
+
+DB:extend({sql}, {tbl}, {opts})                                  *DB:extend()*
+    Use to Extend SQLDatabase Object with extra sugar syntax and api. If
+    {opts.init} is false, the sqlite setup won't initialize until `db:init` is
+    called, otherwise it will initialize as spart of object extending, i.e.
+    calling extend function. Additionally, if the object is already
+    initialized, calling init won't have any effect.
+
+
+    Parameters: ~
+        {sql}  (SQLDatabase)
+        {tbl}  (SQLTable)
+        {opts} (table)        uri, init, opts, tbl_name, tbl_name ....
+
+    Return: ~
+        SQLDatabaseExt
 
 
 DB:close()                                                        *DB:close()*
@@ -323,17 +345,9 @@ DB:table({tbl_name}, {opts})                                      *DB:table()*
         SQLTable
 
 
-DB:extend({sql}, {tbl}, {opts})                                  *DB:extend()*
-    Use to Extend SQLDatabase Object with extra sugar syntax and api.
+DB.F()                                                                *DB.F()*
+    Sqlite functions
 
-
-    Parameters: ~
-        {sql}  (SQLDatabase)
-        {tbl}  (SQLTable)
-        {opts} (table)        uri, opts, tbl_name, tbl_name ....
-
-    Return: ~
-        SQLDatabase
 
 
 DB.sqlstrftime()                                            *DB.sqlstrftime()*

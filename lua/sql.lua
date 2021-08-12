@@ -19,6 +19,8 @@ local P = require "sql.parser"
 local flags = clib.flags
 
 ---@class SQLDatabase @Main sql.nvim object.
+---@field uri string: database uri
+---@field conn sqlite3_blob: sqlite connection c object.
 local DB = {}
 DB.__index = DB
 
@@ -26,8 +28,9 @@ DB.__index = DB
 ---@field where table: key and value
 ---@field values table: key and value to updated.
 
----@class SQLDatabaseExt:SQLDatabase @Extend sql.nvim object
+---@class SQLDatabaseExt: SQLDatabase @Extend sql.nvim object
 ---@field db SQLDatabase: fallback when the user overwrite @SQLDatabaseExt methods .
+---@field init function(self): initalize tables
 
 ---return now date
 ---@todo: decide whether using os.time and epoch time would be better.
@@ -77,6 +80,48 @@ function DB:open(uri, opts, noconn)
     end
     return self
   end
+end
+
+---Use to Extend SQLDatabase Object with extra sugar syntax and api.
+---If {opts.init} is false, the sqlite setup won't initialize until `db:init` is
+---called, otherwise it will initialize as spart of object extending, i.e.
+---calling extend function. Additionally, if the object is already initialized,
+---calling init won't have any effect.
+---@param sql SQLDatabase
+---@param tbl SQLTable
+---@param opts table: uri, init, opts, tbl_name, tbl_name ....
+---@return SQLDatabaseExt
+function DB:extend(opts)
+  local cls = {}
+  cls.db = self.new(opts.uri, opts.opts)
+  cls.is_initialized = false
+
+  cls.db.init = function(o)
+    if o.is_initialized then
+      error "sql.nvim: trying to initialize previously initialize sql extended object."
+    else
+      o.is_initialized = true
+    end
+    for tbl_name, schema in pairs(opts) do
+      if tbl_name ~= "uri" and tbl_name ~= "opts" and u.is_tbl(schema) then
+        o[tbl_name] = t:extend(o, tbl_name, schema)
+      end
+    end
+  end
+
+  setmetatable(cls, {
+    __index = cls.db,
+    __call = function(o, _opts)
+      o:extend(_opts)
+    end,
+  })
+
+  if opts.init then
+    cls:init()
+    cls.is_initialized = true
+  end
+
+  return cls
 end
 
 ---Close sqlite db connection. returns true if closed, error otherwise.
@@ -428,24 +473,8 @@ function DB:table(tbl_name, opts)
   return t:new(self, tbl_name, opts)
 end
 
----Use to Extend SQLDatabase Object with extra sugar syntax and api.
----@param sql SQLDatabase
----@param tbl SQLTable
----@param opts table: uri, opts, tbl_name, tbl_name ....
----@return SQLDatabase
-function DB:extend(opts)
-  local db = self.new(opts.uri, opts.opts)
-  --@type SQLDatabase
-  local cls = setmetatable({ db = db }, { __index = db })
-
-  for tbl_name, schema in pairs(opts) do
-    if tbl_name ~= "uri" and tbl_name ~= "opts" then
-      cls[tbl_name] = t:extend(db, tbl_name, schema)
-    end
-  end
-
-  return cls
-end
+---Sqlite functions
+DB.F = {}
 
 local customstr = function(str)
   local mt = getmetatable(str)
