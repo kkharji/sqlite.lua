@@ -19,6 +19,8 @@ local P = require "sql.parser"
 local flags = clib.flags
 
 ---@class SQLDatabase @Main sql.nvim object.
+---@field uri string: database uri
+---@field conn sqlite3_blob: sqlite connection c object.
 local DB = {}
 DB.__index = DB
 
