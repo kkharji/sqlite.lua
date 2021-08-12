@@ -740,6 +740,7 @@ describe("sql", function()
     ---@field todos SQLTableExt
     local manager = sql {
       uri = testrui,
+      init = false,
       projects = {
         id = true,
         title = "text",
@@ -757,6 +758,9 @@ describe("sql", function()
         foreign_keys = true,
       },
     }
+
+    --- MUST BE EXCUTE TO INIT TABLES
+    manager:init()
 
     it("process opts and set sql table objects", function()
       eq("/tmp/extend_db", manager.uri, "should set self.uri.")
@@ -797,23 +801,17 @@ describe("sql", function()
         },
       }
 
-      local succ, id = manager.projects:insert(sqlnvim)
-      ---TODO: use id
-      -- eq(true, succ, "should have returned id.")
+      local id = manager.projects:insert(sqlnvim)
 
+      eq(1, id, "should have returned id.")
       eq(true, manager.projects:remove(), "should remove after default insert.")
 
       function manager.projects:insert()
-        local succ, id = self.tbl:insert(sqlnvim)
-        if not succ then
-          error "operation faild"
-        end
-        return succ
+        return self.tbl:insert(sqlnvim)
       end
 
-      local succ, id = manager.projects:insert()
-
-      -- eq(true, succ, "should have returned id.")
+      local id = manager.projects:insert()
+      eq(1, id, "should have returned id.")
 
       function manager.projects:get()
         return self.tbl:get({ where = { title = sqlnvim.title } })[1].title

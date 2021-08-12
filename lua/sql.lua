@@ -28,6 +28,7 @@ DB.__index = DB
 
 ---@class SQLDatabaseExt:SQLDatabase @Extend sql.nvim object
 ---@field db SQLDatabase: fallback when the user overwrite @SQLDatabaseExt methods .
+---@field init function: initalize tables
 
 ---return now date
 ---@todo: decide whether using os.time and epoch time would be better.
@@ -77,6 +78,45 @@ function DB:open(uri, opts, noconn)
     end
     return self
   end
+end
+
+---Use to Extend SQLDatabase Object with extra sugar syntax and api.
+---If {opts.init} is false, the sqlite setup won't initialize until `db:init` is
+---called, otherwise it will initialize as spart of object extending, i.e.
+---calling extend function. Additionally, if the object is already initialized,
+---calling init won't have any effect.
+---@param sql SQLDatabase
+---@param tbl SQLTable
+---@param opts table: uri, init, opts, tbl_name, tbl_name ....
+---@return SQLDatabaseExt
+function DB:extend(opts)
+  local cls = {}
+  cls.db = self.new(opts.uri, opts.opts)
+  cls.is_initialized = false
+  cls.init = function(self)
+    if self.is_initialized then
+      return
+    end
+    for tbl_name, schema in pairs(opts) do
+      if tbl_name ~= "uri" and tbl_name ~= "opts" and u.is_tbl(schema) then
+        self[tbl_name] = t:extend(self.db, tbl_name, schema)
+      end
+    end
+  end
+
+  setmetatable(cls, {
+    __index = cls.db,
+    __call = function(self, opts)
+      self:extend(opts)
+    end,
+  })
+
+  if opts.init then
+    cls:init()
+    cls.is_initialized = true
+  end
+
+  return cls
 end
 
 ---Close sqlite db connection. returns true if closed, error otherwise.
@@ -426,25 +466,6 @@ end
 ---@return SQLTable
 function DB:table(tbl_name, opts)
   return t:new(self, tbl_name, opts)
-end
-
----Use to Extend SQLDatabase Object with extra sugar syntax and api.
----@param sql SQLDatabase
----@param tbl SQLTable
----@param opts table: uri, opts, tbl_name, tbl_name ....
----@return SQLDatabase
-function DB:extend(opts)
-  local db = self.new(opts.uri, opts.opts)
-  --@type SQLDatabase
-  local cls = setmetatable({ db = db }, { __index = db })
-
-  for tbl_name, schema in pairs(opts) do
-    if tbl_name ~= "uri" and tbl_name ~= "opts" then
-      cls[tbl_name] = t:extend(db, tbl_name, schema)
-    end
-  end
-
-  return cls
 end
 
 ---Sqlite functions
