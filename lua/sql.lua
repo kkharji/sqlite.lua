@@ -19,6 +19,8 @@ local P = require "sql.parser"
 local flags = clib.flags
 
 ---@class SQLDatabase @Main sql.nvim object.
+---@field uri string: database uri
+---@field conn sqlite3_blob: sqlite connection c object.
 local DB = {}
 DB.__index = DB
 
@@ -26,8 +28,9 @@ DB.__index = DB
 ---@field where table: key and value
 ---@field values table: key and value to updated.
 
----@class SQLDatabaseExt:SQLDatabase @Extend sql.nvim object
+---@class SQLDatabaseExt: SQLDatabase @Extend sql.nvim object
 ---@field db SQLDatabase: fallback when the user overwrite @SQLDatabaseExt methods .
+---@field init function(self): initalize tables
 
 ---return now date
 ---@todo: decide whether using os.time and epoch time would be better.
@@ -77,6 +80,48 @@ function DB:open(uri, opts, noconn)
     end
     return self
   end
+end
+
+---Use to Extend SQLDatabase Object with extra sugar syntax and api.
+---If {opts.init} is false, the sqlite setup won't initialize until `db:init` is
+---called, otherwise it will initialize as spart of object extending, i.e.
+---calling extend function. Additionally, if the object is already initialized,
+---calling init won't have any effect.
+---@param sql SQLDatabase
+---@param tbl SQLTable
+---@param opts table: uri, init, opts, tbl_name, tbl_name ....
+---@return SQLDatabaseExt
+function DB:extend(opts)
+  local cls = {}
+  cls.db = self.new(opts.uri, opts.opts)
+  cls.is_initialized = false
+
+  cls.db.init = function(o)
+    if o.is_initialized then
+      error "sql.nvim: trying to initialize previously initialize sql extended object."
+    else
+      o.is_initialized = true
+    end
+    for tbl_name, schema in pairs(opts) do
+      if tbl_name ~= "uri" and tbl_name ~= "opts" and u.is_tbl(schema) then
+        o[tbl_name] = t:extend(o, tbl_name, schema)
+      end
+    end
+  end
+
+  setmetatable(cls, {
+    __index = cls.db,
+    __call = function(o, _opts)
+      o:extend(_opts)
+    end,
+  })
+
+  if opts.init then
+    cls:init()
+    cls.is_initialized = true
+  end
+
+  return cls
 end
 
 ---Close sqlite db connection. returns true if closed, error otherwise.
@@ -428,49 +473,16 @@ function DB:table(tbl_name, opts)
   return t:new(self, tbl_name, opts)
 end
 
----Use to Extend SQLDatabase Object with extra sugar syntax and api.
----@param sql SQLDatabase
----@param tbl SQLTable
----@param opts table: uri, opts, tbl_name, tbl_name ....
----@return SQLDatabase
-function DB:extend(opts)
-  local db = self.new(opts.uri, opts.opts)
-  --@type SQLDatabase
-  local cls = setmetatable({ db = db }, { __index = db })
-
-  for tbl_name, schema in pairs(opts) do
-    if tbl_name ~= "uri" and tbl_name ~= "opts" then
-      cls[tbl_name] = t:extend(db, tbl_name, schema)
-    end
-  end
-
-  return cls
-end
-
----Execute and return first result. Use only to execute sqlite functions
----otherwise use DB:eval
----@param statement string
----@return table
-function DB:exec(statement)
-  local s = stmt:parse(self.conn, "select " .. statement)
-  local val
-  s:step()
-  val = s:val(0)
-  s:reset()
-  s:finalize()
-  return val
-end
-
 ---Sqlite functions
 DB.F = {}
 
 local customstr = function(str)
   local mt = getmetatable(str)
-  mt.__add = function(a, b)
-    return a .. " + " .. b
+  mt.__add = function(_a, _b)
+    return _a .. " + " .. _b
   end
-  mt.__sub = function(a, b)
-    return a .. " - " .. b
+  mt.__sub = function(_a, _b)
+    return _a .. " - " .. _b
   end
   return str
 end
@@ -492,10 +504,10 @@ end
 ---     %% 	%
 ---@param timestring string timestamp to format 'deafult now'
 ---@return string: string representation or TEXT when evaluated.
----@usage `strftime('%Y %m %d','now')` -> 2021 8 11
----@usage `strftime('%H %M %S %s','now')` -> 12 40 18 1414759218
----@usage `strftime('%s','now') - strftime('%s','2014-10-07 02:34:56')` -> 2110042
-DB.F.strftime = function(format, timestring)
+---@usage `sqlstrftime('%Y %m %d','now')` -> 2021 8 11
+---@usage `sqlstrftime('%H %M %S %s','now')` -> 12 40 18 1414759218
+---@usage `sqlstrftime('%s','now') - strftime('%s','2014-10-07 02:34:56')` -> 2110042
+DB.sqlstrftime = function(format, timestring)
   local str = [[strftime('%s', '%s')]]
   return customstr(str:format(format, timestring or "now"))
 end
@@ -503,9 +515,9 @@ end
 ---Return the number of days since noon in Greenwich on November 24, 4714 B.C.
 ---@param timestring string timestamp to format 'deafult now'
 ---@return string: string representation or REAL when evaluated.
----@usage `julianday('now')` -> 2021 8 11
----@usage `julianday('now') - julianday('1947-08-15')` -> 24549.5019360879
-DB.F.julianday = function(timestring)
+---@usage `sqljulianday('now')` -> 2021 8 11
+---@usage `sqljulianday('now') - julianday('1947-08-15')` -> 24549.5019360879
+DB.sqljulianday = function(timestring)
   local str = [[julianday('%s')]]
   return customstr(str:format(timestring or "now"))
 end
@@ -513,8 +525,8 @@ end
 ---Returns date as "YYYY-MM-DD HH:MM:SS"
 ---@param timestring string timestamp to format 'deafult now'
 ---@return string: string representation or  "YYYY-MM-DD HH:MM:SS"
----@usage `datetime('now')` -> 2021-8-11 11:31:52
-DB.F.datetime = function(timestring)
+---@usage `sqldatetime('now')` -> 2021-8-11 11:31:52
+DB.sqldatetime = function(timestring)
   local str = [[datetime('%s')]]
   return customstr(str:format(timestring or "now"))
 end
@@ -523,10 +535,10 @@ end
 ---@param timestring string timestamp to format 'deafult now'
 ---@param modifier string: e.g. +60 seconds, +15 minutes
 ---@return string: string representation or "HH:MM:SS"
----@usage `time()` -> "12:50:01"
----@usage `time('2014-10-07 15:45:57.005678')` -> 15:45:57
----@usage `time('now','+60 seconds')` 15:45:57 + 60 seconds
-DB.F.time = function(timestring, modifier)
+---@usage `sqltime()` -> "12:50:01"
+---@usage `sqltime('2014-10-07 15:45:57.005678')` -> 15:45:57
+---@usage `sqltime('now','+60 seconds')` 15:45:57 + 60 seconds
+DB.sqltime = function(timestring, modifier)
   local str = [[time('%s')]]
   if modifier then
     str = [[time('%s', '%s')]]
@@ -540,10 +552,10 @@ end
 ---@param timestring string timestamp to format 'deafult now'
 ---@param modifier string: e.g. +2 month, +1 year
 ---@return string: string representation or "HH:MM:SS"
----@usage `date()` -> 2021-08-31
----@usage `date('2021-08-07')` -> 2021-08-07
----@usage `date('now','+2 month')` -> 2021-10-07
-DB.F.date = function(timestring, modifier)
+---@usage `sqldate()` -> 2021-08-31
+---@usage `sqldate('2021-08-07')` -> 2021-08-07
+---@usage `sqldate('now','+2 month')` -> 2021-10-07
+DB.sqldate = function(timestring, modifier)
   local str = [[date('%s')]]
   if modifier then
     str = [[date('%s', '%s')]]

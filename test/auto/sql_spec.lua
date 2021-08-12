@@ -352,10 +352,10 @@ describe("sql", function()
 
     it("evaluates sqlite functions", function()
       db:eval "create table test(id integer, date text)"
-      db:insert("test", { id = 1, date = db.F.date("now", "+1 day") })
+      db:insert("test", { id = 1, date = db.sqlstrftime "%H:%M:%S" })
 
       local res = db:eval [[select * from test]]
-      eq("2021-08-12", res[1].date)
+      eq(os.date "!%H:%M:%S", res[1].date)
       db:eval "drop table test"
     end)
 
@@ -733,13 +733,14 @@ describe("sql", function()
 
   describe("extend:", function()
     local testrui = "/tmp/extend_db"
-    vim.loop.fs_unlink(testrui)
+    local testrui2 = "/tmp/extend_db2"
 
     ---@class Manager:SQLDatabaseExt
     ---@field projects SQLTableExt
     ---@field todos SQLTableExt
     local manager = sql {
       uri = testrui,
+      init = true,
       projects = {
         id = true,
         title = "text",
@@ -757,7 +758,6 @@ describe("sql", function()
         foreign_keys = true,
       },
     }
-
     it("process opts and set sql table objects", function()
       eq("/tmp/extend_db", manager.uri, "should set self.uri.")
       eq(true, manager.closed, "should construct without openning connection.")
@@ -797,23 +797,17 @@ describe("sql", function()
         },
       }
 
-      local succ, id = manager.projects:insert(sqlnvim)
-      ---TODO: use id
-      -- eq(true, succ, "should have returned id.")
+      local id = manager.projects:insert(sqlnvim)
 
+      eq(1, id, "should have returned id.")
       eq(true, manager.projects:remove(), "should remove after default insert.")
 
       function manager.projects:insert()
-        local succ, id = self.tbl:insert(sqlnvim)
-        if not succ then
-          error "operation faild"
-        end
-        return succ
+        return self.tbl:insert(sqlnvim)
       end
 
-      local succ, id = manager.projects:insert()
-
-      -- eq(true, succ, "should have returned id.")
+      local id = manager.projects:insert()
+      eq(1, id, "should have returned id.")
 
       function manager.projects:get()
         return self.tbl:get({ where = { title = sqlnvim.title } })[1].title
@@ -821,5 +815,43 @@ describe("sql", function()
 
       eq(sqlnvim.title, manager.projects:get(), "should have inserted sqlnvim project")
     end)
+
+    it("control initialization", function()
+      local cache = sql {
+        uri = "/tmp/extend_db2",
+        files = { id = true, name = "text" },
+        projects = { id = true, name = "text" },
+      }
+
+      eq(false, cache.is_initialized, "shouldn't be initialized")
+      eq(true, not cache.projects, "project table shouldn't exists")
+      eq(false, not cache.db, "we should have the sql object here.")
+
+      cache:init()
+    end)
+
+    it("don't initialize and work when overwritten init", function()
+      local cache = sql {
+        uri = "/tmp/extend_db2",
+        files = { id = true, name = "text" },
+        projects = { id = true, name = "text" },
+      }
+
+      function cache:init(opts)
+        self.db:init()
+        cache.opts = opts
+      end
+
+      cache:init()
+
+      eq(false, pcall(cache.init, cache, "should fail because we're trying to initialize the object twice."))
+
+      -- eq("function", type(cache.projects.get), "project should be initialized and get should be a function")
+      -- cache.projects:insert { name = "xx" }
+
+      -- eq(cache.projects:where({ name = "xx" }).name, "should work")
+    end)
+    vim.loop.fs_unlink(testrui)
+    vim.loop.fs_unlink(testrui2)
   end)
 end)
