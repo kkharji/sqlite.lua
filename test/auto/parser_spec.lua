@@ -81,6 +81,13 @@ describe("parse", function()
       local pselect = p.select(tbl, { where = where })
       eq(eselect, pselect, "It should be identical")
     end)
+    it("concat list and pass it as query", function()
+      local where = { { "date", "<", 2021 } }
+      local where = { date = "< 2021" }
+      local eselect = [[select * from todo where date < 2021]]
+      local pselect = p.select(tbl, { where = where })
+      eq(eselect, pselect)
+    end)
   end)
 
   describe("[set]", function()

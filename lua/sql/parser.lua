@@ -59,7 +59,7 @@ local bind = function(o)
       k = o.k ~= nil and o.k or k
       v = M.sqlvalue(v)
       v = o.nonbind and ":" .. k or v
-      tinsert(res, string.format("%s" .. (o.nonbind and nil or " = ") .. specifier(v, o.nonbind), k, v))
+      tinsert(res, ("%s" .. (o.nonbind and nil or " = ") .. specifier(v, o.nonbind)):format(k, v))
     end
     return tconcat(res, o.s)
   end
@@ -145,9 +145,17 @@ local pwhere = function(defs, name, join, contains)
       k = join and name .. "." .. k or k
 
       if type(v) ~= "table" then
-        tinsert(where, bind { v = v, k = k, s = " and " })
+        if type(v) == "string" and (v:sub(1, 1) == "<" or v:sub(1, 1) == ">") then
+          tinsert(where, k .. " " .. v)
+        else
+          tinsert(where, bind { v = v, k = k, s = " and " })
+        end
       else
-        tinsert(where, "(" .. bind { kv = v, k = k, s = " or " } .. ")")
+        if type(k) == "number" then
+          tinsert(where, table.concat(v, " "))
+        else
+          tinsert(where, "(" .. bind { kv = v, k = k, s = " or " } .. ")")
+        end
       end
     end
   end
@@ -155,7 +163,6 @@ local pwhere = function(defs, name, join, contains)
   if contains then
     tinsert(where, pcontains(contains))
   end
-
   return ("where %s"):format(tconcat(where, " and "))
 end
 
