@@ -478,12 +478,31 @@ DB.F = {}
 
 local customstr = function(str)
   local mt = getmetatable(str)
+
   mt.__add = function(_a, _b)
     return _a .. " + " .. _b
   end
+
   mt.__sub = function(_a, _b)
     return _a .. " - " .. _b
   end
+
+  mt.__mul = function(_a, _b)
+    return _a .. " * " .. _b
+  end
+
+  mt.__div = function(_a, _b)
+    return _a .. " / " .. _b
+  end
+
+  mt.__pow = function(_a, _b)
+    return _a .. " ^ " .. _b
+  end
+
+  mt.__mod = function(_a, _b)
+    return _a .. " % " .. _b
+  end
+
   return str
 end
 

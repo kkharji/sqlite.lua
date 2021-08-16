@@ -359,6 +359,11 @@ describe("sql", function()
       db:eval "drop table test"
     end)
 
+    it("evaluates sqlite functions", function()
+      local sugar = db.sqljulianday("now") - db.sqljulianday("now") * 5 * 7
+      local expected = "julianday('now') - julianday('now') * 5 * 7"
+      eq(expected, sugar, "should be equal")
+    end)
     db:close()
   end)
 
