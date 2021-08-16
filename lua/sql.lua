@@ -534,11 +534,15 @@ end
 ---Return the number of days since noon in Greenwich on November 24, 4714 B.C.
 ---@param timestring string timestamp to format 'deafult now'
 ---@return string: string representation or REAL when evaluated.
----@usage `sqljulianday('now')` -> 2021 8 11
+---@usage `sqljulianday('now')` -> ...
 ---@usage `sqljulianday('now') - julianday('1947-08-15')` -> 24549.5019360879
 DB.sqljulianday = function(timestring)
-  local str = [[julianday('%s')]]
-  return customstr(str:format(timestring or "now"))
+  local str = "julianday('%s')"
+  timestring = timestring or "now"
+  if timestring ~= "now" and not timestring:match "%d" then
+    str = "julianday(%s)"
+  end
+  return customstr(str:format(timestring))
 end
 
 ---Returns date as "YYYY-MM-DD HH:MM:SS"

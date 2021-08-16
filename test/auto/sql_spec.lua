@@ -369,6 +369,16 @@ describe("sql", function()
       eq(expected, sugar, "should be equal")
     end)
 
+    it("quotes supported arugments only", function()
+      local sugar = db.sqljulianday "now" - db.sqljulianday "date"
+      local expected = "julianday('now') - julianday(date)"
+      eq(expected, sugar, "should be equal")
+
+      local sugar = db.sqljulianday "now" - db.sqljulianday "2016-10-18 16:45"
+      local expected = "julianday('now') - julianday('2016-10-18 16:45')"
+      eq(expected, sugar, "should be equal")
+    end)
+
     it("cast as", function()
       local sugar = db.sqlcast((db.sqljulianday() * 7), "integer")
       local expected = "cast(julianday('now') * 7 as integer)"
