@@ -358,10 +358,20 @@ describe("sql", function()
       eq(os.date "!%H:%M:%S", res[1].date)
       db:eval "drop table test"
     end)
+    db:close()
+  end)
 
-    it("evaluates sqlite functions", function()
-      local sugar = db.sqljulianday("now") - db.sqljulianday("now") * 5 * 7
+  describe("sqlfunctions:", function()
+    local db = sql:open()
+    it("works with multiply", function()
+      local sugar = db.sqljulianday "now" - db.sqljulianday "now" * 5 * 7
       local expected = "julianday('now') - julianday('now') * 5 * 7"
+      eq(expected, sugar, "should be equal")
+    end)
+
+    it("cast as", function()
+      local sugar = db.sqlcast((db.sqljulianday() * 7), "integer")
+      local expected = "cast(julianday('now') * 7 as integer)"
       eq(expected, sugar, "should be equal")
     end)
     db:close()

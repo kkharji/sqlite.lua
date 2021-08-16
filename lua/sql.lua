@@ -584,6 +584,10 @@ DB.sqldate = function(timestring, modifier)
   return customstr(str:format(timestring or "now"))
 end
 
+DB.sqlcast = function(source, as)
+  return string.format("cast(%s as %s)", source, as)
+end
+
 DB = setmetatable(DB, { __call = DB.extend })
 
 return DB
