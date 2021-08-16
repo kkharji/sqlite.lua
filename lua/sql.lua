@@ -475,32 +475,39 @@ end
 
 ---Sqlite functions
 DB.F = {}
-
-local customstr = function(str)
+local customstr
+customstr = function(str)
   local mt = getmetatable(str)
 
+  local wrap = function(_a, _b, str)
+    if u.is_str(_b) and _b:match "^%a+%(.+%)$" then
+      str = "(" .. str .. ")"
+    end
+    return str
+  end
+
   mt.__add = function(_a, _b)
-    return _a .. " + " .. _b
+    return wrap(_a, _b, _a .. " + " .. _b)
   end
 
   mt.__sub = function(_a, _b)
-    return _a .. " - " .. _b
+    return wrap(_a, _b, _a .. " - " .. _b)
   end
 
   mt.__mul = function(_a, _b)
-    return _a .. " * " .. _b
+    return wrap(_a, _b, _a .. " * " .. _b)
   end
 
   mt.__div = function(_a, _b)
-    return _a .. " / " .. _b
+    return wrap(_a, _b, _a .. " / " .. _b)
   end
 
   mt.__pow = function(_a, _b)
-    return _a .. " ^ " .. _b
+    return wrap(_a, _b, _a .. " ^ " .. _b)
   end
 
   mt.__mod = function(_a, _b)
-    return _a .. " % " .. _b
+    return wrap(_a, _b, _a .. " % " .. _b)
   end
 
   return str
@@ -539,7 +546,7 @@ end
 DB.sqljulianday = function(timestring)
   local str = "julianday('%s')"
   timestring = timestring or "now"
-  if timestring ~= "now" and not timestring:match "%d" then
+  if timestring ~= "now" and (type(timestring) == "string" and not timestring:match "%d") then
     str = "julianday(%s)"
   end
   return customstr(str:format(timestring))
