@@ -474,16 +474,15 @@ function DB:table(tbl_name, opts)
 end
 
 ---Sqlite functions
-DB.F = {}
 local customstr
 customstr = function(str)
   local mt = getmetatable(str)
 
-  local wrap = function(_a, _b, str)
+  local wrap = function(_a, _b, _str)
     if u.is_str(_b) and _b:match "^%a+%(.+%)$" then
-      str = "(" .. str .. ")"
+      _str = "(" .. _str .. ")"
     end
-    return str
+    return _str
   end
 
   mt.__add = function(_a, _b)
