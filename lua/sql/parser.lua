@@ -59,7 +59,7 @@ local bind = function(o)
       k = o.k ~= nil and o.k or k
       v = M.sqlvalue(v)
       v = o.nonbind and ":" .. k or v
-      tinsert(res, string.format("%s" .. (o.nonbind and nil or " = ") .. specifier(v, o.nonbind), k, v))
+      tinsert(res, ("%s" .. (o.nonbind and nil or " = ") .. specifier(v, o.nonbind)):format(k, v))
     end
     return tconcat(res, o.s)
   end
@@ -145,9 +145,17 @@ local pwhere = function(defs, name, join, contains)
       k = join and name .. "." .. k or k
 
       if type(v) ~= "table" then
-        tinsert(where, bind { v = v, k = k, s = " and " })
+        if type(v) == "string" and (v:sub(1, 1) == "<" or v:sub(1, 1) == ">") then
+          tinsert(where, k .. " " .. v)
+        else
+          tinsert(where, bind { v = v, k = k, s = " and " })
+        end
       else
-        tinsert(where, "(" .. bind { kv = v, k = k, s = " or " } .. ")")
+        if type(k) == "number" then
+          tinsert(where, table.concat(v, " "))
+        else
+          tinsert(where, "(" .. bind { kv = v, k = k, s = " or " } .. ")")
+        end
       end
     end
   end
@@ -155,7 +163,6 @@ local pwhere = function(defs, name, join, contains)
   if contains then
     tinsert(where, pcontains(contains))
   end
-
   return ("where %s"):format(tconcat(where, " and "))
 end
 
@@ -249,6 +256,25 @@ local partial = function(method, tbl, opts)
   )
 end
 
+local pselect = function(select)
+  local t = type(select)
+
+  if t == "table" and next(select) ~= nil then
+    local items = {}
+    for k, v in pairs(select) do
+      if type(k) == "number" then
+        tinsert(items, v)
+      else
+        tinsert(items, ("%s as %s"):format(v, k))
+      end
+    end
+
+    return tconcat(items, ", ")
+  end
+
+  return t == "string" and select or "*"
+end
+
 ---Parse select statement to extracts data from a database
 ---@param tbl string: table name
 ---@param opts table: lists of options: valid{ select, join, order_by, limit, where }
@@ -256,8 +282,7 @@ end
 M.select = function(tbl, opts)
   opts = opts or {}
   local cmd = opts.unique and "select distinct %s" or "select %s"
-  local t = type(opts.select)
-  local select = t == "string" and opts.select or (t == "table" and tconcat(opts.select, ", ") or "*")
+  local select = pselect(opts.select)
   local stmt = (cmd .. " from %s"):format(select, tbl)
   local method = opts.join and stmt .. " " .. pjoin(opts.join, tbl) or stmt
   return partial(method, tbl, opts)
