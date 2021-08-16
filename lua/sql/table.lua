@@ -12,35 +12,6 @@ tbl.__index = tbl
 
 ---@class SQLTableOpts @Supported sql.table configurations.
 ---@field schema table: <string, string>
----@field nocache boolean: whether to disable cache, default true.
-
-local cache_clear = function(self, succ, change)
-  if succ then
-    self.cache = {}
-    self.db.modified = false
-  end
-end
-
-local cache_fill = function(self, query, res)
-  self.cache[u.query_key(query)] = res
-end
-
-local cache_get = function(self, query)
-  if self.nocache then
-    return
-  end
-
-  local stat = luv.fs_stat(self.db.uri)
-  local mtime = stat and stat.mtime.sec
-
-  if self.db.modified or mtime ~= self.mtime then
-    cache_clear(self, true, nil)
-    self.db.modified = false
-    return
-  end
-
-  return self.cache[u.query_key(query)]
-end
 
 local run = function(func, self)
   local _run = function()
@@ -62,17 +33,13 @@ function tbl:new(db, name, opts)
   opts = opts or {}
 
   local stat = luv.fs_stat(db.uri)
-  local nocache = u.if_nil(opts.nocache, true)
-  opts.nocache = nil
   local schema = u.if_nil(opts.schema, opts)
 
   local o = setmetatable({
-    cache = {},
     db = db,
     name = name,
     mtime = stat and stat.mtime.sec,
     tbl_schema = schema,
-    nocache = nocache,
   }, self)
 
   run(function()
@@ -166,9 +133,7 @@ function tbl:count()
   end, self)
 end
 
----Query the table and return results. If cache is enabled and the {query} has
----been ran before, then query results from cache will be returned.
----Returns empty table if no results
+---Query the table and return results.
 ---@param query table: query.where, query.keys, query.join
 ---@return table
 ---@usage `projects:get()` get a list of all rows in project table.
@@ -177,22 +142,14 @@ end
 ---@see DB:select
 function tbl:get(query)
   query = query or { query = { all = 1 } }
-  local cache = cache_get(self, query)
-  if cache then
-    return cache
-  end
 
   return run(function()
     local res = self.db:select(self.name, query)
-    if res and not self.nocache then
-      cache_fill(self, query, res)
-    end
     return res
   end, self)
 end
 
----Get first match. If cache is enabled and the {query} has
----been ran before, then query results from cache will be returned.
+---Get first match.
 ---@param where table: where key values
 ---@return nil or row
 ---@usage `tbl:where{id = 1}`
@@ -211,15 +168,7 @@ end
 function tbl:each(query, func)
   assert(type(func) == "function", "required a function as second params")
 
-  local cache = cache_get(self, query)
-  local rows = cache and cache
-    or (function()
-      local res = self.db:select(self.name, query)
-      if res and not self.nocache then
-        cache_fill(self, query, res)
-      end
-      return res
-    end)()
+  local rows = self.db:select(self.name, query)
   if not rows then
     return
   end
@@ -284,9 +233,6 @@ end
 function tbl:insert(rows)
   return run(function()
     local succ, last_rowid = self.db:insert(self.name, rows)
-    if not self.nocache then
-      cache_clear(self, succ, rows)
-    end
     if succ then
       self.has_content = self:count() ~= 0 or false
     end
@@ -303,9 +249,6 @@ end
 function tbl:remove(where)
   return run(function()
     local succ = self.db:delete(self.name, where)
-    if not self.nocache then
-      cache_clear(self, succ, where)
-    end
     return succ
   end, self)
 end
@@ -317,9 +260,6 @@ end
 function tbl:update(specs)
   return run(function()
     local succ = self.db:update(self.name, specs)
-    if not self.nocache then
-      cache_clear(self, succ, specs)
-    end
     return succ
   end, self)
 end
@@ -333,9 +273,6 @@ function tbl:replace(rows)
   return run(function()
     self.db:delete(self.name)
     local succ = self.db:insert(self.name, rows)
-    if not self.nocache then
-      cache_clear(self, succ, rows)
-    end
     return succ
   end, self)
 end

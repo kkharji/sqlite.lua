@@ -401,8 +401,7 @@ SQLTableOpts                                                    *SQLTableOpts*
     Supported sql.table configurations.
 
     Fields: ~
-        {schema}  (table)    <string, string>
-        {nocache} (boolean)  whether to disable cache, default true.
+        {schema} (table)  <string, string>
 
 
 SQLTableExt                                                      *SQLTableExt*
@@ -489,9 +488,7 @@ tbl:count()                                                      *tbl:count()*
 
 
 tbl:get({query})                                                   *tbl:get()*
-    Query the table and return results. If cache is enabled and the {query} has
-    been ran before, then query results from cache will be returned. Returns
-    empty table if no results
+    Query the table and return results.
 
 
     Parameters: ~
@@ -511,8 +508,7 @@ tbl:get({query})                                                   *tbl:get()*
 
 
 tbl:where({where})                                               *tbl:where()*
-    Get first match. If cache is enabled and the {query} has been ran before,
-    then query results from cache will be returned.
+    Get first match.
 
 
     Parameters: ~

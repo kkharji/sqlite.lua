@@ -18,7 +18,7 @@ local seed = function()
   db:open()
   db:create("T", { a = "integer", b = "text", c = "text", ensure = true })
   db:insert("T", demo)
-  return db:table("T", { nocache = false }), db:table "N"
+  return db:table "T", db:table "N"
 end
 
 local clean = function()
@@ -41,9 +41,6 @@ describe("table", function()
     end)
     it("registers whether the table has content in self.has_content.", function()
       eq(true, t1.has_content, "should be false")
-    end)
-    it("initalizes empty cache in self.cache", function()
-      eq({}, t1.cache, "should be empty.")
     end)
     it("doesn't fail if table isn't created yat.", function()
       eq("table", type(t2))
@@ -135,23 +132,6 @@ describe("table", function()
       eq(#res, limit, "they should be the same")
     end)
 
-    it("runs a query from cache.", function()
-      local res = t1:get { keys = { "b", "c" }, where = { a = 1 } }
-      t1.cache["keys=bc,select=bc,where=a=1"][1].b = "bddddd"
-      demo[1].b = "bddddd"
-      demo[1].a = nil
-      eq(demo[1], res[1], "should be identical")
-      demo[1].b = "lsf"
-      demo[1].a = 1
-    end)
-
-    it("cache should be cleared.", function()
-      eq(vim.loop.fs_stat(dbpath).mtime.sec, t1.mtime, "should be the same")
-      eq(true, db:eval("insert into T(a,b,c) values(?,?,?)", { 200, "a", "f" }), "should insert")
-      eq(true, t1.db.modified, "should be modified tr")
-      assert(db:eval "delete from T where a = 200", "should be deleted")
-    end)
-
     it("run a query and returns results when connection is closed.", function()
       db:close()
       local res = t1:get { where = { a = 99 } }
@@ -184,34 +164,7 @@ describe("table", function()
       )
       eq(res, { 99, 32, 12 }, "should be identical") -- this might fail at some point because of the ordering.
     end)
-
-    it("should return from cache.", function()
-      t1:get { where = { a = { 12, 99, 32 } } }
-      local res = {}
-      t1.cache["where=a=12,99,32"][1].a = 1
-      t1.cache["where=a=12,99,32"][2].a = 2
-      t1.cache["where=a=12,99,32"][3].a = 3
-
-      t1:each({ where = { a = { 12, 99, 32 } } }, function(row)
-        table.insert(res, row.a)
-      end)
-
-      eq(res, { 1, 2, 3 }, "should be identical") -- this might fail at some point because of the ordering.
-    end)
-
-    it("should not return from cache.", function()
-      t1.nocache = true
-      local res = {}
-      t1:each({ where = { a = { 12, 99, 32 } } }, function(row)
-        table.insert(res, row.a)
-      end)
-
-      eq(res, { 99, 32, 12 }, "should be identical")
-    end)
   end)
-
-  t1.nocache = false
-  t1.cache = {}
 
   describe(":map", function()
     it("should work func", function()
@@ -219,19 +172,6 @@ describe("table", function()
         return row.a
       end)
       eq(res, { 99, 32, 12 }, "should be identical") -- this might fail at some point because of the ordering.
-    end)
-
-    it("should return from cache.", function()
-      t1:get { where = { a = { 12, 99, 32 } } }
-      t1.cache["where=a=12,99,32"][1].a = 1
-      t1.cache["where=a=12,99,32"][2].a = 2
-      t1.cache["where=a=12,99,32"][3].a = 3
-
-      local res = t1:map({ where = { a = { 12, 99, 32 } } }, function(row)
-        return row.a
-      end)
-
-      eq(res, { 1, 2, 3 }, "should be identical") -- this might fail at some point because of the ordering.
     end)
   end)
 
@@ -294,12 +234,6 @@ describe("table", function()
   end)
 
   describe(":remove", function()
-    it("pre ... fill cache", function()
-      eq({ demo[3] }, t1:get { where = { a = 32 } }, "should be identical.")
-      eq({ demo[4] }, t1:get { where = { a = 12 } }, "should be identical.")
-      eq("table", type(t1.cache["where=a=32"][1]), "should be filled")
-    end)
-
     it("removes a single row", function()
       eq(true, t1:remove { where = { a = 5 } }, "should remove")
       eq(true, db:eval "select * from T where a = 5", "should return boolean, if no resluts")
@@ -309,22 +243,12 @@ describe("table", function()
       eq(true, t1:remove { where = { a = { 35, 4 } } }, "should remove")
       eq(true, db:eval "select * from T where a = 35 or a = 4", "should return boolean, if no resluts")
     end)
-
-    it("should empty cache", function()
-      eq({}, t1.cache, "should remove")
-    end)
   end)
 
   clean()
   seed()
 
   describe(":update", function()
-    it("pre ... fill cache", function()
-      eq({ demo[3] }, t1:get { where = { a = 32 } }, "should be identical.")
-      eq({ demo[4] }, t1:get { where = { a = 12 } }, "should be identical.")
-      eq("table", type(t1.cache["where=a=32"][1]), "should be filled")
-    end)
-
     it("update a single row", function()
       eq(true, t1:update { where = { a = 4 }, values = { c = "a", b = "a" } }, "should be updated")
       demo[6] = { a = 4, c = "a", b = "a" }
@@ -350,10 +274,6 @@ describe("table", function()
       demo[5] = { a = 35, c = "a", b = "a" }
       eq({ demo[7] }, db:eval "select * from T where a = 5", "should return boolean, if no resluts")
       eq({ demo[5] }, db:eval "select * from T where a = 35", "should return boolean, if no resluts")
-    end)
-
-    it("should empty cache", function()
-      eq({}, t1.cache, "should remove")
     end)
   end)
 
