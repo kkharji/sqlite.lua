@@ -478,7 +478,8 @@ local customstr
 customstr = function(str)
   local mt = getmetatable(str)
 
-  local wrap = function(_a, _b, _str)
+  local wrap = function(_a, _b, sign)
+    local _str = ("%s %s %s"):format(_a, sign, _b)
     if u.is_str(_b) and _b:match "^%a+%(.+%)$" then
       _str = "(" .. _str .. ")"
     end
@@ -486,27 +487,22 @@ customstr = function(str)
   end
 
   mt.__add = function(_a, _b)
-    return wrap(_a, _b, _a .. " + " .. _b)
+    return wrap(_a, _b, "+")
   end
-
   mt.__sub = function(_a, _b)
-    return wrap(_a, _b, _a .. " - " .. _b)
+    return wrap(_a, _b, "-")
   end
-
   mt.__mul = function(_a, _b)
-    return wrap(_a, _b, _a .. " * " .. _b)
+    return wrap(_a, _b, "*")
   end
-
   mt.__div = function(_a, _b)
-    return wrap(_a, _b, _a .. " / " .. _b)
+    return wrap(_a, _b, "/")
   end
-
   mt.__pow = function(_a, _b)
-    return wrap(_a, _b, _a .. " ^ " .. _b)
+    return wrap(_a, _b, "^")
   end
-
   mt.__mod = function(_a, _b)
-    return wrap(_a, _b, _a .. " % " .. _b)
+    return wrap(_a, _b, "%")
   end
 
   return str
