@@ -474,16 +474,37 @@ function DB:table(tbl_name, opts)
 end
 
 ---Sqlite functions
-DB.F = {}
-
-local customstr = function(str)
+local customstr
+customstr = function(str)
   local mt = getmetatable(str)
+
+  local wrap = function(_a, _b, sign)
+    local _str = ("%s %s %s"):format(_a, sign, _b)
+    if u.is_str(_b) and _b:match "^%a+%(.+%)$" then
+      _str = "(" .. _str .. ")"
+    end
+    return _str
+  end
+
   mt.__add = function(_a, _b)
-    return _a .. " + " .. _b
+    return wrap(_a, _b, "+")
   end
   mt.__sub = function(_a, _b)
-    return _a .. " - " .. _b
+    return wrap(_a, _b, "-")
   end
+  mt.__mul = function(_a, _b)
+    return wrap(_a, _b, "*")
+  end
+  mt.__div = function(_a, _b)
+    return wrap(_a, _b, "/")
+  end
+  mt.__pow = function(_a, _b)
+    return wrap(_a, _b, "^")
+  end
+  mt.__mod = function(_a, _b)
+    return wrap(_a, _b, "%")
+  end
+
   return str
 end
 
@@ -515,11 +536,15 @@ end
 ---Return the number of days since noon in Greenwich on November 24, 4714 B.C.
 ---@param timestring string timestamp to format 'deafult now'
 ---@return string: string representation or REAL when evaluated.
----@usage `sqljulianday('now')` -> 2021 8 11
+---@usage `sqljulianday('now')` -> ...
 ---@usage `sqljulianday('now') - julianday('1947-08-15')` -> 24549.5019360879
 DB.sqljulianday = function(timestring)
-  local str = [[julianday('%s')]]
-  return customstr(str:format(timestring or "now"))
+  local str = "julianday('%s')"
+  timestring = timestring or "now"
+  if timestring ~= "now" and (type(timestring) == "string" and not timestring:match "%d") then
+    str = "julianday(%s)"
+  end
+  return customstr(str:format(timestring))
 end
 
 ---Returns date as "YYYY-MM-DD HH:MM:SS"
@@ -563,6 +588,10 @@ DB.sqldate = function(timestring, modifier)
   end
 
   return customstr(str:format(timestring or "now"))
+end
+
+DB.sqlcast = function(source, as)
+  return string.format("cast(%s as %s)", source, as)
 end
 
 DB = setmetatable(DB, { __call = DB.extend })

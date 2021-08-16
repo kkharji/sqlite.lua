@@ -345,11 +345,6 @@ DB:table({tbl_name}, {opts})                                      *DB:table()*
         SQLTable
 
 
-DB.F()                                                                *DB.F()*
-    Sqlite functions
-
-
-
 DB.sqlstrftime()                                            *DB.sqlstrftime()*
     %d 	day of month: 00 %f 	fractional seconds: SS.SSS %H 	hour: 00-24 %j 	day
     of year: 001-366 %J 	Julian day number %m 	month: 01-12 %M 	minute: 00-59 
@@ -372,7 +367,7 @@ DB.sqljulianday()                                          *DB.sqljulianday()*
 
 
     Usage: ~
-        `sqljulianday('now')` -> 2021 8 11
+        `sqljulianday('now')` -> ...
         `sqljulianday('now') - julianday('1947-08-15')` -> 24549.5019360879
 
 
