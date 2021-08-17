@@ -11,7 +11,7 @@
 
 {{ range .Commits -}}
 {{if .Body }}
-<p><details><summary><a href="{{ $.Info.RepositoryURL }}/commit/{{ .Hash.Long }}">{{ .Subject }}</a></summary>{{ .Body }}</details></p>
+<details style="text-indent: 1.1em;"><summary style="text-indent: 1.1em;"><a href="{{ $.Info.RepositoryURL }}/commit/{{ .Hash.Long }}">{{ .Subject }}</a></summary>{{ .Body }}</details>
 {{ else }}
 * [{{ .Subject }}]({{ $.Info.RepositoryURL }}/commit/{{ .Hash.Long }})
 {{ end }}
