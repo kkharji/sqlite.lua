@@ -16,9 +16,11 @@ options:
         - white_check_mark
         - lock
         - construction_worker
+        - boom
   commit_groups:
     title_maps:
       sparkles: ":sparkles: Features"
+      boom: ":boom: Breaking Changes"
       bug: ":bug: Bug Fixes"
       zap: ":zap: Performance Improvements"
       recycle: ":recycle: Code Refactoring"
