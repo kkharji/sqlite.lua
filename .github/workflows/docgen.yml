@@ -47,8 +47,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMIT_MSG: |
-            📝 DOC: Update doc/sql.txt
-            skip-checks: true
+            :memo: DOC: Update doc/sql.txt
         run: |
           git config user.email "actions@github"
           git config user.name "Actions"
