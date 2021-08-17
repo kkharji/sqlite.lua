@@ -9,12 +9,8 @@ options:
       Type:
         - sparkles
         - bug
-        - ambulance
-        - adhesive_bandage
         - zap
         - recycle
-        - fire
-        - truck
         - art
         - package
         - white_check_mark
@@ -24,12 +20,8 @@ options:
     title_maps:
       sparkles: ":sparkles: Features"
       bug: ":bug: Bug Fixes"
-      ambulance: ":bug: Bug Fixes"
-      adhesive_bandage: ":bug: Bug Fixes"
       zap: ":zap: Performance Improvements"
       recycle: ":recycle: Code Refactoring"
-      fire: ":recycle: Code Refactoring"
-      truck: ":recycle: Code Refactoring"
       art: ":art: Improve structure / format of the code."
       memo: ":memo: Add or update documentation."
       white_check_mark: ":white_check_mark: Add/Update Test Cases"
@@ -44,3 +36,4 @@ options:
   notes:
     keywords:
       - BREAKING CHANGE
+
