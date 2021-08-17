@@ -8,7 +8,7 @@
 ### {{ .Title }}
 
 {{ range .Commits -}}
-* [{{ .Subject }}]({{ $.Info.RepositoryURL }}/commit/{{ .Hash.Long }})
+* [{{ .Subject }}]({{ $.Info.RepositoryURL }}/commit/{{ .Hash.Long }} ## "{{.Body}}")
 {{ end }}
 {{ end -}}
 
