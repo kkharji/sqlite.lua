@@ -8,7 +8,14 @@
 ### {{ .Title }}
 
 {{ range .Commits -}}
-* [{{ .Subject }}]({{ $.Info.RepositoryURL }}/commit/{{ .Hash.Long }}) {{ if .Body }}[...](## "{{.Body}}"){{ end }}
+{{if .Body }}
+ <button type="button" class="collapsible">{{ .Subject }}</button>
+<div class="content">
+  <p>{{ .body }}</p>
+</div>
+{{ else }}
+* [{{ .Subject }}]({{ $.Info.RepositoryURL }}/commit/{{ .Hash.Long }})
+{{ end }}
 {{ end }}
 {{ end -}}
 
