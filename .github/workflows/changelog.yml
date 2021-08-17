@@ -1,5 +1,5 @@
 name: Generator Changelog
-on: [push, pull_request]
+on: push
 
 jobs:
   build-sources:
