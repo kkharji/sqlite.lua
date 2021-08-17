@@ -1,5 +1,8 @@
 name: Generator Changelog
-on: push
+on:
+  push:
+    branches:
+      - master
 
 jobs:
   build-sources:
