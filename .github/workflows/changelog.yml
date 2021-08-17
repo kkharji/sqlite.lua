@@ -2,23 +2,31 @@ name: Changelog-Generator
 on: [push, pull_request]
 
 jobs:
-  changelog-generator:
+  build-sources:
     name: Changelog Generator
     runs-on: ubuntu-20.04
     container:
       image: golang:1.16
     steps:
       - name: Check out a copy of the repo
-      - uses: actions/checkout@2
+        uses: actions/checkout@v2
         with: { fetch-depth: 0 }
 
+      - name: set todays-date
+        run: date +%F > todays-date
+
+      - name: Restore cache for today's nightly.
+        uses: actions/cache@v2
+        with:
+          path: build
+          key: ${{ runner.os }}-appimage-${{ hashFiles('todays-date') }}
+
       - name: Prepare
-        run: |
-          go get github.com/git-chglog/git-chglog/cmd/git-chglog
+        run: go get github.com/git-chglog/git-chglog/cmd/git-chglog
 
       - name: Generate Changelog
         run: |
-         $(go env GOPATH)/bin/git-chglog --next-tag unreleased -c .github/chglog/config.yml -t .github/chglog/CHANGELOG.tpl.md -o CHANGELOG.md
+          $(go env GOPATH)/bin/git-chglog --next-tag unreleased -c .github/chglog/config.yml -t .github/chglog/CHANGELOG.tpl.md -o CHANGELOG.md
 
       - name: Update Changelog
         env:
