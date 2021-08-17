@@ -19,6 +19,7 @@ options:
         - package
         - white_check_mark
         - lock
+        - construction_worker
   commit_groups:
     title_maps:
       sparkles: ":sparkles: Features"
@@ -34,6 +35,7 @@ options:
       white_check_mark: ":white_check_mark: Add/Update Test Cases"
       package: ":package: Dependencies"
       lock: ":lock: Security"
+      construction_worker: ":construction_worker: CI Updates"
   header:
     pattern: "^:(\\w*)\\:\\s(.*)$"
     pattern_maps:
