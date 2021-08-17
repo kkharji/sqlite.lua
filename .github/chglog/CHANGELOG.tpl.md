@@ -1,12 +1,12 @@
 {{ range .Versions }}
 <a name="{{ .Tag.Name }}"></a>
 
-<div align="center"><h1>{{ if .Tag.Previous }}[{{ .Tag.Name }}]({{ $.Info.RepositoryURL }}/compare/{{ .Tag.Previous.Name }}...{{ .Tag.Name }}){{ else }}{{ .Tag.Name }}{{ end }}</h1></div>
+<div align="center"><h2>{{ if .Tag.Previous }}[{{ .Tag.Name }}]({{ $.Info.RepositoryURL }}/compare/{{ .Tag.Previous.Name }}...{{ .Tag.Name }}){{ else }}{{ .Tag.Name }}{{ end }}</h2></div>
 
-> {{ datetime "2006-01-02" .Tag.Date }}
+<blockquote align="center"><p>{{ datetime "2006-01-02" .Tag.Date }}</p></blockquote>
 
 {{ range .CommitGroups -}}
-<div align="center"><h2>{{ .Title }}</h2></div>
+### {{ .Title }}
 
 {{ range .Commits -}}
 {{if .Body }}
