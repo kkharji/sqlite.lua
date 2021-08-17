@@ -13,8 +13,8 @@ options:
         - adhesive_bandage
         - zap
         - recycle
-        - remove
-        - rename
+        - fire
+        - truck
         - art
         - package
         - white_check_mark
@@ -28,8 +28,8 @@ options:
       adhesive_bandage: ":bug: Bug Fixes"
       zap: ":zap: Performance Improvements"
       recycle: ":recycle: Code Refactoring"
-      remove: ":recycle: Code Refactoring"
-      rename: ":recycle: Code Refactoring"
+      fire: ":recycle: Code Refactoring"
+      truck: ":recycle: Code Refactoring"
       art: ":art: Improve structure / format of the code."
       memo: ":memo: Add or update documentation."
       white_check_mark: ":white_check_mark: Add/Update Test Cases"
