@@ -11,9 +11,9 @@
 
 {{ range .Commits -}}
 {{if .Body }}
-<details style="text-indent: 1.1em;"><summary style="text-indent: 1.1em;"><a href="{{ $.Info.RepositoryURL }}/commit/{{ .Hash.Long }}">{{ .Subject }}</a></summary>{{ .Body }}</details>
+<dl><dd><details style="text-indent: 1.1em;"><summary style="text-indent: 1.1em;"><a href="{{ $.Info.RepositoryURL }}/commit/{{ .Hash.Long }}">{{ .Subject }}</a></summary><dd>{{ .Body }}</dd></details></dd></dl>
 {{ else }}
-* [{{ .Subject }}]({{ $.Info.RepositoryURL }}/commit/{{ .Hash.Long }})
+  * [{{ .Subject }}]({{ $.Info.RepositoryURL }}/commit/{{ .Hash.Long }})
 {{ end }}
 {{ end }}
 {{ end -}}
