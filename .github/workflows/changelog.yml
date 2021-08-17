@@ -1,0 +1,35 @@
+name: Changelog-Generator
+on: [push, pull_request]
+
+jobs:
+  changelog-generator:
+    name: Changelog Generator
+    runs-on: ubuntu-20.04
+    container:
+      image: golang:1.16
+    steps:
+      - name: Check out a copy of the repo
+      - uses: actions/checkout@2
+        with: { fetch-depth: 0 }
+
+      - name: Prepare
+        run: |
+          go get github.com/git-chglog/git-chglog/cmd/git-chglog
+
+      - name: Generate Changelog
+        run: |
+         $(go env GOPATH)/bin/git-chglog --next-tag unreleased -c .github/chglog/config.yml -t .github/chglog/CHANGELOG.tpl.md -o CHANGELOG.md
+
+      - name: Update Changelog
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_MSG: |
+            :memo: update CHANGELOG.md
+        run: |
+          git config user.email "actions@github"
+          git config user.name "Actions"
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+          git add CHANGELOG.md
+          # Only commit and push if we have changes
+          git diff --quiet && git diff --staged --quiet || (git commit -m "${COMMIT_MSG}"; git push origin HEAD:${GITHUB_REF})
+
