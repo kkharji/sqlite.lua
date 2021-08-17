@@ -14,6 +14,7 @@
 <dl><dd><details><summary><a href="{{ $.Info.RepositoryURL }}/commit/{{ .Hash.Long }}"> {{ .Subject }}</a></summary>
 
 {{ .Body }}
+
 </details></dd></dl>
 {{ else }}
   * [{{ .Subject }}]({{ $.Info.RepositoryURL }}/commit/{{ .Hash.Long }})
