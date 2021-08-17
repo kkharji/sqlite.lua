@@ -1,0 +1,44 @@
+style: github
+template: CHANGELOG.tpl.md
+info:
+  title: CHANGELOG
+  repository_url: https://github.com/tami5/sql.nvim
+options:
+  commits:
+    filters:
+      Type:
+        - sparkles
+        - bug
+        - ambulance
+        - adhesive_bandage
+        - zap
+        - recycle
+        - remove
+        - rename
+        - art
+        - package
+        - white_check_mark
+        - lock
+  commit_groups:
+    title_maps:
+      sparkles: ":sparkles: Features"
+      bug: ":bug: Bug Fixes"
+      ambulance: ":bug: Bug Fixes"
+      adhesive_bandage: ":bug: Bug Fixes"
+      zap: ":zap: Performance Improvements"
+      recycle: ":recycle: Code Refactoring"
+      remove: ":recycle: Code Refactoring"
+      rename: ":recycle: Code Refactoring"
+      art: ":art: Improve structure / format of the code."
+      memo: ":memo: Add or update documentation."
+      white_check_mark: ":white_check_mark: Add/Update Test Cases"
+      package: ":package: Dependencies"
+      lock: ":lock: Security"
+  header:
+    pattern: "^:(\\w*)\\:\\s(.*)$"
+    pattern_maps:
+      - Type
+      - Subject
+  notes:
+    keywords:
+      - BREAKING CHANGE
