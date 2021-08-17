@@ -1,15 +1,16 @@
 {{ range .Versions }}
 <a name="{{ .Tag.Name }}"></a>
-## {{ if .Tag.Previous }}[{{ .Tag.Name }}]({{ $.Info.RepositoryURL }}/compare/{{ .Tag.Previous.Name }}...{{ .Tag.Name }}){{ else }}{{ .Tag.Name }}{{ end }}
+
+<div align="center"><h1>{{ if .Tag.Previous }}[{{ .Tag.Name }}]({{ $.Info.RepositoryURL }}/compare/{{ .Tag.Previous.Name }}...{{ .Tag.Name }}){{ else }}{{ .Tag.Name }}{{ end }}</h1></div>
 
 > {{ datetime "2006-01-02" .Tag.Date }}
 
 {{ range .CommitGroups -}}
-### {{ .Title }}
+<div align="center"><h2>{{ .Title }}</h2></div>
 
 {{ range .Commits -}}
 {{if .Body }}
-<details><summary><a href="{{ $.Info.RepositoryURL }}/commit/{{ .Hash.Long }}">{{ .Subject }}</a></summary>{{ .Body }}</details>
+- <details><summary><a href="{{ $.Info.RepositoryURL }}/commit/{{ .Hash.Long }}">{{ .Subject }}</a></summary>{{ .Body }}</details>
 {{ else }}
 * [{{ .Subject }}]({{ $.Info.RepositoryURL }}/commit/{{ .Hash.Long }})
 {{ end }}
