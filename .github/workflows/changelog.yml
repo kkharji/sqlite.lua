@@ -1,9 +1,9 @@
-name: Changelog-Generator
+name: Generator Changelog
 on: [push, pull_request]
 
 jobs:
   build-sources:
-    name: Changelog Generator
+    name: Generator Changelog
     runs-on: ubuntu-20.04
     container:
       image: golang:1.16
