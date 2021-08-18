@@ -519,6 +519,41 @@ tbl:where({where})                                               *tbl:where()*
         |DB:select()|
 
 
+tbl:each({func}, {query})                                         *tbl:each()*
+    Iterate over table rows and execute {func}. Returns true only when rows is
+    not emtpy.
+
+
+    Parameters: ~
+        {func}  (function)  func(row)
+        {query} (table)     query.where, query.keys, query.join
+
+    Return: ~
+        boolean
+
+    Usage: ~
+        `let query = { where = { status = "pending"}, contains = { title =
+        "fix*" } }`
+        `todos:each(function(row) print(row.title) end, query)`
+
+
+tbl:map({func}, {query})                                           *tbl:map()*
+    Create a new table from iterating over {self.name} rows with {func}.
+
+
+    Parameters: ~
+        {func}  (function)  func(row)
+        {query} (table)     query.where, query.keys, query.join
+
+    Return: ~
+        table[]
+
+    Usage: ~
+        `let query = { where = { status = "pending"}, contains = { title =
+        "fix*" } }`
+        `local t = todos:map(function(row) return row.title end, query)`
+
+
 tbl:sort({query}, {transform}, {comp})                            *tbl:sort()*
     Sorts a table in-place using a transform. Values are ranked in a custom
     order of the results of running `transform (v)` on all values. `transform`
