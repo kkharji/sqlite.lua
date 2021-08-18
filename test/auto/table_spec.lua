@@ -175,7 +175,6 @@ describe("table", function()
       )
       eq(res, { 99, 32, 12 }, "should be identical")
     end)
-
     it("supports function as first argument with no query", function()
       local res = {}
       eq(
@@ -185,7 +184,7 @@ describe("table", function()
         end),
         "the number of rows"
       )
-      eq(res, { 99, 32, 12 }, "should be identical")
+      eq(res, { 1, 99, 32, 12, 35, 4, 5 }, "should be identical")
     end)
   end)
 
@@ -206,7 +205,7 @@ describe("table", function()
       local res = t1:map(function(row)
         return row.a
       end)
-      eq(res, { 99, 32, 12 }, "should be identical") -- this might fail at some point because of the ordering.
+      eq(res, { 1, 99, 32, 12, 35, 4, 5 }, "should be identical") -- this might fail at some point because of the ordering.
     end)
   end)
 
