@@ -164,8 +164,8 @@ end
 ---@param func function: func(row)
 ---@usage `let query = { where = { status = "pending"}, contains = { title = "fix*" } }`
 ---@usage `todos:each(query, function(row)  print(row.title) end)`
----@overload func(self, func: func(row), query: SQLQuerySpec)
 ---@return boolean
+---@overload func(self, func: func(row), query: SQLQuerySpec)
 function tbl:each(query, func)
   query = query or {}
   if type(query) == "function" then
@@ -189,8 +189,8 @@ end
 ---@param func function: a function that expects a row
 ---@usage `let query = { where = { status = "pending"}, contains = { title = "fix*" } }`
 ---@usage `local t = todos:map(query, function(row) return row.title end)`
----@overload func(self, func: func(row), query: SQLQuerySpec)
 ---@return table[]
+---@overload func(self, func: func(row), query: SQLQuerySpec)
 function tbl:map(query, func)
   query = query or {}
   local res = {}
