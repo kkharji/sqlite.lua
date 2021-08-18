@@ -160,15 +160,14 @@ end
 
 ---Iterate over table rows and execute {func}.
 ---Returns true only when rows is not emtpy.
----@param query table: query.where, query.keys, query.join
 ---@param func function: func(row)
+---@param query table: query.where, query.keys, query.join
 ---@usage `let query = { where = { status = "pending"}, contains = { title = "fix*" } }`
----@usage `todos:each(query, function(row)  print(row.title) end)`
+---@usage `todos:each(function(row) print(row.title) end, query)`
 ---@return boolean
----@overload func(self, func: func(row), query: SQLQuerySpec)
-function tbl:each(query, func)
+function tbl:each(func, query)
   query = query or {}
-  if type(query) == "function" then
+  if type(func) == "table" then
     func, query = query, func
   end
 
@@ -185,16 +184,15 @@ function tbl:each(query, func)
 end
 
 ---Create a new table from iterating over {self.name} rows with {func}.
+---@param func function: func(row)
 ---@param query table: query.where, query.keys, query.join
----@param func function: a function that expects a row
 ---@usage `let query = { where = { status = "pending"}, contains = { title = "fix*" } }`
----@usage `local t = todos:map(query, function(row) return row.title end)`
+---@usage `local t = todos:map(function(row) return row.title end, query)`
 ---@return table[]
----@overload func(self, func: func(row), query: SQLQuerySpec)
-function tbl:map(query, func)
+function tbl:map(func, query)
   query = query or {}
   local res = {}
-  if type(query) == "function" then
+  if type(func) == "table" then
     func, query = query, func
   end
 
