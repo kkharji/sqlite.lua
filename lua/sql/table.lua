@@ -204,7 +204,10 @@ function tbl:map(func, query)
       return {}
     end
     for _, row in ipairs(rows) do
-      table.insert(res, func(row))
+      local ret = func(row)
+      if ret then
+        table.insert(res, func(row))
+      end
     end
 
     return res
