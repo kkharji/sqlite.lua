@@ -1,4 +1,11 @@
 {{ $repourl := .Info.RepositoryURL -}}
+<!--
+use the following for tags
+<a class="commit-link" data-hovercard-type="commit" data-hovercard-url="https://github.com/tami5/sql.nvim/commit/88f14bf3148c8c31c4ba17818d80eedc33cc9f12/hovercard" href="https://github.com/tami5/sql.nvim/commit/88f14bf3148c8c31c4ba17818d80eedc33cc9f12">
+  <tt>88f14bf</tt>
+</a>
+-->
+
 {{ range .Versions }}
 <a name="{{ .Tag.Name }}"></a>
 
