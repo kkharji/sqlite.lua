@@ -13,6 +13,20 @@
 
 ### :sparkles: Features
  
+<dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/5944a91d05f34f1d36ef33a62344cfc301fc49b4" >5944a91</a>: table each and map accept function as first argument (<a href="https://github.com/tami5/sql.nvim/issues/97">#97</a>)</summary>
+
+still compatible with query as first argument ✅  
+
+Examples:
+
+```lua
+tbl:each(function(row) .. end) -- execute a function on all table rows
+tbl:each(function(row) .. end, {...} ) -- execute a function on all table rows match the query
+-- map work the same way, but return transformed table
+```
+</details></dd></dl>
+
+ 
 <dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/88f14bf3148c8c31c4ba17818d80eedc33cc9f12" >88f14bf</a>: auto changelog ([#80](https://github.com/tami5/sql.nvim/issues/80))</summary>
 
 Here goes nothing 🤞. Please CI don't fail me.
