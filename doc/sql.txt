@@ -519,14 +519,14 @@ tbl:where({where})                                               *tbl:where()*
         |DB:select()|
 
 
-tbl:each({query}, {func})                                         *tbl:each()*
+tbl:each({func}, {query})                                         *tbl:each()*
     Iterate over table rows and execute {func}. Returns true only when rows is
     not emtpy.
 
 
     Parameters: ~
-        {query} (table)     query.where, query.keys, query.join
         {func}  (function)  func(row)
+        {query} (table)     query.where, query.keys, query.join
 
     Return: ~
         boolean
@@ -534,16 +534,16 @@ tbl:each({query}, {func})                                         *tbl:each()*
     Usage: ~
         `let query = { where = { status = "pending"}, contains = { title =
         "fix*" } }`
-        `todos:each(query, function(row) print(row.title) end)`
+        `todos:each(function(row) print(row.title) end, query)`
 
 
-tbl:map({query}, {func})                                           *tbl:map()*
+tbl:map({func}, {query})                                           *tbl:map()*
     Create a new table from iterating over {self.name} rows with {func}.
 
 
     Parameters: ~
+        {func}  (function)  func(row)
         {query} (table)     query.where, query.keys, query.join
-        {func}  (function)  a function that expects a row
 
     Return: ~
         table[]
@@ -551,7 +551,7 @@ tbl:map({query}, {func})                                           *tbl:map()*
     Usage: ~
         `let query = { where = { status = "pending"}, contains = { title =
         "fix*" } }`
-        `local t = todos:map(query, function(row) return row.title end)`
+        `local t = todos:map(function(row) return row.title end, query)`
 
 
 tbl:sort({query}, {transform}, {comp})                            *tbl:sort()*

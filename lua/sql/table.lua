@@ -160,13 +160,16 @@ end
 
 ---Iterate over table rows and execute {func}.
 ---Returns true only when rows is not emtpy.
----@param query table: query.where, query.keys, query.join
 ---@param func function: func(row)
+---@param query table: query.where, query.keys, query.join
 ---@usage `let query = { where = { status = "pending"}, contains = { title = "fix*" } }`
----@usage `todos:each(query, function(row)  print(row.title) end)`
+---@usage `todos:each(function(row) print(row.title) end, query)`
 ---@return boolean
-function tbl:each(query, func)
-  assert(type(func) == "function", "required a function as second params")
+function tbl:each(func, query)
+  query = query or {}
+  if type(func) == "table" then
+    func, query = query, func
+  end
 
   local rows = self.db:select(self.name, query)
   if not rows then
@@ -181,17 +184,27 @@ function tbl:each(query, func)
 end
 
 ---Create a new table from iterating over {self.name} rows with {func}.
+---@param func function: func(row)
 ---@param query table: query.where, query.keys, query.join
----@param func function: a function that expects a row
 ---@usage `let query = { where = { status = "pending"}, contains = { title = "fix*" } }`
----@usage `local t = todos:map(query, function(row) return row.title end)`
+---@usage `local t = todos:map(function(row) return row.title end, query)`
 ---@return table[]
-function tbl:map(query, func)
-  assert(type(func) == "function", "required a function as second params")
+function tbl:map(func, query)
+  query = query or {}
   local res = {}
-  self:each(query, function(row)
+  if type(func) == "table" then
+    func, query = query, func
+  end
+
+  local rows = self.db:select(self.name, query)
+  if not rows then
+    return {}
+  end
+
+  for _, row in ipairs(rows) do
     table.insert(res, func(row))
-  end)
+  end
+
   return res
 end
 
