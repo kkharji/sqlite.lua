@@ -164,11 +164,46 @@ describe("table", function()
       )
       eq(res, { 99, 32, 12 }, "should be identical") -- this might fail at some point because of the ordering.
     end)
+    it("supports function as first argument", function()
+      local res = {}
+      eq(
+        true,
+        t1:each(function(row)
+          table.insert(res, row.a)
+        end, { where = { a = { 12, 99, 32 } } }),
+        "the number of rows"
+      )
+      eq(res, { 99, 32, 12 }, "should be identical")
+    end)
+
+    it("supports function as first argument with no query", function()
+      local res = {}
+      eq(
+        true,
+        t1:each(function(row)
+          table.insert(res, row.a)
+        end),
+        "the number of rows"
+      )
+      eq(res, { 99, 32, 12 }, "should be identical")
+    end)
   end)
 
   describe(":map", function()
     it("should work func", function()
       local res = t1:map({ where = { a = { 12, 99, 32 } } }, function(row)
+        return row.a
+      end)
+      eq(res, { 99, 32, 12 }, "should be identical") -- this might fail at some point because of the ordering.
+    end)
+    it("support function as first argument", function()
+      local res = t1:map(function(row)
+        return row.a
+      end, { where = { a = { 12, 99, 32 } } })
+      eq(res, { 99, 32, 12 }, "should be identical") -- this might fail at some point because of the ordering.
+    end)
+    it("support function as first argument with no query", function()
+      local res = t1:map(function(row)
         return row.a
       end)
       eq(res, { 99, 32, 12 }, "should be identical") -- this might fail at some point because of the ordering.
