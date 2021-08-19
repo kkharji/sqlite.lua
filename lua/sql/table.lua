@@ -171,16 +171,18 @@ function tbl:each(func, query)
     func, query = query, func
   end
 
-  local rows = self.db:select(self.name, query)
-  if not rows then
-    return
-  end
+  return run(function()
+    local rows = self.db:select(self.name, query)
+    if not rows then
+      return false
+    end
 
-  for _, row in ipairs(rows) do
-    func(row)
-  end
+    for _, row in ipairs(rows) do
+      func(row)
+    end
 
-  return rows ~= {} or type(rows) ~= "boolean"
+    return rows ~= {} or type(rows) ~= "boolean"
+  end, self)
 end
 
 ---Create a new table from iterating over {self.name} rows with {func}.
@@ -191,21 +193,25 @@ end
 ---@return table[]
 function tbl:map(func, query)
   query = query or {}
-  local res = {}
   if type(func) == "table" then
     func, query = query, func
   end
 
-  local rows = self.db:select(self.name, query)
-  if not rows then
-    return {}
-  end
+  return run(function()
+    local res = {}
+    local rows = self.db:select(self.name, query)
+    if not rows then
+      return {}
+    end
+    for _, row in ipairs(rows) do
+      local ret = func(row)
+      if ret then
+        table.insert(res, func(row))
+      end
+    end
 
-  for _, row in ipairs(rows) do
-    table.insert(res, func(row))
-  end
-
-  return res
+    return res
+  end, self)
 end
 
 ---Sorts a table in-place using a transform. Values are ranked in a custom order of the results of
@@ -219,22 +225,24 @@ end
 ---@usage `local res = t1:sort({ where = {id = {32,12,35}}}, "age")` return rows sort by age
 ---@usage `local res = t1:sort({where = { ... }}, "age", function(a, b) return a > b end)` with custom function
 function tbl:sort(query, transform, comp)
-  local res = self:get(query)
-  local f = transform or function(r)
-    return r[u.keys(query.where)[1]]
-  end
-  if type(transform) == "string" then
-    f = function(r)
-      return r[transform]
+  return run(function()
+    local res = self:get(query)
+    local f = transform or function(r)
+      return r[u.keys(query.where)[1]]
     end
-  end
-  comp = comp or function(a, b)
-    return a < b
-  end
-  table.sort(res, function(a, b)
-    return comp(f(a), f(b))
-  end)
-  return res
+    if type(transform) == "string" then
+      f = function(r)
+        return r[transform]
+      end
+    end
+    comp = comp or function(a, b)
+      return a < b
+    end
+    table.sort(res, function(a, b)
+      return comp(f(a), f(b))
+    end)
+    return res
+  end, self)
 end
 
 ---Same functionalities as |DB:insert()|
