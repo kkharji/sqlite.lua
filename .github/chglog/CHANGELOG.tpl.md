@@ -15,12 +15,12 @@ use the following for tags
 {{ range .CommitGroups -}}
 ### {{ .Title }}
 {{ range .Commits -}} {{ $subject := .Subject }} {{ if .TrimmedBody }}
-<dl><dd><details><summary><a class="commit-link" data-hovercard-type="commit" data-hovercard-url="/tami5/sql.nvim/commit/{{ .Hash.Long }}/hovercard" href="{{ $repourl }}/commit/{{ .Hash.Long }}"><tt>{{ .Hash.Short }}</tt></a> {{ $subject }} {{- range $idx, $ref := .Refs }}{{if not (regexMatch $ref.Ref $subject)}}({{- if $idx }}, {{ end }}<a class="issue-link js-issue-link" data-error-text="Failed to load title" data-permission-text="Title is private" data-url="{{ $repourl }}/issues/{{ $ref.Ref }}" data-hovercard-type="issue" data-hovercard-url="/tami5/sql.nvim/issues/{{ $ref.Ref }}/hovercard" href="{{ $repourl }}/pull/{{ $ref.Ref}}">#{{ $ref.Ref}}</a>{{ end -}}){{end}}</summary>
+<dl><dd><details><summary><a class="commit-link" data-hovercard-type="commit" data-hovercard-url="/tami5/sql.nvim/commit/{{ .Hash.Long }}/hovercard" href="{{ $repourl }}/commit/{{ .Hash.Long }}"><tt>{{ .Hash.Short }}</tt></a> {{ $subject }} {{- range $idx, $ref := .Refs }}{{if not (regexMatch $ref.Ref $subject)}} {{- if $idx }}, {{ end }}<a class="issue-link js-issue-link" data-error-text="Failed to load title" data-permission-text="Title is private" data-url="{{ $repourl }}/issues/{{ $ref.Ref }}" data-hovercard-type="issue" data-hovercard-url="/tami5/sql.nvim/issues/{{ $ref.Ref }}/hovercard" href="{{ $repourl }}/issues/{{ $ref.Ref}}">#{{ $ref.Ref}}</a>{{ end -}}{{end}}</summary>
 
 {{ .TrimmedBody }}
 </details></dd></dl>
 {{ else }}
-- <a class="commit-link" data-hovercard-type="commit" data-hovercard-url="{{ $repourl }}/commit/{{ .Hash.Long }}/hovercard" href="{{ $repourl }}/commit/{{ .Hash.Long }}"><tt>{{ .Hash.Short }}</tt></a> {{ $subject }} {{- range $idx, $ref := .Refs }}{{if not (regexMatch $ref.Ref $subject)}}({{- if $idx }}, {{ end }}<a class="issue-link js-issue-link" data-error-text="Failed to load title" data-permission-text="Title is private" data-url="{{ $repourl }}/issues/{{ $ref.Ref }}" data-hovercard-type="issue" data-hovercard-url="/tami5/sql.nvim/issues/{{ $ref.Ref }}/hovercard" href="{{ $repourl }}/pull/{{ $ref.Ref}}">#{{ $ref.Ref}}</a> {{ end -}}){{end}}{{ end }}
+- <a class="commit-link" data-hovercard-type="commit" data-hovercard-url="{{ $repourl }}/commit/{{ .Hash.Long }}/hovercard" href="{{ $repourl }}/commit/{{ .Hash.Long }}"><tt>{{ .Hash.Short }}</tt></a> {{ $subject }} {{- range $idx, $ref := .Refs }}{{if not (regexMatch $ref.Ref $subject)}}{{- if $idx }}, {{ end }}<a class="issue-link js-issue-link" data-error-text="Failed to load title" data-permission-text="Title is private" data-url="{{ $repourl }}/issues/{{ $ref.Ref }}" data-hovercard-type="issue" data-hovercard-url="/tami5/sql.nvim/issues/{{ $ref.Ref }}/hovercard" href="{{ $repourl }}/issues/{{ $ref.Ref}}">#{{ $ref.Ref}}</a>{{ end -}}{{end}}{{ end }}
 {{ end }}
 {{ end -}}
 
