@@ -307,7 +307,6 @@ function Stmt:bind(...)
     for k, v in pairs(names) do
       local index = parameter_index_cache[k] or table.remove(anon_indices, 1)
       if type(v) == "string" and v:match "%a+%(.+%)" then
-        ::continue::
       else
         local ret = self:bind(index, v)
         if ret ~= flags.ok then
