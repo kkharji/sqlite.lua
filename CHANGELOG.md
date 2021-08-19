@@ -22,6 +22,14 @@ make map, sort, each, support executing sqlite queries regardless of connection 
 </details></dd></dl>
 
 
+### :recycle: Code Refactoring
+ 
+<dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/4d0302f8ccb3ab647f3d5709d3adf4d3c8810060" >4d0302f</a>: favor delete/remove accepting where key</summary>
+
+No breaking changes here :)
+</details></dd></dl>
+
+
 ### :sparkles: Features
  
 <dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/5944a91d05f34f1d36ef33a62344cfc301fc49b4" >5944a91</a>: table each and map accept function as first argument (<a href="https://github.com/tami5/sql.nvim/issues/97">#97</a>)</summary>
