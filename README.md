@@ -6,7 +6,7 @@ sql.nvim 💫
 [sql.nvim] present new possibilities for plugin development and while it's primarily created for [neovim], it support all luajit environments.
 
 - [Changelog](https://github.com/tami5/sql.nvim/blob/master/CHANGELOG.md)
-- [Docs](https://github.com/tami5/sql.nvim/blob/master/CHANGELOG.md)
+- [Docs](https://github.com/tami5/sql.nvim/blob/master/doc/sql.txt)
 
 ⏲️ Status
 ------------------
