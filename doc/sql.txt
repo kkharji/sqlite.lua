@@ -293,23 +293,25 @@ DB:update({tbl_name}, {specs})                                   *DB:update()*
         status = "later" } )` update multiple rows
 
 
-DB:delete({tbl_name}, {specs})                                   *DB:delete()*
+DB:delete({tbl_name}, {where})                                   *DB:delete()*
     Delete a {tbl_name} row/rows based on the {specs} given. if no spec was
     given, then all the {tbl_name} content will be deleted.
 
 
     Parameters: ~
-        {tbl_name} (string)        the name of the db table.
-        {specs}    (SQLQuerySpec)
+        {tbl_name} (string)  the name of the db table.
+        {where}    (table)   keys and their values
 
     Return: ~
         boolean: true if operation is successfully, false otherwise.
 
     Usage: ~
         `db:delete("todos")` delete todos table content
-        `db:delete("todos", { where = { id = 1 })` delete row that has id as 1
-        `db:delete("todos", { where = { id = {1,2,3} })` delete all rows that
-        has value of id 1 or 2 or 3
+        `db:delete("todos", { id = 1 })` delete row that has id as 1
+        `db:delete("todos", { id = {1,2,3} })` delete all rows that has value
+        of id 1 or 2 or 3
+        `db:delete("todos", { id = {1,2,3} }, { id = {"<", 5} } )` matching
+        ids or greater than 5
 
 
 DB:select({tbl_name}, {spec})                                    *DB:select()*
@@ -611,8 +613,10 @@ tbl:remove({where})                                             *tbl:remove()*
 
     Usage: ~
         `todos:remove()` remove todos table content.
-        `todos:insert{ project = "neovim" }` remove all todos where project ==
+        `todos:remove{ project = "neovim" }` remove all todos where project ==
         "neovim".
+        `todos:remove{{project = "neovim"}, {id = 1}}` remove all todos where
+        project == "neovim" or id =1
 
     See: ~
         |DB:delete()|
