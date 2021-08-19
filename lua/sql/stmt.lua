@@ -306,10 +306,18 @@ function Stmt:bind(...)
 
     for k, v in pairs(names) do
       local index = parameter_index_cache[k] or table.remove(anon_indices, 1)
-      local ret = self:bind(index, v)
-      if ret ~= flags.ok then
-        return ret
-      end -- TODO(conni): should we error out ?
+      if type(v) == "string" and v:match "%a+%(.+%)" then
+        ::continue::
+      else
+        local ret = self:bind(index, v)
+        if ret ~= flags.ok then
+          error([[
+            sql.nvim error at stmt:bind(), failed to bind a given value '%s'.
+            Please report issue.
+          ]]):format(v)
+          return ret
+        end
+      end
     end
     return flags.ok
   end
