@@ -518,13 +518,23 @@ describe("sql", function()
       eq(false, type(results) == "table")
     end)
 
-    it("delete multiple keys with dict for each conditions.", function()
+    it("delete multiple keys with dict for each conditions. and passing only where", function()
       local rows = {
         { title = "TODO 1", desc = "................" },
         { title = "TODO 2", desc = "................" },
       }
       db:eval("insert into todos(title, desc) values(:title, :desc)", rows)
-      db:delete("todos", { { where = { title = "TODO 1" } }, { where = { title = "TODO 2" } } })
+      db:delete("todos", { { title = "TODO 1" }, { title = "TODO 2" } })
+      local results = db:eval "select * from todos"
+      eq(false, type(results) == "table")
+    end)
+    it("delete multiple keys with dict for each conditions. V2", function()
+      local rows = {
+        { title = "TODO 1", desc = "................" },
+        { title = "TODO 2", desc = "................" },
+      }
+      db:eval("insert into todos(title, desc) values(:title, :desc)", rows)
+      db:delete("todos", { title = { "TODO 1", "TODO 2" } })
       local results = db:eval "select * from todos"
       eq(false, type(results) == "table")
     end)
