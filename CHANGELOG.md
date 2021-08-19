@@ -3,13 +3,24 @@
 
 ## unreleased
 
-> 2021-08-18
+> 2021-08-19
 
 ### :art: structure/code formating
  
 - [9be469a](https://github.com/tami5/sql.nvim/commit/9be469a1e3480cb0a90865de313289986f8a5044): update changelog item format
  
 - [2d24f86](https://github.com/tami5/sql.nvim/commit/2d24f865daf5ec9931ceff84a0c5e5a8da87eb39): update changelog item format ([#81](https://github.com/tami5/sql.nvim/issues/81))
+
+### :bug: Bug Fixes
+ 
+<dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/2b500b77c379356d401ee2f37a1c9cf9c1e311e6" >2b500b7</a>: each map sort failing due to closed connection</summary>
+
+make map, sort, each, support executing sqlite queries regardless of connection status.
+
+  - 🐛 func(row) returning nil causing error
+  - 🐛 running some tbl function without checking conn
+</details></dd></dl>
+
 
 ### :sparkles: Features
  
