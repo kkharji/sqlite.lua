@@ -404,22 +404,24 @@ end
 ---Delete a {tbl_name} row/rows based on the {specs} given. if no spec was given,
 ---then all the {tbl_name} content will be deleted.
 ---@param tbl_name string: the name of the db table.
----@param specs SQLQuerySpec
+---@param where table: keys and their values
 ---@return boolean: true if operation is successfully, false otherwise.
 ---@usage `db:delete("todos")` delete todos table content
----@usage `db:delete("todos", { where = { id = 1 })` delete row that has id as 1
----@usage `db:delete("todos", { where = { id = {1,2,3} })` delete all rows that has value of id 1 or 2 or 3
-function DB:delete(tbl_name, specs)
+---@usage `db:delete("todos", { id = 1 })` delete row that has id as 1
+---@usage `db:delete("todos", { id = {1,2,3} })` delete all rows that has value of id 1 or 2 or 3
+---@usage `db:delete("todos", { id = {1,2,3} }, { id = {"<", 5} } )` matching ids or greater than 5
+function DB:delete(tbl_name, where)
   a.is_sqltbl(self, tbl_name, "delete")
 
-  if not specs then
+  if not where then
     return clib.exec_stmt(self.conn, P.delete(tbl_name)) == 0 and true or clib.last_errmsg(self.conn)
   end
 
-  specs = u.is_nested(specs) and specs or { specs }
+  where = u.is_nested(where) and where or { where }
   clib.wrap_stmts(self.conn, function()
-    for _, spec in ipairs(specs) do
-      local s = stmt:parse(self.conn, P.delete(tbl_name, { where = spec and spec.where or nil }))
+    for _, spec in ipairs(where) do
+      local _where = spec.where and spec.where or spec
+      local s = stmt:parse(self.conn, P.delete(tbl_name, { where = _where }))
       s:step()
       s:reset()
       s:finalize()
