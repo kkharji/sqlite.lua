@@ -266,11 +266,11 @@ end
 ---@see DB:delete
 ---@return boolean
 ---@usage `todos:remove()` remove todos table content.
----@usage `todos:insert{ project = "neovim" }` remove all todos where project == "neovim".
+---@usage `todos:remove{ project = "neovim" }` remove all todos where project == "neovim".
+---@usage `todos:remove{{project = "neovim"}, {id = 1}}` remove all todos where project == "neovim" or id =1
 function tbl:remove(where)
   return run(function()
-    local succ = self.db:delete(self.name, where)
-    return succ
+    return self.db:delete(self.name, where)
   end, self)
 end
 
