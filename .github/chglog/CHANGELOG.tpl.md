@@ -1,5 +1,4 @@
-{{ $repourl := .Info.RepositoryURL -}}
-
+{{- $repourl := $.Info.RepositoryURL -}}
 {{ range .Versions }}
 <a name="{{ .Tag.Name }}"></a>
 
@@ -9,25 +8,19 @@
 
 {{ range .CommitGroups -}}
 ### {{ .Title }}
-
 {{ range .Commits -}}
-{{-
-  $subject := (regexReplaceAll `URL` (regexReplaceAll `\[(.*)(\d\d)\]\(.*?\)` .Subject "<a href=\"URL/pull/${2}\">${1}${2}</a>") $repourl)
--}}
-{{-
-  $commit := cat " <a" (list "href=\"" (list $.Info.RepositoryURL "commit" .Hash.Long | join "/") "\"" | join "") ">" (list "<tt>" .Hash.Short "</tt>" | join "") "</a>"
--}}
 
+{{- $subject := (regexReplaceAll `URL` (regexReplaceAll `\[(.*)(\d\d)\]\(.*?\)` .Subject "<a href=\"URL/pull/${2}\">${1}${2}</a>") $repourl) -}}
 
-{{- if .TrimmedBody -}}
-<dl><dd><details><summary>
-{{- else -}}
--
-{{- end -}}
-{{ $commit }} {{ $subject }}{{- range $idx, $ref := .Refs }}{{if not (regexMatch $ref.Ref $subject)}} {{- if $idx }}, {{ end }}<a href="{{ $repourl }}/issues/{{ $ref.Ref}}"> #{{ $ref.Ref}}</a>{{ end -}}{{end}} {{ if .TrimmedBody }}</summary>
+{{ if .TrimmedBody -}}<dl><dd><details><summary> {{ else -}}- {{ end -}}
 
-{{ .TrimmedBody }}
-</details></dd></dl> {{ end }}
+ <a href="{{$repourl}}/commit/{{.Hash.Long}}"><tt>{{.Hash.Short}}</tt></a> {{ $subject -}}
+{{- range $idx, $ref := .Refs -}}
+  {{- if not (regexMatch $ref.Ref $subject) -}}
+    {{- if $idx -}}, {{- end -}} <a href="{{ $repourl }}/issues/{{ $ref.Ref}}"> #{{ $ref.Ref}}</a>
+  {{ end -}}
+{{ end }}
+  {{ if .TrimmedBody }}</summary>{{ printf "\n\n%s\n\n" .TrimmedBody }}</details></dd></dl>{{ end }}
 {{ end }}
 {{ end -}}
 
