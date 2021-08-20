@@ -1,8 +1,9 @@
 name: Generator Changelog
 
-on: [push, pull_request]
-  # schedule:
-  #   - cron: "0 8 */2 * *"
+on:
+  push:
+    branches:
+      - master
 
 jobs:
   build-sources:
