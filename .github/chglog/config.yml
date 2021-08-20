@@ -27,7 +27,7 @@ options:
       bug: ":bug: Bug Fixes"
       zap: ":zap: Performance Improvements"
       recycle: ":recycle: Code Refactoring"
-      art: ":art: structure/code formating"
+      art: ":art: Structure/Formating"
       memo: ":memo: Add or update documentation."
       white_check_mark: ":white_check_mark: Add/Update Test Cases"
       package: ":package: Dependencies"
