@@ -380,12 +380,13 @@ describe("sql", function()
     end)
 
     it("evaluates sqlite functions", function()
-      db:eval "create table test(id integer, date text)"
-      db:insert("test", { id = 1, date = db.sqlstrftime "%H:%M:%S" })
+      db:eval "create table testa(id integer primary key, date text, title text)"
+      db:insert("testa", { title = "fd", date = db.sqlstrftime "%H:%M:%S" })
 
-      local res = db:eval [[select * from test]]
+      local res = db:eval [[select * from testa]]
       eq(os.date "!%H:%M:%S", res[1].date)
-      db:eval "drop table test"
+      eq("fd", res[1].title)
+      db:eval "drop table testa"
     end)
     db:close()
   end)
