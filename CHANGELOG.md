@@ -14,6 +14,8 @@
 
 ### :bug: Bug Fixes
 
+- <a href="https://github.com/tami5/sql.nvim/commit/db026ee2f52234fd9f479178fc8349134d743c19"><tt>db026ee</tt></a> using sql functions makes parser setsome values to null (<a href="https://github.com/tami5/sql.nvim/pull/88">#88</a>) (closes <a href="https://github.com/tami5/sql.nvim/issues/87"> #87</a>)
+
 <dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/2b500b77c379356d401ee2f37a1c9cf9c1e311e6"><tt>2b500b7</tt></a> each map sort failing due to closed connection</summary>
 
 make map, sort, each, support executing sqlite queries regardless of connection status.
@@ -25,6 +27,8 @@ make map, sort, each, support executing sqlite queries regardless of connection 
 
 
 ### :construction_worker: CI Updates
+
+- <a href="https://github.com/tami5/sql.nvim/commit/9173664fecfc8e13d9deffe54f1eba640f4d2481"><tt>9173664</tt></a> changelog run once every two days take 2
 
 - <a href="https://github.com/tami5/sql.nvim/commit/3447223239ce2e0ab322db756ee1aa0374e20551"><tt>3447223</tt></a> update changelog template (<a href="https://github.com/tami5/sql.nvim/pull/90">#90</a>) (closes <a href="https://github.com/tami5/sql.nvim/issues/82"> #82</a>)
 
