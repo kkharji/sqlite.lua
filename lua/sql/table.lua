@@ -307,8 +307,31 @@ end
 ---@param opts table
 ---@return SQLTableExt
 function tbl:extend(db, name, schema)
+  if not schema and type(db) == "string" then
+    name, db, schema = db, nil, name
+  end
   local t = self:new(db, name, { schema = schema })
-  return setmetatable({ tbl = t }, { __index = t })
+  local o = { tbl = {}, _tbl = t }
+
+  for key, value in pairs(t) do
+    o.tbl[key] = value
+  end
+
+  for key, value in pairs(getmetatable(t)) do
+    if type(value) == "function" then
+      o.tbl[key] = function(...)
+        return t[key](t, ...)
+      end
+    end
+  end
+
+  o.tbl.set_db = function(db)
+    t.db = db
+  end
+
+  return setmetatable(o, { __index = o.tbl })
 end
+
+tbl = setmetatable(tbl, { __call = tbl.extend })
 
 return tbl
