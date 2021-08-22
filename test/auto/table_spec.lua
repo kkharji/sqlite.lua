@@ -1,4 +1,5 @@
 local sql = require "sql"
+local tbl = require "sql.table"
 local eq = assert.are.same
 local demo = {
   { a = 1, b = "lsf", c = "de" },
@@ -28,6 +29,27 @@ end
 
 describe("table", function()
   local t1, t2 = seed()
+
+  describe(":extend", function()
+    it("missing db object", function()
+      local t = tbl("tbl_name", { id = true, name = "text" })
+      eq(false, pcall(t.insert, { name = "tami" }), "should fail early.")
+      t.set_db(db)
+      eq(true, pcall(t.insert, { name = "conni" }), "should work now we have a db object to operate against.")
+      eq({ { id = 1, name = "conni" } }, t.get(), "only insert conni")
+    end)
+
+    it("with db object", function()
+      local t = tbl(db, "tansactions", { id = true, amount = "real" })
+      eq(1, t.insert { amount = 20.2 })
+      eq(
+        "20.2",
+        t.map(function(row)
+          return tostring(row.amount)
+        end)[1]
+      )
+    end)
+  end)
 
   describe(":new", function()
     it("create new object with sql.table methods.", function()
@@ -368,29 +390,34 @@ describe("table", function()
   clean()
   describe("foreign key: ", function()
     local db = sql:open(nil)
-    local artists = db:table("artists", {
-      id = { type = "integer", pk = true },
-      name = "text",
-    })
-    local tracks = db:table("tracks", {
-      id = "integer",
-      name = "text",
-      artist = {
-        type = "integer",
-        reference = "artists.id",
-      },
-    })
+    local artists, tracks
+    it("create demo", function()
+      artists = db:table("artists", {
+        id = { type = "integer", pk = true },
+        name = "text",
+      })
+      tracks = db:table("tracks", {
+        id = "integer",
+        name = "text",
+        artist = {
+          type = "integer",
+          reference = "artists.id",
+        },
+      })
+    end)
 
-    artists:insert {
-      { id = 1, name = "Dean Martin" },
-      { id = 2, name = "Frank Sinatra" },
-    }
+    it("seed", function()
+      artists:insert {
+        { id = 1, name = "Dean Martin" },
+        { id = 2, name = "Frank Sinatra" },
+      }
 
-    tracks:insert {
-      { id = 11, name = "That's Amore", artist = 1 },
-      { id = 12, name = "Christmas Blues", artist = 1 },
-      { id = 13, name = "My Way", artist = 2 },
-    }
+      tracks:insert {
+        { id = 11, name = "That's Amore", artist = 1 },
+        { id = 12, name = "Christmas Blues", artist = 1 },
+        { id = 13, name = "My Way", artist = 2 },
+      }
+    end)
 
     local function try(self, action, args)
       return pcall(self[action], self, args)
