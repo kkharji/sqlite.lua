@@ -823,7 +823,7 @@ describe("sql", function()
       manager:open()
       eq(true, manager:eval "insert into projects(title) values('sql.nvim')", "should insert.")
       eq("table", type(manager:eval("select * from projects")[1]), "should be have content even with self.db.")
-      eq(true, manager.projects:remove(), "projects table should work.")
+      eq(true, manager.projects.remove(), "projects table should work.")
     end)
 
     it("extending new object should work wihout issues", function()
@@ -836,23 +836,23 @@ describe("sql", function()
         },
       }
 
-      local id = manager.projects:insert(sqlnvim)
+      local id = manager.projects.insert(sqlnvim)
 
       eq(1, id, "should have returned id.")
-      eq(true, manager.projects:remove(), "should remove after default insert.")
+      eq(true, manager.projects.remove(), "should remove after default insert.")
 
-      function manager.projects:insert()
-        return self.tbl:insert(sqlnvim)
+      function manager.projects.insert()
+        return manager.projects.tbl.insert(sqlnvim)
       end
 
-      local id = manager.projects:insert()
+      local id = manager.projects.insert()
       eq(1, id, "should have returned id.")
 
-      function manager.projects:get()
-        return self.tbl:get({ where = { title = sqlnvim.title } })[1].title
+      function manager.projects.get()
+        return manager.projects.tbl.get({ where = { title = sqlnvim.title } })[1].title
       end
 
-      eq(sqlnvim.title, manager.projects:get(), "should have inserted sqlnvim project")
+      eq(sqlnvim.title, manager.projects.get(), "should have inserted sqlnvim project")
     end)
 
     it("control initialization", function()
