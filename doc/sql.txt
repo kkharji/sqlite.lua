@@ -401,14 +401,6 @@ SQLTableOpts                                                    *SQLTableOpts*
         {schema} (table)  <string, string>
 
 
-SQLTableExt                                                      *SQLTableExt*
-    SQLTable
-
-    Fields: ~
-        {tbl} (SQLTable)  fallback when the user overwrite @SQLTableExt
-                          methods.
-
-
 tbl:new({db}, {name}, {schema})                                    *tbl:new()*
     Create new sql table object
 
@@ -420,6 +412,21 @@ tbl:new({db}, {name}, {schema})                                    *tbl:new()*
 
     Return: ~
         SQLTable
+
+
+tbl:extend({db}, {name}, {schema})                              *tbl:extend()*
+    Extend Sqlite Table Object. if first argument is {name} then second should
+    be {schema}. If no {db} is provided, the tbl object won't be initialized
+    until tbl.set_db is called
+
+
+    Parameters: ~
+        {db}     (SQLDatabase)
+        {name}   (string)
+        {schema} (table)
+
+    Return: ~
+        SQLTableExt
 
 
 tbl:schema({schema})                                            *tbl:schema()*
@@ -650,20 +657,6 @@ tbl:replace({rows})                                            *tbl:replace()*
     See: ~
         |DB:delete()|
         |DB:insert()|
-
-
-tbl:extend({db}, {name}, {schema})                              *tbl:extend()*
-    Extend Sqlite Table Object. if first argument is {name} then second should
-    be {schema}.
-
-
-    Parameters: ~
-        {db}     (SQLDatabase)
-        {name}   (string)
-        {schema} (table)
-
-    Return: ~
-        SQLTableExt
 
 
 
