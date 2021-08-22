@@ -25,7 +25,7 @@ M.is_userdata = function(t)
 end
 
 M.is_nested = function(t)
-  return type(t[1]) == "table"
+  return t and type(t[1]) == "table" or false
 end
 
 -- taken from: https://github.com/neovim/neovim/blob/master/runtime/lua/vim/shared.lua

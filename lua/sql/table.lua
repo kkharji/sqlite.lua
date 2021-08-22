@@ -3,6 +3,7 @@
 ---@brief ]]
 ---@tag table.lua
 local u = require "sql.utils"
+local a = require "sql.assert"
 local luv = require "luv"
 
 ---@class SQLTable @Main table class
@@ -10,47 +11,83 @@ local luv = require "luv"
 local tbl = {}
 tbl.__index = tbl
 
----@class SQLTableOpts @Supported sql.table configurations.
----@field schema table: <string, string>
+local run = function(func, o)
+  a.should_have_db_object(o.db, o.name)
+  local exec = function()
+    if o.tbl_exists == nil then
+      o.tbl_exists = o.db:exists(o.name)
+      local stat = o.db.uri and luv.fs_stat(o.db.uri) or nil
+      o.mtime = stat and stat.mtime.sec or nil
+      local countsmt = "select count(*) from " .. o.name
+      o.has_content = o.tbl_exists and o.db:eval(countsmt)[1]["count(*)"] ~= 0 or 0
+    end
 
-local run = function(func, self)
-  local _run = function()
-    return func() -- shoud pass tbl name?
+    if o.tbl_schema and next(o.tbl_schema) ~= nil and o.tbl_exists == false then
+      o.tbl_schema.ensure = u.if_nil(o.tbl_schema.ensure, true)
+      if not o.db.create then
+        error(vim.inspect(o.db))
+      end
+      o.db:create(o.name, o.tbl_schema)
+    end
+
+    return func()
   end
 
-  if self.db.closed then
-    return self.db:with_open(_run)
+  if o.db.closed then
+    return o.db:with_open(exec)
   end
-  return _run()
+  return exec()
 end
 
 ---Create new sql table object
 ---@param db SQLDatabase
 ---@param name string: table name
----@param opts SQLTableOpts
+---@param schema table: table schema
 ---@return SQLTable
-function tbl:new(db, name, opts)
-  opts = opts or {}
-
-  local stat = luv.fs_stat(db.uri)
-  local schema = u.if_nil(opts.schema, opts)
-
-  local o = setmetatable({
-    db = db,
-    name = name,
-    mtime = stat and stat.mtime.sec,
-    tbl_schema = schema,
-  }, self)
-
-  run(function()
-    o.tbl_exists = o.db:exists(o.name)
-    o.has_content = o.tbl_exists and o:count() ~= 0 or false
-    if o.tbl_schema and next(o.tbl_schema) ~= nil then
-      o.tbl_schema.ensure = u.if_nil(o.tbl_schema.ensure, true)
-      o:schema(o.tbl_schema)
-    end
-  end, o)
+function tbl:new(db, name, schema)
+  schema = schema or {}
+  local o = setmetatable({ db = db, name = name, tbl_schema = u.if_nil(schema.schema, schema) }, self)
+  if db then
+    run(function() end, o)
+  end
   return o
+end
+
+---Extend Sqlite Table Object. if first argument is {name} then second should be {schema}.
+---If no {db} is provided, the tbl object won't be initialized until tbl.set_db
+---is called
+---@param db SQLDatabase
+---@param name string
+---@param schema table
+---@return SQLTableExt
+function tbl:extend(db, name, schema)
+  if not schema and type(db) == "string" then
+    name, db, schema = db, nil, name
+  end
+
+  local t = tbl:new(db, name, { schema = schema })
+  return setmetatable({
+    set_db = function(o)
+      if not o then
+        error(vim.inspect(db))
+      end
+      t.db = o
+    end,
+  }, {
+    __index = function(_, key, ...)
+      return type(t[key]) == "function" and function(...)
+        return t[key](t, ...)
+      end or t[key]
+    end,
+    __newindex = function(_, key, val)
+      if type(val) == "function" then
+        t["_" .. key] = t[key]
+        t[key] = val
+      else
+        t[key] = val
+      end
+    end,
+  })
 end
 
 ---Create or change table schema. If no {schema} is given,
@@ -65,7 +102,6 @@ function tbl:schema(schema)
   local res
   return run(function()
     local exists = self.db:exists(self.name)
-
     if not schema then -- TODO: or table is empty
       if exists then
         self.tbl_schema = self.db:schema(self.name)
@@ -235,11 +271,11 @@ function tbl:sort(query, transform, comp)
         return r[transform]
       end
     end
-    comp = comp or function(a, b)
-      return a < b
+    comp = comp or function(_a, _b)
+      return _a < _b
     end
-    table.sort(res, function(a, b)
-      return comp(f(a), f(b))
+    table.sort(res, function(_a, _b)
+      return comp(f(_a), f(_b))
     end)
     return res
   end, self)
@@ -298,17 +334,9 @@ function tbl:replace(rows)
   end, self)
 end
 
----@class SQLTableExt:SQLTable
----@field tbl SQLTable: fallback when the user overwrite @SQLTableExt methods.
-
----Extend Sqlite Table Object.
----@param db SQLDatabase
----@param name string
----@param opts table
----@return SQLTableExt
-function tbl:extend(db, name, schema)
-  local t = self:new(db, name, { schema = schema })
-  return setmetatable({ tbl = t }, { __index = t })
-end
-
+tbl = setmetatable(tbl, { __call = tbl.extend })
+-- local db = require("sql").new "/tmp/dbfds.sql"
+-- local t = tbl:extend("fatable", { id = true, name = "text" })
+-- t.set_db(db)
+-- print(vim.inspect(t.db))
 return tbl

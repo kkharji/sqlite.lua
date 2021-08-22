@@ -9,6 +9,7 @@ local errors = {
   eval_fail = "eval has failed to execute statement, ERRMSG: %s",
   failed_ops = "operation failed, ERRMSG: %s",
   missing_req_key = "(insert) missing a required key: %s",
+  missing_db_object = "'%s' db object is not set. please set it with `tbl.set_db(db)` and try again.",
 }
 
 for key, value in pairs(errors) do
@@ -56,6 +57,11 @@ end
 
 M.missing_req_key = function(val, key)
   assert(val, errors.missing_req_key:format(key))
+  return false
+end
+
+M.should_have_db_object = function(db, name)
+  assert(db ~= nil, errors.missing_db_object:format(name))
   return false
 end
 
