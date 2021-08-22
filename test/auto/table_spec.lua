@@ -31,8 +31,9 @@ describe("table", function()
   local t1, t2 = seed()
 
   describe(":extend", function()
+    local t
     it("missing db object", function()
-      local t = tbl("tbl_name", { id = true, name = "text" })
+      t = tbl("tbl_name", { id = true, name = "text" })
       eq(false, pcall(t.insert, { name = "tami" }), "should fail early.")
       t.set_db(db)
       eq(true, pcall(t.insert, { name = "conni" }), "should work now we have a db object to operate against.")
@@ -40,7 +41,7 @@ describe("table", function()
     end)
 
     it("with db object", function()
-      local t = tbl(db, "tansactions", { id = true, amount = "real" })
+      t = tbl(db, "tansactions", { id = true, amount = "real" })
       eq(1, t.insert { amount = 20.2 })
       eq(
         "20.2",
@@ -48,6 +49,13 @@ describe("table", function()
           return tostring(row.amount)
         end)[1]
       )
+    end)
+
+    it("overwrite functions and fallback to t.db", function()
+      t.get = function()
+        return math.floor(t._get({ where = { id = 1 } })[1].amount)
+      end
+      eq(20, t.get())
     end)
   end)
 

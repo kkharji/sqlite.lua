@@ -308,31 +308,33 @@ end
 ---@class SQLTableExt:SQLTable
 ---@field tbl SQLTable: fallback when the user overwrite @SQLTableExt methods.
 
----Extend Sqlite Table Object.
+---Extend Sqlite Table Object. if first argument is {name} then second should be {schema}.
 ---@param db SQLDatabase
 ---@param name string
----@param opts table
+---@param schema table
 ---@return SQLTableExt
 function tbl:extend(db, name, schema)
   if not schema and type(db) == "string" then
     name, db, schema = db, nil, name
   end
+
   local t = self:new(db, name, { schema = schema })
-  local o = { tbl = {}, _tbl = t }
+  local o = {}
 
   for key, value in pairs(t) do
-    o.tbl[key] = value
+    o[key] = value
   end
 
   for key, value in pairs(getmetatable(t)) do
     if type(value) == "function" then
-      o.tbl[key] = function(...)
+      o[key] = function(...)
         return t[key](t, ...)
       end
+      o["_" .. key] = o[key]
     end
   end
 
-  o.tbl.set_db = function(db)
+  o.set_db = function(db)
     t.db = db
   end
 
