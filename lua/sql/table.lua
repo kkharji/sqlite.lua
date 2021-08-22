@@ -3,6 +3,7 @@
 ---@brief ]]
 ---@tag table.lua
 local u = require "sql.utils"
+local a = require "sql.assert"
 local luv = require "luv"
 
 ---@class SQLTable @Main table class
@@ -13,13 +14,29 @@ tbl.__index = tbl
 ---@class SQLTableOpts @Supported sql.table configurations.
 ---@field schema table: <string, string>
 
-local run = function(func, self)
+local run = function(func, o)
+  a.should_have_db_object(o.db, o.name)
   local _run = function()
-    return func() -- shoud pass tbl name?
+    if o.tbl_exists == nil then
+      local stat = luv.fs_stat(o.db.uri)
+      local countsmt = "select count(*) from " .. o.name
+      o.mtime = stat and stat.mtime.sec or nil
+      o.tbl_exists = o.db:exists(o.name)
+      o.has_content = o.tbl_exists and o.db:eval(countsmt)[1]["count(*)"] ~= 0 or 0
+    end
+
+    if o.tbl_schema and next(o.tbl_schema) ~= nil and not o.tbl_exists then
+      o.tbl_schema.ensure = u.if_nil(o.tbl_schema.ensure, true)
+      if not o.tbl_exists then
+        o.db:create(o.name, o.tbl_schema)
+      end
+    end
+
+    return func()
   end
 
-  if self.db.closed then
-    return self.db:with_open(_run)
+  if o.db.closed then
+    return o.db:with_open(_run)
   end
   return _run()
 end
@@ -27,29 +44,20 @@ end
 ---Create new sql table object
 ---@param db SQLDatabase
 ---@param name string: table name
----@param opts SQLTableOpts
+---@param schema table: table schema
 ---@return SQLTable
-function tbl:new(db, name, opts)
-  opts = opts or {}
-
-  local stat = luv.fs_stat(db.uri)
-  local schema = u.if_nil(opts.schema, opts)
-
+function tbl:new(db, name, schema)
+  schema = schema or {}
   local o = setmetatable({
     db = db,
     name = name,
-    mtime = stat and stat.mtime.sec,
-    tbl_schema = schema,
+    tbl_schema = u.if_nil(schema.schema, schema),
   }, self)
 
-  run(function()
-    o.tbl_exists = o.db:exists(o.name)
-    o.has_content = o.tbl_exists and o:count() ~= 0 or false
-    if o.tbl_schema and next(o.tbl_schema) ~= nil then
-      o.tbl_schema.ensure = u.if_nil(o.tbl_schema.ensure, true)
-      o:schema(o.tbl_schema)
-    end
-  end, o)
+  if db then
+    run(function() end, o)
+  end
+
   return o
 end
 
@@ -65,7 +73,6 @@ function tbl:schema(schema)
   local res
   return run(function()
     local exists = self.db:exists(self.name)
-
     if not schema then -- TODO: or table is empty
       if exists then
         self.tbl_schema = self.db:schema(self.name)
