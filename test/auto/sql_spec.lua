@@ -842,14 +842,14 @@ describe("sql", function()
       eq(true, manager.projects.remove(), "should remove after default insert.")
 
       function manager.projects.insert()
-        return manager.projects.tbl.insert(sqlnvim)
+        return manager.projects._insert(sqlnvim)
       end
 
       local id = manager.projects.insert()
       eq(1, id, "should have returned id.")
 
       function manager.projects.get()
-        return manager.projects.tbl.get({ where = { title = sqlnvim.title } })[1].title
+        return manager.projects._get({ where = { title = sqlnvim.title } })[1].title
       end
 
       eq(sqlnvim.title, manager.projects.get(), "should have inserted sqlnvim project")
