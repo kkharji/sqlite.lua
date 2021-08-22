@@ -324,6 +324,60 @@ local format_action = function(value, update)
   return stmt .. preappend .. value
 end
 
+local opts_to_str = function(tbl)
+  local f = {
+    pk = function()
+      return "primary key"
+    end,
+    type = function(v)
+      return v
+    end,
+    unique = function()
+      return "unique"
+    end,
+    nullable = function()
+      return "not null"
+    end,
+    default = function(v)
+      return "default " .. v
+    end,
+    reference = function(v)
+      return ("references %s"):format(v:gsub("%.", "(") .. ")")
+    end,
+    on_update = function(v)
+      return format_action(v, true)
+    end,
+    on_delete = function(v)
+      return format_action(v)
+    end,
+  }
+
+  local check = function(type)
+    if tbl[type] then
+      tbl[#tbl + 1] = f[type](tbl[type])
+      tbl[type] = nil
+    end
+  end
+
+  check "type"
+  check "unique"
+  check "nullable"
+  check "pk"
+  check "default"
+  check "reference"
+  check "on_update"
+  check "on_detach"
+
+  for k, v in pairs(tbl) do
+    if type(k) ~= "number" then
+      tbl[k] = nil
+      tbl[#tbl + 1] = f[k](v)
+    end
+  end
+
+  return tconcat(tbl, " ")
+end
+
 ---Parse table create statement
 ---@param tbl string: table name
 ---@param defs table: keys and type pairs
@@ -338,25 +392,16 @@ M.create = function(tbl, defs)
   defs.ensure = nil
 
   for k, v in u.opairs(defs) do
-    if type(v) == "boolean" then
+    local t = type(v)
+    local islist = u.is_list(v)
+    if t == "boolean" then
       tinsert(items, k .. " integer not null primary key")
-    elseif type(v) ~= "table" then
+    elseif t ~= "table" then
       tinsert(items, string.format("%s %s", k, v))
     else
-      local _
-      _ = u.if_nil(v.type, nil) and tinsert(v, v.type)
-      _ = u.if_nil(v.unique, false) and tinsert(v, "unique")
-      _ = u.if_nil(v.nullable, nil) == false and tinsert(v, "not null")
-      _ = u.if_nil(v.pk, nil) and tinsert(v, "primary key")
-      _ = u.if_nil(v.default, nil) and tinsert(v, "default " .. v.default)
-      _ = u.if_nil(v.reference, nil) and tinsert(v, ("references %s"):format(v.reference:gsub("%.", "(") .. ")"))
-      _ = u.if_nil(v.on_update, nil) and tinsert(v, format_action(v.on_update, true))
-      _ = u.if_nil(v.on_delete, nil) and tinsert(v, format_action(v.on_delete))
-
-      tinsert(items, ("%s %s"):format(k, tconcat(v, " ")))
+      tinsert(items, ("%s %s"):format(k, opts_to_str(v)))
     end
   end
-
   return ("create table %s(%s)"):format(tbl, tconcat(items, ", "))
 end
 
