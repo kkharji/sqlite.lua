@@ -394,13 +394,6 @@ SQLTable                                                            *SQLTable*
         {db} (SQLDatabase)  database in which the tbl is part of.
 
 
-SQLTableOpts                                                    *SQLTableOpts*
-    Supported sql.table configurations.
-
-    Fields: ~
-        {schema} (table)  <string, string>
-
-
 tbl:new({db}, {name}, {schema})                                    *tbl:new()*
     Create new sql table object
 
