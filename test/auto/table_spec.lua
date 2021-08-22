@@ -33,6 +33,7 @@ describe("table", function()
   describe(":extend", function()
     local t
     it("missing db object", function()
+      ---@type SQLTableExt
       t = tbl("tbl_name", { id = true, name = "text" })
       eq(false, pcall(t.insert, { name = "tami" }), "should fail early.")
       t.set_db(db)

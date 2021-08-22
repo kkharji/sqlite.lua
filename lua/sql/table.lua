@@ -61,6 +61,36 @@ function tbl:new(db, name, schema)
   return o
 end
 
+---Extend Sqlite Table Object. if first argument is {name} then second should be {schema}.
+---If no {db} is provided, the tbl object won't be initialized until tbl.set_db
+---is called
+---@param db SQLDatabase
+---@param name string
+---@param schema table
+---@return SQLTableExt
+function tbl:extend(db, name, schema)
+  if not schema and type(db) == "string" then
+    name, db, schema = db, nil, name
+  end
+
+  local t = self:new(db, name, { schema = schema })
+  t.set_db = function(o)
+    t.db = o
+  end
+
+  return setmetatable({}, {
+    __index = function(_, key, ...)
+      return type(t[key]) == "function" and function(...)
+        return t[key](t, ...)
+      end or t[key]
+    end,
+    __newindex = function(_, key, val)
+      t["_" .. key] = t[key]
+      t[key] = val
+    end,
+  })
+end
+
 ---Create or change table schema. If no {schema} is given,
 ---then it return current the used schema if it exists or empty table otherwise.
 ---On change schema it returns boolean indecting success.
@@ -303,37 +333,6 @@ function tbl:replace(rows)
     local succ = self.db:insert(self.name, rows)
     return succ
   end, self)
-end
-
----@class SQLTableExt:SQLTable
----@field tbl SQLTable: fallback when the user overwrite @SQLTableExt methods.
-
----Extend Sqlite Table Object. if first argument is {name} then second should be {schema}.
----@param db SQLDatabase
----@param name string
----@param schema table
----@return SQLTableExt
-function tbl:extend(db, name, schema)
-  if not schema and type(db) == "string" then
-    name, db, schema = db, nil, name
-  end
-
-  local t = self:new(db, name, { schema = schema })
-  t.set_db = function(o)
-    t.db = o
-  end
-
-  return setmetatable({}, {
-    __index = function(_, key, ...)
-      return type(t[key]) == "function" and function(...)
-        return t[key](t, ...)
-      end or t[key]
-    end,
-    __newindex = function(_, key, val)
-      t["_" .. key] = t[key]
-      t[key] = val
-    end,
-  })
 end
 
 tbl = setmetatable(tbl, { __call = tbl.extend })
