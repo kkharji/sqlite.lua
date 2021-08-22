@@ -409,14 +409,14 @@ SQLTableExt                                                      *SQLTableExt*
                           methods.
 
 
-tbl:new({db}, {name}, {opts})                                      *tbl:new()*
+tbl:new({db}, {name}, {schema})                                    *tbl:new()*
     Create new sql table object
 
 
     Parameters: ~
-        {db}   (SQLDatabase)
-        {name} (string)        table name
-        {opts} (SQLTableOpts)
+        {db}     (SQLDatabase)
+        {name}   (string)       table name
+        {schema} (table)        table schema
 
     Return: ~
         SQLTable
