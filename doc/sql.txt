@@ -652,14 +652,15 @@ tbl:replace({rows})                                            *tbl:replace()*
         |DB:insert()|
 
 
-tbl:extend({db}, {name}, {opts})                                *tbl:extend()*
-    Extend Sqlite Table Object.
+tbl:extend({db}, {name}, {schema})                              *tbl:extend()*
+    Extend Sqlite Table Object. if first argument is {name} then second should
+    be {schema}.
 
 
     Parameters: ~
-        {db}   (SQLDatabase)
-        {name} (string)
-        {opts} (table)
+        {db}     (SQLDatabase)
+        {name}   (string)
+        {schema} (table)
 
     Return: ~
         SQLTableExt
