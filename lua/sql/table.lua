@@ -319,26 +319,21 @@ function tbl:extend(db, name, schema)
   end
 
   local t = self:new(db, name, { schema = schema })
-  local o = {}
-
-  for key, value in pairs(t) do
-    o[key] = value
-  end
-
-  for key, value in pairs(getmetatable(t)) do
-    if type(value) == "function" then
-      o[key] = function(...)
-        return t[key](t, ...)
-      end
-      o["_" .. key] = o[key]
-    end
-  end
-
-  o.set_db = function(db)
+  t.set_db = function(db)
     t.db = db
   end
 
-  return setmetatable(o, { __index = o.tbl })
+  return setmetatable({}, {
+    __index = function(self, key, ...)
+      return type(t[key]) == "function" and function(...)
+        return t[key](t, ...)
+      end or t[key]
+    end,
+    __newindex = function(_, key, val)
+      t["_" .. key] = t[key]
+      t[key] = val
+    end,
+  })
 end
 
 tbl = setmetatable(tbl, { __call = tbl.extend })
