@@ -11,34 +11,32 @@ local luv = require "luv"
 local tbl = {}
 tbl.__index = tbl
 
----@class SQLTableOpts @Supported sql.table configurations.
----@field schema table: <string, string>
-
 local run = function(func, o)
   a.should_have_db_object(o.db, o.name)
-  local _run = function()
+  local exec = function()
     if o.tbl_exists == nil then
-      local stat = luv.fs_stat(o.db.uri)
-      local countsmt = "select count(*) from " .. o.name
-      o.mtime = stat and stat.mtime.sec or nil
       o.tbl_exists = o.db:exists(o.name)
+      local stat = o.db.uri and luv.fs_stat(o.db.uri) or nil
+      o.mtime = stat and stat.mtime.sec or nil
+      local countsmt = "select count(*) from " .. o.name
       o.has_content = o.tbl_exists and o.db:eval(countsmt)[1]["count(*)"] ~= 0 or 0
     end
 
-    if o.tbl_schema and next(o.tbl_schema) ~= nil and not o.tbl_exists then
+    if o.tbl_schema and next(o.tbl_schema) ~= nil and o.tbl_exists == false then
       o.tbl_schema.ensure = u.if_nil(o.tbl_schema.ensure, true)
-      if not o.tbl_exists then
-        o.db:create(o.name, o.tbl_schema)
+      if not o.db.create then
+        error(vim.inspect(o.db))
       end
+      o.db:create(o.name, o.tbl_schema)
     end
 
     return func()
   end
 
   if o.db.closed then
-    return o.db:with_open(_run)
+    return o.db:with_open(exec)
   end
-  return _run()
+  return exec()
 end
 
 ---Create new sql table object
@@ -48,16 +46,10 @@ end
 ---@return SQLTable
 function tbl:new(db, name, schema)
   schema = schema or {}
-  local o = setmetatable({
-    db = db,
-    name = name,
-    tbl_schema = u.if_nil(schema.schema, schema),
-  }, self)
-
+  local o = setmetatable({ db = db, name = name, tbl_schema = u.if_nil(schema.schema, schema) }, self)
   if db then
     run(function() end, o)
   end
-
   return o
 end
 
@@ -73,20 +65,27 @@ function tbl:extend(db, name, schema)
     name, db, schema = db, nil, name
   end
 
-  local t = self:new(db, name, { schema = schema })
-  t.set_db = function(o)
-    t.db = o
-  end
-
-  return setmetatable({}, {
+  local t = tbl:new(db, name, { schema = schema })
+  return setmetatable({
+    set_db = function(o)
+      if not o then
+        error(vim.inspect(db))
+      end
+      t.db = o
+    end,
+  }, {
     __index = function(_, key, ...)
       return type(t[key]) == "function" and function(...)
         return t[key](t, ...)
       end or t[key]
     end,
     __newindex = function(_, key, val)
-      t["_" .. key] = t[key]
-      t[key] = val
+      if type(val) == "function" then
+        t["_" .. key] = t[key]
+        t[key] = val
+      else
+        t[key] = val
+      end
     end,
   })
 end
@@ -336,5 +335,8 @@ function tbl:replace(rows)
 end
 
 tbl = setmetatable(tbl, { __call = tbl.extend })
-
+-- local db = require("sql").new "/tmp/dbfds.sql"
+-- local t = tbl:extend("fatable", { id = true, name = "text" })
+-- t.set_db(db)
+-- print(vim.inspect(t.db))
 return tbl
