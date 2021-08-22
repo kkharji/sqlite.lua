@@ -242,11 +242,11 @@ function tbl:sort(query, transform, comp)
         return r[transform]
       end
     end
-    comp = comp or function(a, b)
-      return a < b
+    comp = comp or function(_a, _b)
+      return _a < _b
     end
-    table.sort(res, function(a, b)
-      return comp(f(a), f(b))
+    table.sort(res, function(_a, _b)
+      return comp(f(_a), f(_b))
     end)
     return res
   end, self)
@@ -319,12 +319,12 @@ function tbl:extend(db, name, schema)
   end
 
   local t = self:new(db, name, { schema = schema })
-  t.set_db = function(db)
-    t.db = db
+  t.set_db = function(o)
+    t.db = o
   end
 
   return setmetatable({}, {
-    __index = function(self, key, ...)
+    __index = function(_, key, ...)
       return type(t[key]) == "function" and function(...)
         return t[key](t, ...)
       end or t[key]

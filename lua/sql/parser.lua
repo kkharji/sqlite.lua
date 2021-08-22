@@ -393,7 +393,6 @@ M.create = function(tbl, defs)
 
   for k, v in u.opairs(defs) do
     local t = type(v)
-    local islist = u.is_list(v)
     if t == "boolean" then
       tinsert(items, k .. " integer not null primary key")
     elseif t ~= "table" then
