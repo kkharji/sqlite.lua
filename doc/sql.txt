@@ -32,7 +32,7 @@ SQLDatabaseExt : SQLDatabase                                  *SQLDatabaseExt*
 
     Fields: ~
         {db}   (SQLDatabase)  fallback when the user overwrite @SQLDatabaseExt
-                              methods .
+                              methods.
         {init} (function)
 
 
