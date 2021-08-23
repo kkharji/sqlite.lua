@@ -3,13 +3,22 @@
 
 ## unreleased
 
-> 2021-08-20
+> 2021-08-23
 
 ### :art: Structure/Formating
 
 - <a href="https://github.com/tami5/sql.nvim/commit/9be469a1e3480cb0a90865de313289986f8a5044"><tt>9be469a</tt></a> update changelog item format
 
 - <a href="https://github.com/tami5/sql.nvim/commit/2d24f865daf5ec9931ceff84a0c5e5a8da87eb39"><tt>2d24f86</tt></a> update changelog item format (closes <a href="https://github.com/tami5/sql.nvim/issues/81"> #81</a>)
+
+
+### :boom: Breaking Changes
+
+<dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/8bf61d2b548b0e8c102e6e36dd21beae133ddf63"><tt>8bf61d2</tt></a> change sugar function namespace to sql.lib</summary>
+
+changes access to sugar functions and store it in lib. It was weird typing out `sql...` and abbreviating it seems harder too.
+
+</details></dd></dl>
 
 
 ### :bug: Bug Fixes
@@ -45,6 +54,27 @@ No breaking changes here :)
 
 
 ### :sparkles: Features
+
+<dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/73d8fa60e1037d0a8b58c898ed641430d8b0c0c4"><tt>73d8fa6</tt></a> dot access for extended tbl object (<a href="https://github.com/tami5/sql.nvim/pull/92">#92</a>)</summary>
+
+Changes:
+  - Fix parsing schema key when using key value pairs.
+  - access tbl original methods after overwrite with appending `_`
+  - Inject db object later with `set_db`
+  - auto-completion support 
+
+    ```lua
+    local users = require'sql.table'("users", {...}) -- or require'sql.table'(db, "users", {...})
+    users.init = function(db) -- if db isn't injected already 
+       users.set_db(db) --- inject db object 
+    end
+    users.get = function() -- overwriting method
+      return users._get({ where = { id = 1 } })[1].name
+    end
+    return users
+    ```
+
+</details></dd></dl>
 
 <dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/5944a91d05f34f1d36ef33a62344cfc301fc49b4"><tt>5944a91</tt></a> table each and map accept function as first argument (closes <a href="https://github.com/tami5/sql.nvim/issues/97"> #97</a>)</summary>
 
