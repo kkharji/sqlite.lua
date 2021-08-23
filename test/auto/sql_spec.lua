@@ -9,28 +9,29 @@ describe("sql", function()
   vim.loop.fs_unlink(path)
 
   describe("sqlfunctions:", function()
+    local s = sql.lib
     local db = sql.new()
     it("works with multiply", function()
-      local sugar = (db.sqljulianday "now" - db.sqljulianday "now") * 5 * 7
+      local sugar = (s.julianday "now" - s.julianday "now") * 5 * 7
       local expected = "(julianday('now') - julianday('now')) * 5 * 7"
       eq(expected, sugar, "should be equal")
     end)
 
     it("quotes supported arugments only", function()
-      local sugar = db.sqljulianday "now" - db.sqljulianday "date"
+      local sugar = s.julianday "now" - s.julianday "date"
       local expected = "(julianday('now') - julianday(date))"
       eq(expected, sugar, "should be equal")
 
-      local sugar = db.sqljulianday "now" - db.sqljulianday "2016-10-18 16:45"
+      local sugar = s.julianday "now" - s.julianday "2016-10-18 16:45"
       local expected = "(julianday('now') - julianday('2016-10-18 16:45'))"
       eq(expected, sugar, "should be equal")
     end)
 
     it("cast as", function()
-      local sugar = db.sqlcast((db.sqljulianday() - db.sqljulianday "timestamp") * 24 * 60, "integer")
+      local sugar = s.cast((s.julianday() - s.julianday "timestamp") * 24 * 60, "integer")
       local expected = "cast((julianday('now') - julianday(timestamp)) * 24 * 60 as integer)"
       eq(expected, sugar, "should be equal")
-      local sugar = db.sqlcast(db.sqljulianday() * 7, "integer")
+      local sugar = s.cast(s.julianday() * 7, "integer")
       local expected = "cast(julianday('now') * 7 as integer)"
       eq(expected, sugar, "should be equal")
     end)
@@ -381,7 +382,7 @@ describe("sql", function()
 
     it("evaluates sqlite functions", function()
       db:eval "create table testa(id integer primary key, date text, title text)"
-      db:insert("testa", { title = "fd", date = db.sqlstrftime "%H:%M:%S" })
+      db:insert("testa", { title = "fd", date = db.lib.strftime "%H:%M:%S" })
 
       local res = db:eval [[select * from testa]]
       eq(os.date "!%H:%M:%S", res[1].date)
