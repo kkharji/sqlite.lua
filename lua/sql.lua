@@ -29,8 +29,9 @@ DB.__index = DB
 ---@field values table: key and value to updated.
 
 ---@class SQLDatabaseExt: SQLDatabase @Extend sql.nvim object
----@field db SQLDatabase: fallback when the user overwrite @SQLDatabaseExt methods .
+---@field db SQLDatabase: fallback when the user overwrite @SQLDatabaseExt methods.
 ---@field init function(self): initalize tables
+---@field is_initialized boolean: check whether init is called or not
 
 ---return now date
 ---@todo: decide whether using os.time and epoch time would be better.
