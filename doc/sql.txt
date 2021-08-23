@@ -347,38 +347,9 @@ DB:table({tbl_name}, {opts})                                      *DB:table()*
         SQLTable
 
 
-DB.sqlstrftime()                                            *DB.sqlstrftime()*
-    %d 	day of month: 00 %f 	fractional seconds: SS.SSS %H 	hour: 00-24 %j 	day
-    of year: 001-366 %J 	Julian day number %m 	month: 01-12 %M 	minute: 00-59 
-    %s 	seconds since 1970-01-01 %S 	seconds: 00-59 %w 	day of week 0-6 with
-    Sunday==0 %W 	week of year: 00-53 %Y 	year: 0000-9999 %% 	%
+DB.lib()                                                            *DB.lib()*
+    Sqlite functions sugar wrappers. See `sql/strfun`
 
-
-    Return: ~
-        string: string representation or TEXT when evaluated.
-
-    Usage: ~
-        `sqlstrftime('%Y %m %d','now')` -> 2021 8 11
-        `sqlstrftime('%H %M %S %s','now')` -> 12 40 18 1414759218
-        `sqlstrftime('%s','now') - strftime('%s','2014-10-07 02:34:56')` ->
-        2110042
-
-
-DB.sqljulianday()                                          *DB.sqljulianday()*
-    Return the number of days since noon in Greenwich on November 24, 4714 B.C.
-
-
-    Usage: ~
-        `sqljulianday('now')` -> ...
-        `sqljulianday('now') - julianday('1947-08-15')` -> 24549.5019360879
-
-
-DB.sqldatetime()                                            *DB.sqldatetime()*
-    Returns date as "YYYY-MM-DD HH:MM:SS"
-
-
-    Usage: ~
-        `sqldatetime('now')` -> 2021-8-11 11:31:52
 
 
 
