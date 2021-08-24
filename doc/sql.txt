@@ -31,9 +31,8 @@ SQLDatabaseExt : SQLDatabase                                  *SQLDatabaseExt*
         |SQLDatabase|
 
     Fields: ~
-        {db}   (SQLDatabase)  fallback when the user overwrite @SQLDatabaseExt
-                              methods.
-        {init} (function)
+        {db} (SQLDatabase)  fallback when the user overwrite @SQLDatabaseExt
+                            methods.
 
 
 SQLDatabaseStatus                                          *SQLDatabaseStatus*
@@ -87,11 +86,7 @@ DB:open({uri}, {opts})                                             *DB:open()*
 
 
 DB:extend({sql}, {tbl}, {opts})                                  *DB:extend()*
-    Use to Extend SQLDatabase Object with extra sugar syntax and api. If
-    {opts.init} is false, the sqlite setup won't initialize until `db:init` is
-    called, otherwise it will initialize as spart of object extending, i.e.
-    calling extend function. Additionally, if the object is already
-    initialized, calling init won't have any effect.
+    Use to Extend SQLDatabase Object with extra sugar syntax and api.
 
 
     Parameters: ~
@@ -101,6 +96,16 @@ DB:extend({sql}, {tbl}, {opts})                                  *DB:extend()*
 
     Return: ~
         SQLDatabaseExt
+
+    Usage: ~
+        `local tbl = require('sql.table'):extend("tasks", { ... })` --
+        pre-made table
+        `local tbl = { ... }` -- normal schema table schema
+        `local tbl = { _name = "tasks", ... }` -- normal table with schema and
+        custom table name
+        `local db = DB:extend { uri = "", t = tbl }` -- db.t to access sql
+        'tbl' object.
+        `db.t.insert {...}; db.t.get(); db.t.remove(); db:isopen()`
 
 
 DB:close()                                                        *DB:close()*

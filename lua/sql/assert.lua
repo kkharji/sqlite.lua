@@ -13,7 +13,7 @@ local errors = {
 }
 
 for key, value in pairs(errors) do
-  errors[key] = "sql.nvim " .. value
+  errors[key] = "sql.nvim: " .. value
 end
 
 ---Error out if sql table doesn't exists.
@@ -62,7 +62,7 @@ end
 
 M.should_have_db_object = function(db, name)
   assert(db ~= nil, errors.missing_db_object:format(name))
-  return false
+  return true
 end
 
 return M

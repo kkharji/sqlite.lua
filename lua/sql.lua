@@ -28,11 +28,6 @@ DB.__index = DB
 ---@field where table: key and value
 ---@field values table: key and value to updated.
 
----@class SQLDatabaseExt: SQLDatabase @Extend sql.nvim object
----@field db SQLDatabase: fallback when the user overwrite @SQLDatabaseExt methods.
----@field init function(self): initalize tables
----@field is_initialized boolean: check whether init is called or not
-
 ---return now date
 ---@todo: decide whether using os.time and epoch time would be better.
 ---@return string osdate
@@ -83,45 +78,31 @@ function DB:open(uri, opts, noconn)
   end
 end
 
+---@class SQLDatabaseExt: SQLDatabase @Extend sql.nvim object
+---@field db SQLDatabase: fallback when the user overwrite @SQLDatabaseExt methods.
+
 ---Use to Extend SQLDatabase Object with extra sugar syntax and api.
----If {opts.init} is false, the sqlite setup won't initialize until `db:init` is
----called, otherwise it will initialize as spart of object extending, i.e.
----calling extend function. Additionally, if the object is already initialized,
----calling init won't have any effect.
 ---@param sql SQLDatabase
 ---@param tbl SQLTable
 ---@param opts table: uri, init, opts, tbl_name, tbl_name ....
+---@usage `local tbl = require('sql.table'):extend("tasks", { ... })` -- pre-made table
+---@usage `local tbl = { ... }` -- normal schema table schema
+---@usage `local tbl = { _name = "tasks", ... }` -- normal table with schema and custom table name
+---@usage `local db = DB:extend { uri = "", t = tbl }` -- db.t to access sql 'tbl' object.
+---@usage `db.t.insert {...}; db.t.get(); db.t.remove(); db:isopen()`
 ---@return SQLDatabaseExt
 function DB:extend(opts)
-  local cls = {}
-  cls.db = self.new(opts.uri, opts.opts)
-  cls.is_initialized = false
-
-  cls.db.init = function(o)
-    if o.is_initialized then
-      error "sql.nvim: trying to initialize previously initialize sql extended object."
-    else
-      o.is_initialized = true
-    end
-    for tbl_name, schema in pairs(opts) do
-      if tbl_name ~= "uri" and tbl_name ~= "opts" and u.is_tbl(schema) then
-        o[tbl_name] = t:extend(o, tbl_name, schema)
+  local db = self.new(opts.uri, opts.opts)
+  local cls = setmetatable({ db = db }, { __index = db })
+  for tbl_name, schema in pairs(opts) do
+    if tbl_name ~= "uri" and tbl_name ~= "opts" and u.is_tbl(schema) then
+      local name = schema._name and schema._name or tbl_name
+      cls[tbl_name] = schema.set_db and schema or t:extend(name, schema)
+      if not cls[tbl_name].db then
+        cls[tbl_name].set_db(cls)
       end
     end
   end
-
-  setmetatable(cls, {
-    __index = cls.db,
-    __call = function(o, _opts)
-      o:extend(_opts)
-    end,
-  })
-
-  if opts.init then
-    cls:init()
-    cls.is_initialized = true
-  end
-
   return cls
 end
 
