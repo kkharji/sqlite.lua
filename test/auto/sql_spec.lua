@@ -885,12 +885,36 @@ describe("sql", function()
       cache:init()
 
       eq(false, pcall(cache.init, cache, "should fail because we're trying to initialize the object twice."))
-
-      -- eq("function", type(cache.projects.get), "project should be initialized and get should be a function")
-      -- cache.projects:insert { name = "xx" }
-
-      -- eq(cache.projects:where({ name = "xx" }).name, "should work")
     end)
+
+    it("have a different name for db table", function()
+      local ok, db = pcall(sql, {
+        init = true,
+        uri = testrui2,
+        s = { _name = "stable", id = true },
+      })
+      eq(db.s.name, "stable")
+    end)
+
+    it("it uses already creaate table", function()
+      local t = require "sql.table"("sometbl", { id = true, name = "string" })
+      local db
+
+      local ok, db = pcall(sql, {
+        init = true,
+        uri = testrui,
+        st = t,
+      })
+
+      eq(true, ok, "should not error out")
+
+      eq("table", type(db.st), "should use that key to access t")
+
+      db.st.insert { { name = "a" }, { name = "b" }, { name = "c" } }
+
+      eq(3, db.st.count(), "should have inserted.")
+    end)
+
     vim.loop.fs_unlink(testrui)
     vim.loop.fs_unlink(testrui2)
   end)
