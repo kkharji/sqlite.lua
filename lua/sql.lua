@@ -105,7 +105,20 @@ function DB:extend(opts)
     end
     for tbl_name, schema in pairs(opts) do
       if tbl_name ~= "uri" and tbl_name ~= "opts" and u.is_tbl(schema) then
-        o[tbl_name] = t:extend(o, tbl_name, schema)
+        local tbl
+
+        if schema.set_db then
+          if not schema.db then
+            schema.set_db(o)
+          end
+          tbl = schema
+        else
+          local name = schema._name and schema._name or tbl_name
+          schema._name = nil
+          tbl = t:extend(o, name, schema)
+        end
+
+        o[tbl_name] = tbl
       end
     end
   end
