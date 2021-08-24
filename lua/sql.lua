@@ -82,17 +82,13 @@ end
 ---@field db SQLDatabase: fallback when the user overwrite @SQLDatabaseExt methods.
 
 ---Use to Extend SQLDatabase Object with extra sugar syntax and api.
----If {opts.init} is false, the sqlite setup won't initialize until `db:init` is
----called, otherwise it will initialize as spart of object extending, i.e.
----calling extend function. Additionally, if the object is already initialized,
----calling init won't have any effect.
 ---@param sql SQLDatabase
 ---@param tbl SQLTable
 ---@param opts table: uri, init, opts, tbl_name, tbl_name ....
 ---@usage `local tbl = require('sql.table'):extend("tasks", { ... })` -- pre-made table
----@usage `local tbl = { ... }` -- normal table with schema
+---@usage `local tbl = { ... }` -- normal schema table schema
 ---@usage `local tbl = { _name = "tasks", ... }` -- normal table with schema and custom table name
----@usage `local db = DB:extend { t = tbl, ... }` -- db with t gitven access to sql table with { _name } or 't'
+---@usage `local db = DB:extend { uri = "", t = tbl }` -- db.t to access sql 'tbl' object.
 ---@usage `db.t.insert {...}; db.t.get(); db.t.remove(); db:isopen()`
 ---@return SQLDatabaseExt
 function DB:extend(opts)
