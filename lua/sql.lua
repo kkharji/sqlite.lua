@@ -91,6 +91,11 @@ end
 ---@param sql SQLDatabase
 ---@param tbl SQLTable
 ---@param opts table: uri, init, opts, tbl_name, tbl_name ....
+---@usage `local tbl = require('sql.table'):extend("tasks", { ... })` -- pre-made table
+---@usage `local tbl = { ... }` -- normal table with schema
+---@usage `local tbl = { _name = "tasks", ... }` -- normal table with schema and custom table name
+---@usage `local db = DB:extend { t = tbl, ... }` -- db with t gitven access to sql table with { _name } or 't'
+---@usage `db.t.insert {...}; db.t.get(); db.t.remove(); db:isopen()`
 ---@return SQLDatabaseExt
 function DB:extend(opts)
   local cls = {}
