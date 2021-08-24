@@ -31,9 +31,8 @@ SQLDatabaseExt : SQLDatabase                                  *SQLDatabaseExt*
         |SQLDatabase|
 
     Fields: ~
-        {db}   (SQLDatabase)  fallback when the user overwrite @SQLDatabaseExt
-                              methods.
-        {init} (function)
+        {db} (SQLDatabase)  fallback when the user overwrite @SQLDatabaseExt
+                            methods.
 
 
 SQLDatabaseStatus                                          *SQLDatabaseStatus*
