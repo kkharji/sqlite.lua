@@ -28,11 +28,6 @@ DB.__index = DB
 ---@field where table: key and value
 ---@field values table: key and value to updated.
 
----@class SQLDatabaseExt: SQLDatabase @Extend sql.nvim object
----@field db SQLDatabase: fallback when the user overwrite @SQLDatabaseExt methods.
----@field init function(self): initalize tables
----@field is_initialized boolean: check whether init is called or not
-
 ---return now date
 ---@todo: decide whether using os.time and epoch time would be better.
 ---@return string osdate
@@ -82,6 +77,9 @@ function DB:open(uri, opts, noconn)
     return self
   end
 end
+
+---@class SQLDatabaseExt: SQLDatabase @Extend sql.nvim object
+---@field db SQLDatabase: fallback when the user overwrite @SQLDatabaseExt methods.
 
 ---Use to Extend SQLDatabase Object with extra sugar syntax and api.
 ---If {opts.init} is false, the sqlite setup won't initialize until `db:init` is
