@@ -850,7 +850,16 @@ describe("sql", function()
         return manager.projects._get({ where = { title = sqlnvim.title } })[1].title
       end
 
+      function manager.projects.objectives()
+        return manager.projects._get({ where = { id = 1 } })[1].objectives
+      end
+
       eq(sqlnvim.title, manager.projects.get(), "should have inserted sqlnvim project")
+      eq(true, manager.projects.objectives() ~= "")
+      eq(true, manager.projects.update { where = { id = 1 }, set = { objectives = "" } })
+      eq("", manager.projects._get({ where = { id = 1 } })[1].objectives)
+      eq("table", type(sqlnvim.objectives), "It shouldn't have changed")
+      eq("", manager.projects.where({ id = 1 }).objectives)
     end)
 
     it("set a different name for sql db table, with access using extend field", function()
