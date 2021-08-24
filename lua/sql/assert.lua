@@ -10,7 +10,6 @@ local errors = {
   failed_ops = "operation failed, ERRMSG: %s",
   missing_req_key = "(insert) missing a required key: %s",
   missing_db_object = "'%s' db object is not set. please set it with `tbl.set_db(db)` and try again.",
-  not_initialized_already = "trying to call `db.init` on initialized sql extended object, uri://%s",
 }
 
 for key, value in pairs(errors) do
@@ -64,10 +63,6 @@ end
 M.should_have_db_object = function(db, name)
   assert(db ~= nil, errors.missing_db_object:format(name))
   return true
-end
-
-M.should_be_uninitialized = function(is_initialized, uri)
-  assert(not is_initialized, errors.not_initialized_already:format(uri))
 end
 
 return M
