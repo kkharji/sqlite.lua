@@ -99,7 +99,7 @@ function DB:extend(opts)
       local name = schema._name and schema._name or tbl_name
       cls[tbl_name] = schema.set_db and schema or t:extend(name, schema)
       if not cls[tbl_name].db then
-        cls[tbl_name].set_db(cls)
+        cls[tbl_name].set_db(cls.db)
       end
     end
   end
