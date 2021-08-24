@@ -771,37 +771,42 @@ describe("sql", function()
     db:close()
   end)
 
-  describe("extend:", function()
+  describe(":extend", function()
     local testrui = "/tmp/extend_db"
     local testrui2 = "/tmp/extend_db2"
+    local ok, manager
 
-    ---@class Manager:SQLDatabaseExt
-    ---@field projects SQLTableExt
-    ---@field todos SQLTableExt
-    local manager = sql {
-      uri = testrui,
-      init = true,
-      projects = {
-        id = true,
-        title = "text",
-        objectives = "luatable",
-      },
-      todos = {
-        id = true,
-        title = "text",
-        client = "integer",
-        status = "text",
-        completed = "boolean",
-        details = "text",
-      },
-      opts = {
-        foreign_keys = true,
-      },
-    }
+    it("Initialize manager", function()
+      ---@class Manager:SQLDatabaseExt
+      ---@field projects SQLTableExt
+      ---@field todos SQLTableExt
+      ok, manager = pcall(sql, {
+        uri = testrui,
+        init = true,
+        projects = {
+          id = true,
+          title = "text",
+          objectives = "luatable",
+        },
+        todos = {
+          id = true,
+          title = "text",
+          client = "integer",
+          status = "text",
+          completed = "boolean",
+          details = "text",
+        },
+        opts = {
+          foreign_keys = true,
+        },
+      })
+      eq(true, ok, manager)
+    end)
+
     it("process opts and set sql table objects", function()
       eq("/tmp/extend_db", manager.uri, "should set self.uri.")
       eq(true, manager.closed, "should construct without openning connection.")
-      eq("cdata", type(manager.conn), "should set connection object because of how the sql object is set")
+      eq(nil, manager.conn, "should not set connection object.")
       eq("boolean", type(manager.sqlite_opts.foreign_keys), "should have added opts to sqlite_opts.")
     end)
 
@@ -814,17 +819,9 @@ describe("sql", function()
       eq("function", type(manager.insert), "should have added insert function.")
       eq("function", type(manager.open), "should have added open function.")
       eq("function", type(manager.close), "should have added close function.")
-      eq("function", type(manager.with_open), "should have added with_open.")
-      eq("function", type(manager.table), "should have added table.")
       eq("function", type(manager.db.insert), "should have added insert function.")
-      eq("function", type(manager.db.open), "should have added open function.")
-      eq("function", type(manager.db.close), "should have added close function.")
       eq("function", type(manager.db.with_open), "should have added with_open.")
       eq("function", type(manager.db.table), "should have added table.")
-      manager:open()
-      eq(true, manager:eval "insert into projects(title) values('sql.nvim')", "should insert.")
-      eq("table", type(manager:eval("select * from projects")[1]), "should be have content even with self.db.")
-      eq(true, manager.projects.remove(), "projects table should work.")
     end)
 
     it("extending new object should work wihout issues", function()
@@ -857,25 +854,30 @@ describe("sql", function()
     end)
 
     it("control initialization", function()
-      local cache = sql {
+      local ok, cache = pcall(sql, {
         uri = "/tmp/extend_db2",
         files = { id = true, name = "text" },
         projects = { id = true, name = "text" },
-      }
+      })
 
+      eq(true, ok, cache)
       eq(false, cache.is_initialized, "shouldn't be initialized")
-      eq(true, not cache.projects, "project table shouldn't exists")
+      eq(false, pcall(cache.projects.exists), "operation should fail")
       eq(false, not cache.db, "we should have the sql object here.")
 
       cache:init()
+
+      eq(true, cache.projects.exists(), "should exist after initialization")
     end)
 
     it("don't initialize and work when overwritten init", function()
-      local cache = sql {
+      local ok, cache = pcall(sql, {
         uri = "/tmp/extend_db2",
         files = { id = true, name = "text" },
         projects = { id = true, name = "text" },
-      }
+      })
+
+      eq(true, ok, cache)
 
       function cache:init(opts)
         self.db:init()
@@ -893,6 +895,8 @@ describe("sql", function()
         uri = testrui2,
         s = { _name = "stable", id = true },
       })
+      eq(true, ok, db)
+
       eq(db.s.name, "stable")
     end)
 
@@ -906,13 +910,37 @@ describe("sql", function()
         st = t,
       })
 
-      eq(true, ok, "should not error out")
+      eq(true, ok, db)
 
       eq("table", type(db.st), "should use that key to access t")
 
       db.st.insert { { name = "a" }, { name = "b" }, { name = "c" } }
 
       eq(3, db.st.count(), "should have inserted.")
+    end)
+
+    it("it merges fields defined before initialization", function()
+      local ok, db = pcall(sql, {
+        uri = testrui,
+        atbl = { name = "text", phone_number = "integer" },
+      })
+
+      eq(true, ok, db)
+
+      db.atbl.seed = function()
+        db.atbl.insert { { name = "x", phone_number = 12121 }, { name = "y", phone_number = 12121 } }
+      end
+
+      db.atbl.get = function()
+        return db.atbl._get({ where = { name = "x" } })[1].phone_number
+      end
+
+      db:init()
+
+      eq("function", type(db.atbl.seed), "should exists")
+      eq(true, pcall(db.atbl.seed), "should exists")
+      eq(2, db.atbl.count())
+      eq(12121, db.atbl.get())
     end)
 
     vim.loop.fs_unlink(testrui)

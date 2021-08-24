@@ -98,46 +98,29 @@ end
 ---@usage `db.t.insert {...}; db.t.get(); db.t.remove(); db:isopen()`
 ---@return SQLDatabaseExt
 function DB:extend(opts)
-  local cls = {}
+  local cls = { is_initialized = false }
+  local tbls = {}
   cls.db = self.new(opts.uri, opts.opts)
-  cls.is_initialized = false
-
   cls.db.init = function(o)
-    if o.is_initialized then
-      error "sql.nvim: trying to initialize previously initialize sql extended object."
-    else
-      o.is_initialized = true
-    end
-    for tbl_name, schema in pairs(opts) do
-      if tbl_name ~= "uri" and tbl_name ~= "opts" and u.is_tbl(schema) then
-        local tbl
-
-        if schema.set_db then
-          if not schema.db then
-            schema.set_db(o)
-          end
-          tbl = schema
-        else
-          local name = schema._name and schema._name or tbl_name
-          schema._name = nil
-          tbl = t:extend(o, name, schema)
-        end
-
-        o[tbl_name] = tbl
-      end
+    a.should_be_uninitialized(cls.is_initialized, o.uri)
+    cls.is_initialized = true
+    for _, tbl_name in pairs(tbls) do
+      o[tbl_name].set_db(o)
     end
   end
 
-  setmetatable(cls, {
-    __index = cls.db,
-    __call = function(o, _opts)
-      o:extend(_opts)
-    end,
-  })
+  setmetatable(cls, { __index = cls.db })
+
+  for tbl_name, schema in pairs(opts) do
+    if tbl_name ~= "uri" and tbl_name ~= "opts" and u.is_tbl(schema) then
+      local name = schema._name and schema._name or tbl_name
+      cls.db[tbl_name] = schema.set_db and schema or t:extend(name, schema)
+      tbls[#tbls + 1] = tbl_name
+    end
+  end
 
   if opts.init then
     cls:init()
-    cls.is_initialized = true
   end
 
   return cls
