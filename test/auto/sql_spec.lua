@@ -782,7 +782,6 @@ describe("sql", function()
       ---@field todos SQLTableExt
       ok, manager = pcall(sql, {
         uri = testrui,
-        init = true,
         projects = {
           id = true,
           title = "text",
@@ -836,6 +835,7 @@ describe("sql", function()
 
       local id = manager.projects.insert(sqlnvim)
 
+      eq("cdata", type(manager.conn), "should set connection object.")
       eq(1, id, "should have returned id.")
       eq(true, manager.projects.remove(), "should remove after default insert.")
 
@@ -853,45 +853,8 @@ describe("sql", function()
       eq(sqlnvim.title, manager.projects.get(), "should have inserted sqlnvim project")
     end)
 
-    it("control initialization", function()
-      local ok, cache = pcall(sql, {
-        uri = "/tmp/extend_db2",
-        files = { id = true, name = "text" },
-        projects = { id = true, name = "text" },
-      })
-
-      eq(true, ok, cache)
-      eq(false, cache.is_initialized, "shouldn't be initialized")
-      eq(false, pcall(cache.projects.exists), "operation should fail")
-      eq(false, not cache.db, "we should have the sql object here.")
-
-      cache:init()
-
-      eq(true, cache.projects.exists(), "should exist after initialization")
-    end)
-
-    it("don't initialize and work when overwritten init", function()
-      local ok, cache = pcall(sql, {
-        uri = "/tmp/extend_db2",
-        files = { id = true, name = "text" },
-        projects = { id = true, name = "text" },
-      })
-
-      eq(true, ok, cache)
-
-      function cache:init(opts)
-        self.db:init()
-        cache.opts = opts
-      end
-
-      cache:init()
-
-      eq(false, pcall(cache.init, cache, "should fail because we're trying to initialize the object twice."))
-    end)
-
-    it("have a different name for db table", function()
+    it("set a different name for sql db table, with access using extend field", function()
       local ok, db = pcall(sql, {
-        init = true,
         uri = testrui2,
         s = { _name = "stable", id = true },
       })
@@ -900,12 +863,11 @@ describe("sql", function()
       eq(db.s.name, "stable")
     end)
 
-    it("it uses already creaate table", function()
+    it("use pre-defined sql-table", function()
       local t = require "sql.table"("sometbl", { id = true, name = "string" })
       local db
 
       local ok, db = pcall(sql, {
-        init = true,
         uri = testrui,
         st = t,
       })
@@ -917,30 +879,6 @@ describe("sql", function()
       db.st.insert { { name = "a" }, { name = "b" }, { name = "c" } }
 
       eq(3, db.st.count(), "should have inserted.")
-    end)
-
-    it("it merges fields defined before initialization", function()
-      local ok, db = pcall(sql, {
-        uri = testrui,
-        atbl = { name = "text", phone_number = "integer" },
-      })
-
-      eq(true, ok, db)
-
-      db.atbl.seed = function()
-        db.atbl.insert { { name = "x", phone_number = 12121 }, { name = "y", phone_number = 12121 } }
-      end
-
-      db.atbl.get = function()
-        return db.atbl._get({ where = { name = "x" } })[1].phone_number
-      end
-
-      db:init()
-
-      eq("function", type(db.atbl.seed), "should exists")
-      eq(true, pcall(db.atbl.seed), "should exists")
-      eq(2, db.atbl.count())
-      eq(12121, db.atbl.get())
     end)
 
     vim.loop.fs_unlink(testrui)

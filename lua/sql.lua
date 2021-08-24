@@ -98,31 +98,17 @@ end
 ---@usage `db.t.insert {...}; db.t.get(); db.t.remove(); db:isopen()`
 ---@return SQLDatabaseExt
 function DB:extend(opts)
-  local cls = { is_initialized = false }
-  local tbls = {}
-  cls.db = self.new(opts.uri, opts.opts)
-  cls.db.init = function(o)
-    a.should_be_uninitialized(cls.is_initialized, o.uri)
-    cls.is_initialized = true
-    for _, tbl_name in pairs(tbls) do
-      o[tbl_name].set_db(o)
-    end
-  end
-
-  setmetatable(cls, { __index = cls.db })
-
+  local db = self.new(opts.uri, opts.opts)
+  local cls = setmetatable({ db = db }, { __index = db })
   for tbl_name, schema in pairs(opts) do
     if tbl_name ~= "uri" and tbl_name ~= "opts" and u.is_tbl(schema) then
       local name = schema._name and schema._name or tbl_name
-      cls.db[tbl_name] = schema.set_db and schema or t:extend(name, schema)
-      tbls[#tbls + 1] = tbl_name
+      cls[tbl_name] = schema.set_db and schema or t:extend(name, schema)
+      if not cls[tbl_name].db then
+        cls[tbl_name].set_db(cls)
+      end
     end
   end
-
-  if opts.init then
-    cls:init()
-  end
-
   return cls
 end
 
