@@ -627,9 +627,9 @@ end
 ---@param fn func()
 M.wrap_stmts = function(conn_ptr, fn)
   M.exec_stmt(conn_ptr, "BEGIN")
-  fn()
+  local res = fn()
   M.exec_stmt(conn_ptr, "COMMIT")
-  return
+  return res
 end
 
 ---Get last error msg

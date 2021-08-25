@@ -680,11 +680,37 @@ describe("sql", function()
 
     it("gets a sql table schema", function()
       local sch = db:schema "test"
-      eq({ a = "text", b = "int", c = "int", d = "text" }, sch)
+      eq({
+        a = {
+          cid = 0,
+          primary = false,
+          required = false,
+          type = "text",
+        },
+        b = {
+          cid = 1,
+          primary = false,
+          required = false,
+          type = "int",
+        },
+        c = {
+          cid = 2,
+          primary = false,
+          required = true,
+          type = "int",
+        },
+        d = {
+          cid = 3,
+          default = "def",
+          primary = false,
+          required = false,
+          type = "text",
+        },
+      }, sch)
     end)
 
     it("gets a sql table schema info", function()
-      local sch = db:schema("test", true).info
+      local sch = db:schema "test"
       eq({
         a = {
           cid = 0,
@@ -732,10 +758,10 @@ describe("sql", function()
       eq(true, db:exists "test")
     end)
 
-    it("won't override the table schema if it exists", function()
+    it("skip overriding the table schema if it exists", function()
       db:create("test", { id = "not_a_type", ensure = true })
       local sch = db:schema "test"
-      eq("text", sch.title, "should not be nil")
+      eq("text", sch.title.type, "should exists and should be still text not be nil")
     end)
     it("auto enable foreign_keys on usage", function()
       db:create("test_keys", {

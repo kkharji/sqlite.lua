@@ -53,38 +53,108 @@ describe("table", function()
         name = "text",
       },
     }
+    local detailed_schema = {
+      id = {
+        cid = 0,
+        primary = false,
+        required = false,
+        type = "int",
+      },
+      name = {
+        cid = 1,
+        primary = false,
+        required = false,
+        type = "text",
+      },
+    }
     local new = db:table("newtbl", opts)
 
     it("initalizes db with schema", function()
-      eq(opts.schema, new:schema(), "should be identical")
-      eq(opts.schema, new.tbl_schema, "should be identical")
+      eq(detailed_schema, new:schema(), "should be identical")
     end)
     it("should not rewrite schema.", function()
       local new2 = db:table "newtbl"
-      eq(opts.schema, new2:schema(), "should be identical")
-      eq(opts.schema, new2.tbl_schema, "should be identical")
+      eq(detailed_schema, new2:schema(), "should be identical")
+      eq(detailed_schema, new2.tbl_schema, "should be identical")
 
       local new3 = db:table("newtbl", { schema = { id = "string" } })
-      eq(opts.schema, new3:schema(), "should be identical")
-      eq(opts.schema, new3.tbl_schema, "should be identical")
+      eq(detailed_schema, new3:schema(), "should be identical")
+      eq(detailed_schema, new3.tbl_schema, "should be identical")
     end)
   end)
 
   describe(":schema", function()
     it("returns schema if self.tbl exists", function()
-      eq({ a = "integer", b = "text", c = "text" }, t1:schema())
+      eq({
+        a = {
+          cid = 0,
+          primary = false,
+          required = false,
+          type = "integer",
+        },
+        b = {
+          cid = 1,
+          primary = false,
+          required = false,
+          type = "text",
+        },
+        c = {
+          cid = 2,
+          primary = false,
+          required = false,
+          type = "text",
+        },
+      }, t1:schema())
     end)
     it("returns empty table if schema doesn't exists", function()
       eq({}, t2:schema())
     end)
     it("creates new table with schema", function()
-      local schema = { id = "int", a = "text", d = "text" }
+      local schema = {
+        a = {
+          cid = 0,
+          primary = false,
+          required = false,
+          type = "text",
+        },
+        d = {
+          cid = 1,
+          primary = false,
+          required = false,
+          type = "text",
+        },
+        id = {
+          cid = 2,
+          primary = false,
+          required = false,
+          type = "int",
+        },
+      }
       eq(true, t2:schema(schema), "Should return true")
       eq(schema, t2:schema(), "should return the schema.")
       eq(true, t2.tbl_exists, "should alter self.exists value")
     end)
     it("should drop and recreate the table if not schema.ensure", function()
-      local new = { id = "int", a = "text", f = "text" }
+      local new = {
+        a = {
+          cid = 0,
+          primary = false,
+          required = false,
+          type = "text",
+        },
+        f = {
+          cid = 1,
+          primary = false,
+          required = false,
+          type = "text",
+        },
+        id = {
+          cid = 2,
+          primary = false,
+          required = false,
+          type = "int",
+        },
+      }
       eq(true, t2:schema(new), "Should return true")
       eq(new, t2:schema(), "should return the schema.")
       eq(true, t2.tbl_exists, "should alter self.exists value")

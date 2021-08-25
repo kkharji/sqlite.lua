@@ -19,10 +19,10 @@ M.sqlvalue = function(v)
   return type(v) == "boolean" and (v == true and 1 or 0) or (v == nil and "null" or v)
 end
 
-M.luavalue = function(v, schema_type)
-  if schema_type == "luatable" or schema_type == "json" then
+M.luavalue = function(v, key_type)
+  if key_type == "luatable" or key_type == "json" then
     return json.decode(v)
-  elseif schema_type == "boolean" then
+  elseif key_type == "boolean" then
     return v == 0 and false or true
   end
 
@@ -393,16 +393,21 @@ M.create = function(tbl, defs)
   local items = {}
 
   tbl = defs.ensure and "if not exists " .. tbl or tbl
-  defs.ensure = nil
 
   for k, v in u.opairs(defs) do
-    local t = type(v)
-    if t == "boolean" then
-      tinsert(items, k .. " integer not null primary key")
-    elseif t ~= "table" then
-      tinsert(items, string.format("%s %s", k, v))
-    else
-      tinsert(items, ("%s %s"):format(k, opts_to_str(v)))
+    if k ~= "ensure" then
+      local t = type(v)
+      if t == "boolean" then
+        tinsert(items, k .. " integer not null primary key")
+      elseif t ~= "table" then
+        tinsert(items, string.format("%s %s", k, v))
+      else
+        if u.is_list(v) then
+          tinsert(items, ("%s %s"):format(k, tconcat(v, " ")))
+        else
+          tinsert(items, ("%s %s"):format(k, opts_to_str(v)))
+        end
+      end
     end
   end
   return ("create table %s(%s)"):format(tbl, tconcat(items, ", "))
@@ -425,11 +430,12 @@ M.pre_insert = function(rows, schema)
   local res = {}
   rows = u.is_nested(rows) and rows or { rows }
   for i, row in ipairs(rows) do
-    u.foreach(schema.req, function(k)
-      a.missing_req_key(row[k], k)
-    end)
+    -- u.foreach(schema.req, function(k)
+    --   a.missing_req_key(row[k], k)
+    -- end)
     res[i] = u.map(row, function(v, k)
-      local is_json = schema.types[k] == "luatable" or schema.types[k] == "json"
+      a.missing_req_key(v, schema[k].required)
+      local is_json = schema[k].type == "luatable" or schema[k].type == "json"
       return is_json and json.encode(v) or M.sqlvalue(v)
     end)
   end
@@ -442,13 +448,18 @@ end
 ---@param schema table tbl schema
 ---@return table pre processed rows
 ---@TODO support boolean values.
-M.post_select = function(rows, types)
+M.post_select = function(rows, schema)
   local is_nested = u.is_nested(rows)
   rows = is_nested and rows or { rows }
 
   for _, row in ipairs(rows) do
     for k, v in pairs(row) do
-      row[k] = M.luavalue(v, types[k])
+      local info = schema[k]
+      if info then
+        row[k] = M.luavalue(v, info.type)
+      else
+        row[k] = v
+      end
     end
   end
 
