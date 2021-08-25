@@ -62,23 +62,22 @@ function tbl:extend(db, name, schema)
     name, db, schema = db, nil, name
   end
 
-  local t = tbl:new(db, name, { schema = schema })
+  local t = self:new(db, name, { schema = schema })
   return setmetatable({
     set_db = function(o)
       t.db = o
     end,
   }, {
-    __index = function(_, key, ...)
-      return type(t[key]) == "function" and function(...)
-        return t[key](t, ...)
-      end or t[key]
-    end,
-    __newindex = function(_, key, val)
-      if type(val) == "function" then
-        t["_" .. key] = t[key]
-        t[key] = val
-      else
-        t[key] = val
+    __index = function(o, key, ...)
+      if type(key) == "string" then
+        key = key:sub(1, 1) == "_" and key:sub(2, -1) or key
+        if type(t[key]) == "function" then
+          return function(...)
+            return t[key](t, ...)
+          end
+        else
+          return t[key]
+        end
       end
     end,
   })

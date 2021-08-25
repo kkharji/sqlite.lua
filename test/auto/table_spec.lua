@@ -30,36 +30,6 @@ end
 describe("table", function()
   local t1, t2 = seed()
 
-  describe(":extend", function()
-    local t
-    it("missing db object", function()
-      ---@type SQLTableExt
-      t = tbl("tbl_name", { id = true, name = "text" })
-      eq(false, pcall(t.insert, { name = "tami" }), "should fail early.")
-      t.set_db(db)
-      eq(true, pcall(t.insert, { name = "conni" }), "should work now we have a db object to operate against.")
-      eq({ { id = 1, name = "conni" } }, t.get(), "only insert conni")
-    end)
-
-    it("with db object", function()
-      t = tbl(db, "tansactions", { id = true, amount = "real" })
-      eq(1, t.insert { amount = 20.2 })
-      eq(
-        "20.2",
-        t.map(function(row)
-          return tostring(row.amount)
-        end)[1]
-      )
-    end)
-
-    it("overwrite functions and fallback to t.db", function()
-      t.get = function()
-        return math.floor(t._get({ where = { id = 1 } })[1].amount)
-      end
-      eq(20, t.get())
-    end)
-  end)
-
   describe(":new", function()
     it("create new object with sql.table methods.", function()
       eq("table", type(t1))
@@ -535,6 +505,77 @@ describe("table", function()
         "pases without issues since we have on_delete cascade."
       )
       eq(true, next(tracks:get { where = { artist = 100 } }) == nil, "shouldn't be any rows referencing Dean Martin")
+    end)
+  end)
+
+  describe(":extend", function()
+    local t
+    it("missing db object", function()
+      ---@type SQLTableExt
+      t = tbl("tbl_name", { id = true, name = "text" })
+      eq(false, pcall(t.insert, { name = "tami" }), "should fail early.")
+      t.set_db(db)
+      eq(true, pcall(t.insert, { name = "conni" }), "should work now we have a db object to operate against.")
+      eq({ { id = 1, name = "conni" } }, t.get(), "only insert conni")
+    end)
+
+    it("with db object", function()
+      t = tbl(db, "tansactions", { id = true, amount = "real" })
+      eq(1, t.insert { amount = 20.2 })
+      eq(
+        "20.2",
+        t.map(function(row)
+          return tostring(row.amount)
+        end)[1]
+      )
+    end)
+
+    it("overwrite functions and fallback to t.db", function()
+      t.get = function()
+        return math.floor(t._get({ where = { id = 1 } })[1].amount)
+      end
+      eq(20, t.get())
+    end)
+
+    local some
+
+    it("create a new table", function()
+      some = tbl:extend(db, "somename", {
+        name = "text",
+        id = true,
+        count = {
+          type = "integer",
+          default = 0,
+        },
+      })
+    end)
+
+    it("access function", function()
+      eq("function", type(some.get), "should we still have access for")
+      eq("function", type(some._get), "should be hard coded.")
+      eq("cdata", type(some.db.conn))
+    end)
+
+    it("custom function", function()
+      function some.insert_or_update(name)
+        eq("string", type(name), "name should be a string")
+        local entry = some.where { name = name }
+        if not entry then
+          some.insert { name = name }
+        else
+          eq("function", type(some.update))
+          some.update {
+            where = { id = entry.id },
+            values = { count = entry.count + 2 },
+          }
+        end
+      end
+      -- eq({}, getmetatable(some))
+      eq("function", type(some.insert_or_update), "should be registered as function")
+      some.insert_or_update "ff"
+      -- eq("ff", some.get({ name = "ff" }).name)
+      some.insert_or_update "ff"
+      -- eq(2, some.where({ name = "ff" }).count)
     end)
   end)
 end)
