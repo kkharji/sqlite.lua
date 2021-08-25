@@ -3,7 +3,7 @@
 
 ## unreleased
 
-> 2021-08-23
+> 2021-08-24
 
 ### :art: Structure/Formating
 
@@ -93,6 +93,23 @@ tbl:each(function(row) .. end, {...} ) -- execute a function on all table rows m
 <dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/88f14bf3148c8c31c4ba17818d80eedc33cc9f12"><tt>88f14bf</tt></a> auto changelog (<a href="https://github.com/tami5/sql.nvim/pull/80">#80</a>)</summary>
 
 Here goes nothing 🤞. Please CI don't fail me.
+
+</details></dd></dl>
+
+
+### :zap: Performance Improvements
+
+<dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/1a36aa576f489792f61b9a62cc4b3e796d97d568"><tt>1a36aa5</tt></a> sql.extend handling of tables and connection. (<a href="https://github.com/tami5/sql.nvim/pull/96">#96</a>)</summary>
+
+✨ New:
+  - add usage examples for DB:extend.
+  - support using different name to access a tbl object `{_name = ".."}`.
+  - support using pre-defined/extended sql.table object.
+  - 100% lazy sql object setup: No calls will be made before the first sql operation.
+
+♻️ Changes:
+  - remove init hack of controlling sql extend object table initialization (no longer needed).
+  - remove old tests.
 
 </details></dd></dl>
 
