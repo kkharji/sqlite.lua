@@ -266,46 +266,20 @@ end
 
 ---Get {name} table schema, if table does not exist then return an empty table.
 ---@param tbl_name string: the table name.
----@param info boolean: whether to return table info. default false.
 ---@return table list of keys or keys and their type.
-function DB:schema(tbl_name, info)
+function DB:schema(tbl_name)
   local sch = self:eval(string.format("pragma table_info(%s)", tbl_name))
-  if type(sch) == "boolean" then
-    return {}
-  end
-
-  local tbl_info = {}
-  local req = {}
-  local def = {}
-  local types = {}
-
-  for _, v in ipairs(sch) do
-    if v.notnull == 1 and v.pk == 0 then
-      req[v.name] = v
-    end
-    if v.dflt_value then
-      def[v.name] = v.dflt_value
-    end
-
-    tbl_info[v.name] = {
+  local schema = {}
+  for _, v in ipairs(type(sch) == "boolean" and {} or sch) do
+    schema[v.name] = {
+      cid = v.cid,
       required = v.notnull == 1,
       primary = v.pk == 1,
       type = v.type,
-      cid = v.cid,
       default = v.dflt_value,
     }
-
-    types[v.name] = v.type
   end
-
-  local obj = {
-    info = tbl_info,
-    req = req == {} and nil or req,
-    def = def == {} and nil or def,
-    types = types,
-  }
-
-  return info and obj or obj.types
+  return schema
 end
 
 ---Insert to lua table into sqlite database table.
@@ -426,15 +400,9 @@ end
 ---@return table[]
 function DB:select(tbl_name, spec)
   a.is_sqltbl(self, tbl_name, "select")
-  spec = spec or {}
-  self.modified = false
-
-  local ret = {}
-  local types = self:schema(tbl_name)
-
-  self.modified = false
-
-  clib.wrap_stmts(self.conn, function()
+  return clib.wrap_stmts(self.conn, function()
+    local ret = {}
+    spec = spec or {}
     spec.select = spec.keys and spec.keys or spec.select
 
     local s = stmt:parse(self.conn, P.select(tbl_name, spec))
@@ -442,10 +410,11 @@ function DB:select(tbl_name, spec)
       table.insert(ret, stmt.kv(s))
     end)
     stmt.reset(s)
-    stmt.finalize(s)
+    if stmt.finalize(s) then
+      self.modified = false
+    end
+    return P.post_select(ret, self:schema(tbl_name))
   end)
-
-  return P.post_select(ret, types)
 end
 
 ---Create new sql-table object.
