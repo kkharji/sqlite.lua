@@ -418,17 +418,18 @@ end
 ---@param schema table tbl schema with extra info
 ---@return table pre processed rows
 M.pre_insert = function(rows, schema)
+  local res = {}
   rows = u.is_nested(rows) and rows or { rows }
-  for _, row in ipairs(rows) do
+  for i, row in ipairs(rows) do
     u.foreach(schema.req, function(k)
       a.missing_req_key(row[k], k)
     end)
-    u.foreach(row, function(k, v)
+    res[i] = u.map(row, function(v, k)
       local is_json = schema.types[k] == "luatable" or schema.types[k] == "json"
-      row[k] = is_json and json.encode(v) or M.sqlvalue(v)
+      return is_json and json.encode(v) or M.sqlvalue(v)
     end)
   end
-  return rows
+  return res
 end
 
 ---Postprocess data queried from a sql db. for now it is mainly used
