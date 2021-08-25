@@ -570,12 +570,12 @@ describe("table", function()
           }
         end
       end
-      -- eq({}, getmetatable(some))
+
       eq("function", type(some.insert_or_update), "should be registered as function")
       some.insert_or_update "ff"
-      -- eq("ff", some.get({ name = "ff" }).name)
+      eq("ff", some.where({ name = "ff" }).name)
       some.insert_or_update "ff"
-      -- eq(2, some.where({ name = "ff" }).count)
+      eq(2, some.where({ name = "ff" }).count)
     end)
   end)
 end)
