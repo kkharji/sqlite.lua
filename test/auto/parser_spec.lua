@@ -149,7 +149,7 @@ describe("parse", function()
     it("key-pair: nullable & unique", function()
       local defs = {
         id = true,
-        name = { "text", nullable = false, unique = true },
+        name = { "text", required = true, unique = true },
       }
       local passed = p.create("people", defs)
       local expected = "create table people(id integer not null primary key, name text unique not null)"
