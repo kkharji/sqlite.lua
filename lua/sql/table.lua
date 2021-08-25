@@ -24,9 +24,6 @@ local run = function(func, o)
 
     if o.tbl_schema and next(o.tbl_schema) ~= nil and o.tbl_exists == false then
       o.tbl_schema.ensure = u.if_nil(o.tbl_schema.ensure, true)
-      if not o.db.create then
-        error(vim.inspect(o.db))
-      end
       o.db:create(o.name, o.tbl_schema)
     end
 
@@ -65,26 +62,22 @@ function tbl:extend(db, name, schema)
     name, db, schema = db, nil, name
   end
 
-  local t = tbl:new(db, name, { schema = schema })
+  local t = self:new(db, name, { schema = schema })
   return setmetatable({
     set_db = function(o)
-      if not o then
-        error(vim.inspect(db))
-      end
       t.db = o
     end,
   }, {
-    __index = function(_, key, ...)
-      return type(t[key]) == "function" and function(...)
-        return t[key](t, ...)
-      end or t[key]
-    end,
-    __newindex = function(_, key, val)
-      if type(val) == "function" then
-        t["_" .. key] = t[key]
-        t[key] = val
-      else
-        t[key] = val
+    __index = function(o, key, ...)
+      if type(key) == "string" then
+        key = key:sub(1, 1) == "_" and key:sub(2, -1) or key
+        if type(t[key]) == "function" then
+          return function(...)
+            return t[key](t, ...)
+          end
+        else
+          return t[key]
+        end
       end
     end,
   })
@@ -335,8 +328,5 @@ function tbl:replace(rows)
 end
 
 tbl = setmetatable(tbl, { __call = tbl.extend })
--- local db = require("sql").new "/tmp/dbfds.sql"
--- local t = tbl:extend("fatable", { id = true, name = "text" })
--- t.set_db(db)
--- print(vim.inspect(t.db))
+
 return tbl

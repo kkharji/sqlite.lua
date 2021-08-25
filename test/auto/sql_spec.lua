@@ -772,8 +772,8 @@ describe("sql", function()
   end)
 
   describe(":extend", function()
-    local testrui = "/tmp/extend_db"
-    local testrui2 = "/tmp/extend_db2"
+    local testrui = "/tmp/extend_db_new"
+    local testrui2 = "/tmp/extend_db_new5"
     local ok, manager
 
     it("Initialize manager", function()
@@ -803,7 +803,7 @@ describe("sql", function()
     end)
 
     it("process opts and set sql table objects", function()
-      eq("/tmp/extend_db", manager.uri, "should set self.uri.")
+      eq("/tmp/extend_db_new", manager.uri, "should set self.uri.")
       eq(true, manager.closed, "should construct without openning connection.")
       eq(nil, manager.conn, "should not set connection object.")
       eq("boolean", type(manager.sqlite_opts.foreign_keys), "should have added opts to sqlite_opts.")
@@ -833,24 +833,28 @@ describe("sql", function()
         },
       }
 
-      local id = manager.projects.insert(sqlnvim)
-
-      eq("cdata", type(manager.conn), "should set connection object.")
-      eq(1, id, "should have returned id.")
+      eq(1, manager.projects.insert(sqlnvim), "should insert and return id.")
+      eq("cdata", type(manager.conn), "should set connection object after first call to sql api")
+      eq("table", type(manager.projects.where({ id = 1 }).objectives), "should return as table.")
+      eq("table", type(sqlnvim.objectives), "It shouldn't have mutated objectives table.")
       eq(true, manager.projects.remove(), "should remove after default insert.")
 
       function manager.projects.insert()
         return manager.projects._insert(sqlnvim)
       end
-
-      local id = manager.projects.insert()
-      eq(1, id, "should have returned id.")
-
       function manager.projects.get()
-        return manager.projects._get({ where = { title = sqlnvim.title } })[1].title
+        return manager.projects._get({ where = { title = sqlnvim.title } })[1]
+      end
+      function manager.projects.remove_objectives()
+        return manager.projects.update { where = { id = 1 }, set = { objectives = {} } }
       end
 
-      eq(sqlnvim.title, manager.projects.get(), "should have inserted sqlnvim project")
+      eq(1, manager.projects.insert(), "should have inserted and returned id.")
+
+      eq(sqlnvim.title, manager.projects.get().title, "should have inserted sqlnvim project")
+      eq(true, manager.projects.get().objectives ~= "")
+      eq(true, manager.projects.remove_objectives(), "should succeed at updating")
+      eq({}, manager.projects.get().objectives, "should return empty table")
     end)
 
     it("set a different name for sql db table, with access using extend field", function()
