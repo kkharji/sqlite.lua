@@ -335,8 +335,10 @@ local opts_to_str = function(tbl)
     unique = function()
       return "unique"
     end,
-    nullable = function()
-      return "not null"
+    required = function(v)
+      if v then
+        return "not null"
+      end
     end,
     default = function(v)
       return "default " .. v
@@ -352,30 +354,32 @@ local opts_to_str = function(tbl)
     end,
   }
 
+  f.primary = f.pk
+
+  local res = {}
+
+  if type(tbl[1]) == "string" then
+    res[1] = tbl[1]
+  end
+
   local check = function(type)
-    if tbl[type] then
-      tbl[#tbl + 1] = f[type](tbl[type])
-      tbl[type] = nil
+    local v = tbl[type]
+    if v then
+      res[#res + 1] = f[type](v)
     end
   end
 
   check "type"
   check "unique"
-  check "nullable"
+  check "required"
   check "pk"
+  check "primary"
   check "default"
   check "reference"
   check "on_update"
-  check "on_detach"
+  check "on_delete"
 
-  for k, v in pairs(tbl) do
-    if type(k) ~= "number" then
-      tbl[k] = nil
-      tbl[#tbl + 1] = f[k](v)
-    end
-  end
-
-  return tconcat(tbl, " ")
+  return tconcat(res, " ")
 end
 
 ---Parse table create statement
