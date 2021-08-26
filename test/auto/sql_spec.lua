@@ -3,10 +3,11 @@ local curl = require "plenary.curl"
 local eq = assert.are.same
 local sql = require "sql"
 local u = require "sql.utils"
+local luv = require "luv"
 
 describe("sql", function()
   local path = "/tmp/db.sqlite3"
-  vim.loop.fs_unlink(path)
+  luv.fs_unlink(path)
 
   describe("sqlfunctions:", function()
     local s = sql.lib
@@ -53,7 +54,7 @@ describe("sql", function()
       eq(true, db:close(), "should close")
       eq(true, db:isclose(), "should close")
       eq(true, P.exists(P.new(tmp)), "It should created the file")
-      vim.loop.fs_unlink(tmp)
+      luv.fs_unlink(tmp)
     end)
     it("should accept pargma options", function()
       local tmp = "/tmp/db5.db"
@@ -63,7 +64,7 @@ describe("sql", function()
       db:open()
       eq("persist", db:eval("pragma journal_mode")[1].journal_mode)
       db:close()
-      vim.loop.fs_unlink(tmp)
+      luv.fs_unlink(tmp)
     end)
   end)
 
@@ -99,7 +100,7 @@ describe("sql", function()
 
       eq(true, db:close(), "It should close connection successfully.")
       eq(true, P.exists(P.new(path)), "File should still exists")
-      vim.loop.fs_unlink(path)
+      luv.fs_unlink(path)
     end)
 
     it("returns data and time of creation", function()
@@ -115,7 +116,7 @@ describe("sql", function()
       })
       eq("persist", db:eval("pragma journal_mode")[1].journal_mode)
       db:close()
-      vim.loop.fs_unlink(tmp)
+      luv.fs_unlink(tmp)
     end)
 
     it("reopen db object.", function()
@@ -132,7 +133,7 @@ describe("sql", function()
 
       eq(path, db.uri, "uri should be identical to db.uri")
       local res = db:eval "select * from todo"
-      eq(row, res[1], vim.loop.fs_unlink(path), "local row should equal db:eval result.")
+      eq(row, res[1], luv.fs_unlink(path), "local row should equal db:eval result.")
     end)
   end)
 
@@ -151,7 +152,7 @@ describe("sql", function()
       eq(true, db.closed, "should be closed.")
       eq("1", res[1].title, "should pass.")
 
-      vim.loop.fs_unlink(path)
+      luv.fs_unlink(path)
     end)
 
     it("works without initalizing sql objects. (via uri)", function()
@@ -373,6 +374,7 @@ describe("sql", function()
     it("serialize lua table in sql column", function()
       db:eval "drop table test"
       db:eval "create table test(id integer, data luatable)"
+      db.tbl_schemas.test = nil
       db:insert("test", { id = 1, data = { "list", "of", "lines" } })
 
       local res = db:eval [[select * from test]]
@@ -548,7 +550,7 @@ describe("sql", function()
     local posts, users
 
     it(".... pre", function()
-      if vim.loop.fs_stat "/tmp/posts" == nil then
+      if luv.fs_stat "/tmp/posts" == nil then
         curl.get("https://jsonplaceholder.typicode.com/posts", { output = "/tmp/posts" })
         curl.get("https://jsonplaceholder.typicode.com/users", { output = "/tmp/users" })
       end
@@ -911,7 +913,7 @@ describe("sql", function()
       eq(3, db.st.count(), "should have inserted.")
     end)
 
-    vim.loop.fs_unlink(testrui)
-    vim.loop.fs_unlink(testrui2)
+    luv.fs_unlink(testrui)
+    luv.fs_unlink(testrui2)
   end)
 end)
