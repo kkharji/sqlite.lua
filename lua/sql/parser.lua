@@ -430,9 +430,6 @@ M.pre_insert = function(rows, schema)
   local res = {}
   rows = u.is_nested(rows) and rows or { rows }
   for i, row in ipairs(rows) do
-    -- u.foreach(schema.req, function(k)
-    --   a.missing_req_key(row[k], k)
-    -- end)
     res[i] = u.map(row, function(v, k)
       a.missing_req_key(v, schema[k].required)
       local is_json = schema[k].type == "luatable" or schema[k].type == "json"
