@@ -268,7 +268,7 @@ end
 ---@param tbl_name string: the table name.
 ---@return table list of keys or keys and their type.
 function DB:schema(tbl_name)
-  local sch = self:eval(string.format("pragma table_info(%s)", tbl_name))
+  local sch = self:eval(("pragma table_info(%s)"):format(tbl_name))
   local schema = {}
   for _, v in ipairs(type(sch) == "boolean" and {} or sch) do
     schema[v.name] = {
@@ -291,11 +291,10 @@ end
 ---@usage `db:insert("todos", { title = "new todo" })` single item.
 ---@usage `db:insert("items", {  { name = "a"}, { name = "b" }, { name = "c" } })` insert multiple items.
 ---@todo handle inconflict case
-function DB:insert(tbl_name, rows)
+function DB:insert(tbl_name, rows, schema)
   a.is_sqltbl(self, tbl_name, "insert")
   local ret_vals = {}
-  local info = self:schema(tbl_name, true)
-  local items = P.pre_insert(rows, info)
+  local items = P.pre_insert(rows, schema and schema or self:schema(tbl_name))
   local last_rowid
   clib.wrap_stmts(self.conn, function()
     for _, v in ipairs(items) do
@@ -325,22 +324,25 @@ end
 ---@usage `db:update("todos", { where = { id = "1" }, values = { action = "DONE" }})` update id 1 with the given keys
 ---@usage `db:update("todos", {{ where = { id = "1" }, values = { action = "DONE" }}, {...}, {...}})` multi updates.
 ---@usage `db:update("todos", { where = { project = "sql.nvim" }, values = { status = "later" } )` update multiple rows
-function DB:update(tbl_name, specs)
+function DB:update(tbl_name, specs, schema)
   a.is_sqltbl(self, tbl_name, "update")
 
   local ret_vals = {}
   if not specs then
     return false
   end
-  local info = self:schema(tbl_name, true)
+
   specs = u.is_nested(specs) and specs or { specs }
+  schema = schema and schema or self:schema(tbl_name)
+
+  local ret_val = nil
 
   clib.wrap_stmts(self.conn, function()
     for _, v in ipairs(specs) do
       v.set = v.set and v.set or v.values
       if self:select(tbl_name, { where = v.where })[1] then
         local s = stmt:parse(self.conn, P.update(tbl_name, { set = v.set, where = v.where }))
-        s:bind(P.pre_insert(v.set, info)[1])
+        s:bind(P.pre_insert(v.set, schema)[1])
         s:step()
         s:reset()
         s:bind_clear()
@@ -398,7 +400,7 @@ end
 ---@usage `db:select("todos", { where = { status = {"later", "paused"} })` get row with status value of later or paused
 ---@usage `db:select("todos", { limit = 5 })` get 5 items from todos table
 ---@return table[]
-function DB:select(tbl_name, spec)
+function DB:select(tbl_name, spec, schema)
   a.is_sqltbl(self, tbl_name, "select")
   return clib.wrap_stmts(self.conn, function()
     local ret = {}
@@ -413,7 +415,7 @@ function DB:select(tbl_name, spec)
     if stmt.finalize(s) then
       self.modified = false
     end
-    return P.post_select(ret, self:schema(tbl_name))
+    return P.post_select(ret, schema and schema or self:schema(tbl_name))
   end)
 end
 

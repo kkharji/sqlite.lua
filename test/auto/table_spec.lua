@@ -1,5 +1,6 @@
 local sql = require "sql"
 local tbl = require "sql.table"
+local luv = require "luv"
 local eq = assert.are.same
 local demo = {
   { a = 1, b = "lsf", c = "de" },
@@ -12,7 +13,7 @@ local demo = {
 }
 
 local dbpath = "/tmp/tbl_methods_test.sql"
-vim.loop.fs_unlink(dbpath)
+luv.fs_unlink(dbpath)
 local db = sql.new(dbpath)
 
 local seed = function()
@@ -24,7 +25,7 @@ end
 
 local clean = function()
   db:close()
-  vim.loop.fs_unlink(dbpath)
+  luv.fs_unlink(dbpath)
 end
 
 describe("table", function()

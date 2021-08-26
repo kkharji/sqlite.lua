@@ -22,9 +22,13 @@ local run = function(func, o)
       o.has_content = o.tbl_exists and o.db:eval(countsmt)[1]["count(*)"] ~= 0 or 0
     end
 
-    if o.tbl_schema and next(o.tbl_schema) ~= nil and o.tbl_exists == false then
+    if o.tbl_exists == false and o.tbl_schema and next(o.tbl_schema) ~= nil then
       o.tbl_schema.ensure = u.if_nil(o.tbl_schema.ensure, true)
       o.db:create(o.name, o.tbl_schema)
+    end
+
+    if type(o.db_schema) ~= "table" then
+      o.db_schema = o.db:schema(o.name)
     end
 
     return func()
@@ -173,7 +177,7 @@ function tbl:get(query)
   query = query or { query = { all = 1 } }
 
   return run(function()
-    local res = self.db:select(self.name, query)
+    local res = self.db:select(self.name, query, self.db_schema)
     return res
   end, self)
 end
@@ -201,7 +205,7 @@ function tbl:each(func, query)
   end
 
   return run(function()
-    local rows = self.db:select(self.name, query)
+    local rows = self.db:select(self.name, query, self.db_schema)
     if not rows then
       return false
     end
@@ -228,7 +232,7 @@ function tbl:map(func, query)
 
   return run(function()
     local res = {}
-    local rows = self.db:select(self.name, query)
+    local rows = self.db:select(self.name, query, self.db_schema)
     if not rows then
       return {}
     end
@@ -254,8 +258,9 @@ end
 ---@usage `local res = t1:sort({ where = {id = {32,12,35}}}, "age")` return rows sort by age
 ---@usage `local res = t1:sort({where = { ... }}, "age", function(a, b) return a > b end)` with custom function
 function tbl:sort(query, transform, comp)
+  query = query or { query = { all = 1 } }
   return run(function()
-    local res = self:get(query)
+    local res = self.db:select(self.name, query, self.db_schema)
     local f = transform or function(r)
       return r[u.keys(query.where)[1]]
     end
@@ -282,7 +287,7 @@ end
 ---@return integer: last inserted id
 function tbl:insert(rows)
   return run(function()
-    local succ, last_rowid = self.db:insert(self.name, rows)
+    local succ, last_rowid = self.db:insert(self.name, rows, self.db_schema)
     if succ then
       self.has_content = self:count() ~= 0 or false
     end
@@ -309,7 +314,7 @@ end
 ---@return boolean
 function tbl:update(specs)
   return run(function()
-    local succ = self.db:update(self.name, specs)
+    local succ = self.db:update(self.name, specs, self.db_schema)
     return succ
   end, self)
 end
@@ -322,7 +327,7 @@ end
 function tbl:replace(rows)
   return run(function()
     self.db:delete(self.name)
-    local succ = self.db:insert(self.name, rows)
+    local succ = self.db:insert(self.name, rows, self.db_schema)
     return succ
   end, self)
 end
