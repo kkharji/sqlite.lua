@@ -246,14 +246,13 @@ DB:drop({tbl_name})                                                *DB:drop()*
         `db:drop("todos")` drop table.
 
 
-DB:schema({tbl_name}, {info})                                    *DB:schema()*
+DB:schema({tbl_name})                                            *DB:schema()*
     Get {name} table schema, if table does not exist then return an empty
     table.
 
 
     Parameters: ~
-        {tbl_name} (string)   the table name.
-        {info}     (boolean)  whether to return table info. default false.
+        {tbl_name} (string)  the table name.
 
     Return: ~
         table list of keys or keys and their type.
