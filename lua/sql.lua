@@ -28,11 +28,16 @@ DB.__index = DB
 ---@field where table: key and value
 ---@field values table: key and value to updated.
 
----return now date
----@todo: decide whether using os.time and epoch time would be better.
----@return string osdate
-local created = function()
-  return os.date "%Y-%m-%d %H:%M:%S"
+---Get a table schema, or execute a given function to get it
+---@param schema table|nil
+---@param self SQLDatabase
+local get_schema = function(tbl_name, self)
+  local schema = self.tbl_schemas[tbl_name]
+  if schema then
+    return schema
+  end
+  self.tbl_schemas[tbl_name] = self:schema(tbl_name)
+  return self.tbl_schemas[tbl_name]
 end
 
 ---Creates a new sql.nvim object, without creating a connection to uri.
@@ -66,12 +71,13 @@ function DB:open(uri, opts, noconn)
       closed = noconn and true or false,
       sqlite_opts = opts,
       modified = false,
-      created = not noconn and created() or nil,
+      created = not noconn and os.date "%Y-%m-%d %H:%M:%S" or nil,
+      tbl_schemas = {},
     }, self)
   else
     if self.closed or self.closed == nil then
       self.conn = clib.connect(self.uri, self.sqlite_opts)
-      self.created = created()
+      self.created = os.date "%Y-%m-%d %H:%M:%S"
       self.closed = false
     end
     return self
@@ -261,6 +267,7 @@ end
 ---@usage `db:drop("todos")` drop table.
 ---@return boolean
 function DB:drop(tbl_name)
+  self.tbl_schemas[tbl_name] = nil
   return self:eval(P.drop(tbl_name))
 end
 
@@ -294,7 +301,8 @@ end
 function DB:insert(tbl_name, rows, schema)
   a.is_sqltbl(self, tbl_name, "insert")
   local ret_vals = {}
-  local items = P.pre_insert(rows, schema and schema or self:schema(tbl_name))
+  schema = schema and schema or get_schema(tbl_name, self)
+  local items = P.pre_insert(rows, schema)
   local last_rowid
   clib.wrap_stmts(self.conn, function()
     for _, v in ipairs(items) do
@@ -326,18 +334,15 @@ end
 ---@usage `db:update("todos", { where = { project = "sql.nvim" }, values = { status = "later" } )` update multiple rows
 function DB:update(tbl_name, specs, schema)
   a.is_sqltbl(self, tbl_name, "update")
-
-  local ret_vals = {}
   if not specs then
     return false
   end
 
-  specs = u.is_nested(specs) and specs or { specs }
-  schema = schema and schema or self:schema(tbl_name)
+  return clib.wrap_stmts(self.conn, function()
+    specs = u.is_nested(specs) and specs or { specs }
+    schema = schema and schema or get_schema(tbl_name, self)
 
-  local ret_val = nil
-
-  clib.wrap_stmts(self.conn, function()
+    local ret_val = nil
     for _, v in ipairs(specs) do
       v.set = v.set and v.set or v.values
       if self:select(tbl_name, { where = v.where })[1] then
@@ -348,15 +353,15 @@ function DB:update(tbl_name, specs, schema)
         s:bind_clear()
         s:finalize()
         a.should_modify(self:status())
+        ret_val = true
       else
-        local res = self:insert(tbl_name, u.tbl_extend("keep", v.set, v.where))
-        table.insert(ret_vals, res)
+        ret_val = self:insert(tbl_name, u.tbl_extend("keep", v.set, v.where))
+        a.should_modify(self:status())
       end
     end
+    self.modified = true
+    return ret_val
   end)
-
-  self.modified = true
-  return true
 end
 
 ---Delete a {tbl_name} row/rows based on the {specs} given. if no spec was given,
@@ -404,6 +409,8 @@ function DB:select(tbl_name, spec, schema)
   a.is_sqltbl(self, tbl_name, "select")
   return clib.wrap_stmts(self.conn, function()
     local ret = {}
+    schema = schema and schema or get_schema(tbl_name, self)
+
     spec = spec or {}
     spec.select = spec.keys and spec.keys or spec.select
 
@@ -415,7 +422,7 @@ function DB:select(tbl_name, spec, schema)
     if stmt.finalize(s) then
       self.modified = false
     end
-    return P.post_select(ret, schema and schema or self:schema(tbl_name))
+    return P.post_select(ret, schema)
   end)
 end
 

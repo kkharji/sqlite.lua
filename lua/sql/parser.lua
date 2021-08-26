@@ -431,8 +431,10 @@ M.pre_insert = function(rows, schema)
   rows = u.is_nested(rows) and rows or { rows }
   for i, row in ipairs(rows) do
     res[i] = u.map(row, function(v, k)
-      a.missing_req_key(v, schema[k].required)
-      local is_json = schema[k].type == "luatable" or schema[k].type == "json"
+      local column_def = schema[k]
+      a.should_have_column_def(column_def, k, schema)
+      a.missing_req_key(v, column_def)
+      local is_json = column_def.type == "luatable" or column_def.type == "json"
       return is_json and json.encode(v) or M.sqlvalue(v)
     end)
   end

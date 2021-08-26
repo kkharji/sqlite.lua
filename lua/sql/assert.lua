@@ -1,4 +1,5 @@
 local M = {}
+local u = require "sql.utils"
 local clib = require "sql.defs"
 
 --- Functions for asseting and erroring out :D
@@ -10,6 +11,7 @@ local errors = {
   failed_ops = "operation failed, ERRMSG: %s",
   missing_req_key = "(insert) missing a required key: %s",
   missing_db_object = "'%s' db object is not set. please set it with `tbl.set_db(db)` and try again.",
+  outdated_schema = "`%s` does not exists in {`%s`}, schema is outdateset `self.db.tbl_schemas[table_name]` or reload",
 }
 
 for key, value in pairs(errors) do
@@ -58,6 +60,12 @@ end
 M.missing_req_key = function(val, key)
   assert(val, errors.missing_req_key:format(key))
   return false
+end
+
+M.should_have_column_def = function(column_def, k, schema)
+  if not column_def then
+    error(errors.outdated_schema:format(k, u.join(u.keys(schema), ", ")))
+  end
 end
 
 M.should_have_db_object = function(db, name)
