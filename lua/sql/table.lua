@@ -4,6 +4,8 @@
 ---@tag table.lua
 local u = require "sql.utils"
 local a = require "sql.assert"
+local fmt = string.format
+local P = require "sql.parser"
 local luv = require "luv"
 
 ---@class SQLTable @Main table class
@@ -11,26 +13,57 @@ local luv = require "luv"
 local tbl = {}
 tbl.__index = tbl
 
+local check_for_auto_alter = function(o, valid_schema)
+  if not valid_schema then
+    return
+  end
+  local get = fmt("select * from sqlite_master where name = '%s'", o.name)
+  local stmt = o.tbl_exists and o.db:eval(get) or nil
+
+  if type(stmt) == "table" then
+    local origin, parsed = stmt[1].sql, P.create(o.name, o.tbl_schema, true)
+
+    if origin ~= parsed then
+      local ok, cmd = pcall(P.auto_alter, o.name, o.tbl_schema, o.db:schema(o.name))
+      if not ok then
+        print(cmd)
+      else
+        o.db:execute(cmd)
+        o.db_schema = o.db:schema(o.name)
+      end
+    end
+  end
+end
+
+---Run tbl functions
+---@param func function: wrapped function to run
+---@param o SQLTable
+---@return any
 local run = function(func, o)
   a.should_have_db_object(o.db, o.name)
   local exec = function()
+    local valid_schema = o.tbl_schema and next(o.tbl_schema) ~= nil
+
+    --- Run once pre-init
     if o.tbl_exists == nil then
       o.tbl_exists = o.db:exists(o.name)
-      local stat = o.db.uri and luv.fs_stat(o.db.uri) or nil
-      o.mtime = stat and stat.mtime.sec or nil
-      local countsmt = "select count(*) from " .. o.name
-      o.has_content = o.tbl_exists and o.db:eval(countsmt)[1]["count(*)"] ~= 0 or 0
+      o.mtime = o.db.uri and (luv.fs_stat(o.db.uri) or { mtime = {} }).mtime.sec or nil
+      o.has_content = o.tbl_exists and o.db:eval(fmt("select count(*) from %s", o.name))[1]["count(*)"] ~= 0 or 0
+      check_for_auto_alter(o, valid_schema)
     end
 
-    if o.tbl_exists == false and o.tbl_schema and next(o.tbl_schema) ~= nil then
+    --- Run when tbl doesn't exists anymore
+    if o.tbl_exists == false and valid_schema then
       o.tbl_schema.ensure = u.if_nil(o.tbl_schema.ensure, true)
       o.db:create(o.name, o.tbl_schema)
     end
 
-    if type(o.db_schema) ~= "table" then
+    --- Run once when we don't have schema
+    if not o.db_schema then
       o.db_schema = o.db:schema(o.name)
     end
 
+    --- Run wrapped function
     return func()
   end
 
@@ -96,24 +129,19 @@ end
 ---@usage `projects:schema({...})` mutate project table schema
 ---@todo do alter when updating the schema instead of droping it completely
 function tbl:schema(schema)
-  local res
   return run(function()
     local exists = self.db:exists(self.name)
     if not schema then -- TODO: or table is empty
-      if exists then
-        self.tbl_schema = self.db:schema(self.name)
-        return self.tbl_schema
-      else
-        return {}
-      end
-    elseif not exists or schema.ensure then
-      res = self.db:create(self.name, schema)
-      self.tbl_exists = res
-      return res
-    elseif not schema.ensure then -- maybe better to use alter
-      res = exists and self.db:drop(self.name) or true
+      return exists and self.db:schema(self.name) or {}
+    end
+    if not exists or schema.ensure then
+      self.tbl_exists = self.db:create(self.name, schema)
+      return self.tbl_exists
+    end
+    if not schema.ensure then -- maybe better to use alter
+      local res = exists and self.db:drop(self.name) or true
       res = res and self.db:create(self.name, schema) or false
-      self.tbl_schema = self.db:schema(self.name)
+      self.tbl_schema = schema
       return res
     end
   end, self)

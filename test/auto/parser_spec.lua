@@ -117,7 +117,7 @@ describe("parse", function()
         done = { "int", "not", "null", "default", 0 },
       }
       local expected =
-        "create table todos(created int, desc text, done int not null default 0, id integer primary key, title text)"
+        "CREATE TABLE todos(created int, desc text, done int not null default 0, id integer primary key, title text)"
       local passed = p.create("todos", defs)
       eq(expected, passed, "should be identical")
     end)
@@ -129,7 +129,7 @@ describe("parse", function()
         age = "int",
         ensure = true,
       }
-      local expected = "create table if not exists people(age int, id integer primary key, name text)"
+      local expected = "CREATE TABLE if not exists people(age int, id integer primary key, name text)"
       local passed = p.create("people", defs)
       eq(expected, passed, "should be identical")
     end)
@@ -141,7 +141,7 @@ describe("parse", function()
         age = "int",
         ensure = true,
       }
-      local expected = "create table if not exists people(age int, id integer not null primary key, name text)"
+      local expected = "CREATE TABLE if not exists people(age int, id integer not null primary key, name text)"
       local passed = p.create("people", defs)
       eq(expected, passed, "should be identical")
     end)
@@ -152,7 +152,7 @@ describe("parse", function()
         name = { "text", required = true, unique = true },
       }
       local passed = p.create("people", defs)
-      local expected = "create table people(id integer not null primary key, name text unique not null)"
+      local expected = "CREATE TABLE people(id integer not null primary key, name text unique not null)"
       eq(expected, passed, "should be identical")
     end)
     it("key-pair: default value", function()
@@ -161,7 +161,7 @@ describe("parse", function()
         name = { "text", default = "unknown" },
       }
       local passed = p.create("people", defs)
-      local expected = "create table people(id integer not null primary key, name text default unknown)"
+      local expected = "CREATE TABLE people(id integer not null primary key, name text default unknown)"
       eq(expected, passed, "should be identical")
     end)
 
@@ -171,7 +171,7 @@ describe("parse", function()
         name = { type = "text" },
       }
       local passed = p.create("people", defs)
-      local expected = "create table people(id integer not null primary key, name text)"
+      local expected = "CREATE TABLE people(id integer not null primary key, name text)"
       eq(expected, passed, "should be identical")
     end)
 
@@ -182,7 +182,7 @@ describe("parse", function()
       }
       local passed = p.create("people", defs)
       local expected = {
-        "create table people(",
+        "CREATE TABLE people(",
         "id integer primary key, ",
         "name text default noname",
         ")",
@@ -201,7 +201,7 @@ describe("parse", function()
       }
       local passed = p.create("people", defs)
       local expected = {
-        "create table people(",
+        "CREATE TABLE people(",
         "id integer not null primary key, ",
         "job_id integer references jobs(id), ",
         "name text default unknown",
@@ -223,7 +223,7 @@ describe("parse", function()
       }
       local passed = p.create("people", defs)
       local expected = {
-        "create table people(",
+        "CREATE TABLE people(",
         "id integer not null primary key, ",
         "job_id integer references jobs(id) on update cascade, ",
         "name text default unknown",
@@ -246,7 +246,7 @@ describe("parse", function()
       }
       local passed = p.create("people", defs)
       local expected = {
-        "create table people(",
+        "CREATE TABLE people(",
         "id integer not null primary key, ",
         "job_id integer references jobs(id) on update cascade on delete set null, ",
         "name text default unknown",
