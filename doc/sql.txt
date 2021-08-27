@@ -8,6 +8,18 @@ https://github.com/tami5/sql.nvim
   :h sql
   :h sql.table
 
+SqlSchemaKeyDefinition                                *SqlSchemaKeyDefinition*
+
+
+    Fields: ~
+        {cid}      (number)         column index
+        {name}     (string)         column key
+        {type}     (string)         column type
+        {required} (boolean)        whether the column key is required or not
+        {primary}  (boolean)        whether the column is a primary key
+        {default}  (string|number)  the default value of the column
+
+
 SQLDatabase                                                      *SQLDatabase*
     Main sql.nvim object.
 
@@ -174,6 +186,14 @@ DB:status()                                                      *DB:status()*
         SQLDatabaseStatus
 
 
+DB:execute({statement})                                         *DB:execute()*
+    Execute statement without any return
+
+
+    Parameters: ~
+        {statement} (string)
+
+
 DB:eval({statement}, {params})                                     *DB:eval()*
     Evaluates a sql {statement} and if there are results from evaluating it
     then the function returns list of row(s). Else, it returns a boolean
@@ -244,36 +264,6 @@ DB:drop({tbl_name})                                                *DB:drop()*
 
     Usage: ~
         `db:drop("todos")` drop table.
-
-
-DB:schema({tbl_name})                                            *DB:schema()*
-    Get {name} table schema, if table does not exist then return an empty
-    table.
-
-
-    Parameters: ~
-        {tbl_name} (string)  the table name.
-
-    Return: ~
-        table list of keys or keys and their type.
-
-
-DB:insert({tbl_name}, {rows})                                    *DB:insert()*
-    Insert to lua table into sqlite database table. returns true incase the
-    table was inserted successfully, and the last inserted row id.
-
-
-    Parameters: ~
-        {tbl_name} (string)  the table name
-        {rows}     (table)   rows to insert to the table.
-
-    Return: ~
-        boolean|integer
-
-    Usage: ~
-        `db:insert("todos", { title = "new todo" })` single item.
-        `db:insert("items", { { name = "a"}, { name = "b" }, { name = "c" }
-        })` insert multiple items.
 
 
 DB:update({tbl_name}, {specs})                                   *DB:update()*
