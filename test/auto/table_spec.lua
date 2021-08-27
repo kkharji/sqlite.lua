@@ -779,6 +779,37 @@ describe("table", function()
         },
       }
     end)
+
+    it("case: more than one rename with idetnical number of keys + default without required = true", function()
+      alter {
+        schema = {
+          before = { id = { type = "integer" }, name = { type = "text" }, age = { "integer" } },
+          after = {
+            id = { type = "integer", required = true },
+            some_name = { type = "text" },
+            since = {
+              type = "integer",
+              default = 20,
+            },
+          },
+        },
+        ----------------
+        data = {
+          before = {
+            { id = 1, name = "a", age = 5 },
+            { id = 2, name = "b", age = 6 },
+            { id = 3, name = "c", age = 7 },
+            { id = 4, name = "e" },
+          },
+          after = {
+            { id = 1, some_name = "a", since = 5 },
+            { id = 2, some_name = "b", since = 6 },
+            { id = 3, some_name = "c", since = 7 },
+            { id = 4, some_name = "e", since = 20 },
+          },
+        },
+      }
+    end)
     -- Failing
     --it("case: more than one rename with idetnical number of keys and additonal key", function()
     --  alter {

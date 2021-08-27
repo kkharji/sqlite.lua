@@ -469,8 +469,8 @@ M.auto_alter = function(tname, new, old, dry)
   local create = M.create(tmpname, new, true)
   local drop = M.drop(tname)
   local move = "INSERT INTO %s(%s) SELECT %s FROM %s"
-  local rename = ("ALTER TABLE %s RENAME TO %s;"):format(tmpname, tname)
-  local stmt = "PRAGMA foreign_keys=off; BEGIN TRANSACTION; %s COMMIT; PRAGMA foreign_keys=on"
+  local rename = ("ALTER TABLE %s RENAME TO %s"):format(tmpname, tname)
+  local stmt = "PRAGMA foreign_keys=off; BEGIN TRANSACTION; %s; COMMIT; PRAGMA foreign_keys=on"
 
   local keys = { new = u.okeys(new), old = u.okeys(old) }
   local idx = { new = {}, old = {} }
@@ -493,10 +493,20 @@ M.auto_alter = function(tname, new, old, dry)
     end
   end
 
+  local update_null_vals = {}
+  local update_null_stmt = "UPDATE %s SET %s=%s where %s IS NULL"
+  for key, def in pairs(new) do
+    if def.default and not def.required then
+      tinsert(update_null_vals, update_null_stmt:format(tmpname, key, def.default, key))
+    end
+  end
+  update_null_vals = #update_null_vals == 0 and "" or tconcat(update_null_vals, "; ")
+
   local new_keys, old_keys = tconcat(keys.new, ", "), tconcat(keys.old, ", ")
   local insert = move:format(tmpname, new_keys, old_keys, tname)
+  stmt = stmt:format(tconcat({ create, insert, update_null_vals, drop, rename }, "; "))
 
-  return not dry and stmt:format(tconcat({ create, insert, drop, rename }, "; ")) or insert
+  return not dry and stmt or insert
 end
 
 ---Pre-process data insert to sql db.
