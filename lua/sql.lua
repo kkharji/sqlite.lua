@@ -18,6 +18,14 @@ local t = require "sql.table"
 local P = require "sql.parser"
 local flags = clib.flags
 
+---@class SqlSchemaKeyDefinition
+---@field cid number: column index
+---@field name string: column key
+---@field type string: column type
+---@field required boolean: whether the column key is required or not
+---@field primary boolean: whether the column is a primary key
+---@field default string|number: the default value of the column
+
 ---@class SQLDatabase @Main sql.nvim object.
 ---@field uri string: database uri
 ---@field conn sqlite3_blob: sqlite connection c object.
@@ -177,6 +185,13 @@ function DB:status()
   }
 end
 
+---Execute statement without any return
+---@param statement string
+function DB:execute(statement)
+  local succ = clib.exec_stmt(self.conn, statement) == 0
+  return succ and succ or error(clib.last_errmsg(self.conn))
+end
+
 ---Evaluates a sql {statement} and if there are results from evaluating it then
 ---the function returns list of row(s). Else, it returns a boolean indecating
 ---whether the evaluation was successful. Optionally, the function accept
@@ -271,9 +286,15 @@ function DB:drop(tbl_name)
   return self:eval(P.drop(tbl_name))
 end
 
+---TODO: Support customization inspired by
+---https://simonwillison.net/2020/Sep/23/sqlite-advanced-alter-table/
+-- function DB:alter(tbl_name, new_schema, old_schema)
+--   return self:execute(P.alter(tbl_name, new_schema, old_schema or self:schema(tbl_name)))
+-- end
+
 ---Get {name} table schema, if table does not exist then return an empty table.
 ---@param tbl_name string: the table name.
----@return table list of keys or keys and their type.
+---@return table<string, SqlSchemaKeyDefinition>
 function DB:schema(tbl_name)
   local sch = self:eval(("pragma table_info(%s)"):format(tbl_name))
   local schema = {}
@@ -377,7 +398,7 @@ function DB:delete(tbl_name, where)
   a.is_sqltbl(self, tbl_name, "delete")
 
   if not where then
-    return clib.exec_stmt(self.conn, P.delete(tbl_name)) == 0 and true or clib.last_errmsg(self.conn)
+    return self:execute(P.delete(tbl_name))
   end
 
   where = u.is_nested(where) and where or { where }
