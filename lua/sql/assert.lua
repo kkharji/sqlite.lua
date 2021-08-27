@@ -12,7 +12,7 @@ local errors = {
   missing_req_key = "(insert) missing a required key: %s",
   missing_db_object = "'%s' db object is not set. please set it with `tbl.set_db(db)` and try again.",
   outdated_schema = "`%s` does not exists in {`%s`}, schema is outdateset `self.db.tbl_schemas[table_name]` or reload",
-  auto_alter_more_less_keys = "sql.nvim: schema defined ~= db schema. Please drop `%s` table first or set ensure to false.",
+  auto_alter_more_less_keys = "schema defined ~= db schema. Please drop `%s` table first or set ensure to false.",
 }
 
 for key, value in pairs(errors) do

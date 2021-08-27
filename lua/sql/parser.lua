@@ -425,40 +425,40 @@ M.drop = function(tbl)
   return "drop table " .. tbl
 end
 
-local same_type = function(new, old)
-  if not new or not old then
-    return false
-  end
+-- local same_type = function(new, old)
+--   if not new or not old then
+--     return false
+--   end
 
-  local tnew, told = type(new), type(old)
+--   local tnew, told = type(new), type(old)
 
-  if tnew == told then
-    if tnew == "string" then
-      return new == old
-    elseif tnew == "table" then
-      if new[1] and old[1] then
-        return (new[1] == old[1])
-      elseif new.type and old.type then
-        return (new.type == old.type)
-      elseif new.type and old[1] then
-        return (new.type == old[1])
-      elseif new[1] and old.type then
-        return (new[1] == old.type)
-      end
-    end
-  else
-    if tnew == "table" and told == "string" then
-      if new.type == old then
-        return true
-      elseif new[1] == old then
-        return true
-      end
-    elseif tnew == "string" and told == "table" then
-      return old.type == new or old[1] == new
-    end
-  end
-  -- return false
-end
+--   if tnew == told then
+--     if tnew == "string" then
+--       return new == old
+--     elseif tnew == "table" then
+--       if new[1] and old[1] then
+--         return (new[1] == old[1])
+--       elseif new.type and old.type then
+--         return (new.type == old.type)
+--       elseif new.type and old[1] then
+--         return (new.type == old[1])
+--       elseif new[1] and old.type then
+--         return (new[1] == old.type)
+--       end
+--     end
+--   else
+--     if tnew == "table" and told == "string" then
+--       if new.type == old then
+--         return true
+--       elseif new[1] == old then
+--         return true
+--       end
+--     elseif tnew == "string" and told == "table" then
+--       return old.type == new or old[1] == new
+--     end
+--   end
+--   -- return false
+-- end
 
 ---Alter a given table, only support changing key definition
 ---@param tname string
@@ -475,7 +475,7 @@ M.auto_alter = function(tname, new, old, dry)
   local keys = { new = u.okeys(new), old = u.okeys(old) }
   local idx = { new = {}, old = {} }
   local len = { new = #keys.new, old = #keys.old }
-  local facts = { extra_key = len.new > len.old, drop_key = len.old > len.new }
+  -- local facts = { extra_key = len.new > len.old, drop_key = len.old > len.new }
 
   a.auto_alter_should_have_equal_len(len.new, len.old, tname)
 
