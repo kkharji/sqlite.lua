@@ -3,7 +3,7 @@
 
 ## unreleased
 
-> 2021-08-24
+> 2021-08-26
 
 ### :art: Structure/Formating
 
@@ -14,6 +14,19 @@
 
 ### :boom: Breaking Changes
 
+<dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/a6bd3d1cae9d3a075bd3cf1d059a1b47e0fb5ecf"><tt>a6bd3d1</tt></a> sql.schema return detailed description of table.</summary>
+
+Not sure if this is a wise decision or not. But it beat having the
+schema returned given the key and the value the user written.
+
+</details></dd></dl>
+
+<dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/5b0710f50053f7e7a669f21b57979e4ef7c0aa14"><tt>5b0710f</tt></a> (parser) change nullable to require + refactor</summary>
+
+Additionally, make primary reference pk.
+
+</details></dd></dl>
+
 <dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/8bf61d2b548b0e8c102e6e36dd21beae133ddf63"><tt>8bf61d2</tt></a> change sugar function namespace to sql.lib</summary>
 
 changes access to sugar functions and store it in lib. It was weird typing out `sql...` and abbreviating it seems harder too.
@@ -22,6 +35,16 @@ changes access to sugar functions and store it in lib. It was weird typing out `
 
 
 ### :bug: Bug Fixes
+
+<dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/1c88610b902c122560fdd28683b101c755853a8e"><tt>1c88610</tt></a> extended tables referencing mutable db object + other fixes (<a href="https://github.com/tami5/sql.nvim/pull/00">#100</a>) (closes <a href="https://github.com/tami5/sql.nvim/issues/101"> #101</a>, <a href="https://github.com/tami5/sql.nvim/issues/99"> #99</a>)</summary>
+
+- `table.extend` reference db object instead of `db.extend`ed  object. 
+    this fix issue with calling methods that has been already modified by the user.
+- remove debug stuff
+- modify `table.extend` mechanism.
+- stop mutating insert/update source data when processing for `sql.insert`
+
+</details></dd></dl>
 
 - <a href="https://github.com/tami5/sql.nvim/commit/db026ee2f52234fd9f479178fc8349134d743c19"><tt>db026ee</tt></a> using sql functions makes parser setsome values to null (<a href="https://github.com/tami5/sql.nvim/pull/88">#88</a>) (closes <a href="https://github.com/tami5/sql.nvim/issues/87"> #87</a>)
 
@@ -97,7 +120,25 @@ Here goes nothing 🤞. Please CI don't fail me.
 </details></dd></dl>
 
 
+### :white_check_mark: Add/Update Test Cases
+
+- <a href="https://github.com/tami5/sql.nvim/commit/91b28f6c03c3d7daa2b0f953e9279d0ab32dcb09"><tt>91b28f6</tt></a> uncomment leftout tests
+
+
 ### :zap: Performance Improvements
+
+<dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/2424ea0f9f9287247a2785069438457fc5b7f5fe"><tt>2424ea0</tt></a> (sql) avoid executing sql.schema on crud</summary>
+
+follow up to d791f87
+
+</details></dd></dl>
+
+<dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/a46ee6b371a32fb1f1dd81f79fb8e6e8f07029f1"><tt>a46ee6b</tt></a> (table) avoid executing sql.schema on crud</summary>
+
+simple performance enhancement that should have been done from the start
+:smile:
+
+</details></dd></dl>
 
 <dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/1a36aa576f489792f61b9a62cc4b3e796d97d568"><tt>1a36aa5</tt></a> sql.extend handling of tables and connection. (<a href="https://github.com/tami5/sql.nvim/pull/96">#96</a>)</summary>
 
