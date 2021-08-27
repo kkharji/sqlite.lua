@@ -660,32 +660,33 @@ describe("table", function()
     local fmt = string.format
     local alter = function(case)
       local schema, data = case.schema, case.data
-      local tname = "A" .. string.char(math.random(97, 122)) .. string.char(math.random(97, 122))
+      local tname = case.tname and case.tname
+        or "A" .. string.char(math.random(97, 122)) .. string.char(math.random(97, 122))
 
       local new_table_cmd = P.auto_alter(tname, schema.after, schema.before, true)
 
-      local tbefore = tbl:extend(db, tname, schema.before)
+      local tbefore = db:table(tname, schema.before)
 
-      eq("number", type(tbefore.insert(data.before)), "should insert without issues.")
+      eq("number", type(tbefore:insert(data.before)), "should insert without issues.")
 
-      local ok, tafter = pcall(tbl.extend, tbl, db, tname, schema.after)
+      local ok, tafter = pcall(db.table, db, tname, schema.after)
 
       eq(true, ok, fmt('\n\n\n%s:\n\n   "%s"\n\n', tafter, new_table_cmd))
 
       eq(
         data.after,
-        tafter.get(),
+        tafter:get(),
         fmt(
           '\n\n\nnot matching expected data shape\n  "%s"\n\nTable Schema:%s',
           new_table_cmd,
-          vim.inspect(tafter.schema())
+          vim.inspect(tafter:schema())
         )
       )
 
-      eq(true, tbl.drop(tafter))
+      return tafter
     end
     it("case: simple rename with idetnical number of keys", function()
-      alter {
+      local t = alter {
         schema = {
           before = {
             id = { type = "integer" },
@@ -710,10 +711,11 @@ describe("table", function()
           },
         },
       }
+      eq(true, t:drop())
     end)
 
     it("case: simple rename with idetnical number of keys with a key turned to be required", function()
-      alter {
+      local t = alter {
         schema = {
           before = {
             id = { type = "integer" },
@@ -746,10 +748,12 @@ describe("table", function()
           },
         },
       }
+
+      eq(true, t:drop())
     end)
 
     it("case: more than one rename with idetnical number of keys", function()
-      alter {
+      local t = alter {
         schema = {
           before = { id = { type = "integer" }, name = { type = "text" }, age = { "integer" } },
           after = {
@@ -778,10 +782,12 @@ describe("table", function()
           },
         },
       }
+
+      eq(true, t:drop())
     end)
 
     it("case: more than one rename with idetnical number of keys + default without required = true", function()
-      alter {
+      local t = alter {
         schema = {
           before = { id = { type = "integer" }, name = { type = "text" }, age = { "integer" } },
           after = {
@@ -809,7 +815,166 @@ describe("table", function()
           },
         },
       }
+
+      eq(true, t:drop())
     end)
+
+    clean()
+    it("case: make a key adding foreign key", function()
+      local artists = db:table("artists", {
+        id = true,
+        name = "text",
+      })
+
+      artists:insert {
+        { id = 1, name = "Dean Martin" },
+        { id = 2, name = "Frank Sinatra" },
+        { id = 3, name = "Sammy Davis Jr." },
+      }
+
+      local tracks = alter {
+        tname = "tracks",
+        schema = {
+          before = {
+            id = "integer",
+            name = "text",
+            artist = "integer",
+          },
+          after = {
+            id = "integer",
+            name = "text",
+            artist = {
+              type = "integer",
+              reference = "artists.id",
+              -- on_update = "cascade",
+              -- on_delete = "cascade",
+            },
+          },
+        },
+        ----------------
+        data = {
+          before = {
+            { id = 11, name = "That's Amore", artist = 1 },
+            { id = 12, name = "Christmas Blues", artist = 1 },
+            { id = 13, name = "My Way", artist = 2 },
+          },
+          after = {
+            { id = 11, name = "That's Amore", artist = 1 },
+            { id = 12, name = "Christmas Blues", artist = 1 },
+            { id = 13, name = "My Way", artist = 2 },
+          },
+        },
+      }
+
+      local function try(self, action, args)
+        return pcall(self[action], self, args)
+      end
+      db:open()
+
+      tracks.try = try
+      artists.try = try
+
+      --- FIXME: shouldn't be called manually
+      db:execute "PRAGMA foreign_keys=on"
+      eq(1, db:eval("pragma foreign_keys")[1].foreign_keys)
+
+      eq(
+        false,
+        tracks:try("insert", { id = 4, name = "Mr. Bojangles", artist = 5 }),
+        "fails when artist with id of 5 doesn't exists"
+      )
+      eq(
+        true,
+        tracks:try("insert", { id = 4, name = "Mr. Bojangles" }),
+        "passes, since artist here in null and it is nullable in schema definition."
+      )
+      eq(
+        false,
+        tracks:try("update", { values = { artist = 5 }, where = { name = "Mr. Bojangles" } }),
+        "fails on update as well."
+      )
+      eq(true, artists:try("insert", { id = 4, name = "Sammy" }), "pases as it normall would without foregin keys")
+      eq(
+        true,
+        tracks:try("update", { values = { artist = 3 }, where = { name = "Mr. Bojangles" } }),
+        "passes, now that artist of id 3 is created"
+      )
+      eq(
+        true,
+        tracks:try("insert", { id = 15, name = "Boogie Woogie", artist = 3 }),
+        "passes since artist of id 3 is created"
+      )
+      eq(
+        false,
+        artists:try("remove", { where = { name = "Frank Sinatra" } }),
+        "fails due to existing rows refering to it."
+      )
+      eq(
+        true,
+        tracks:try("remove", { where = { name = "My Way" } }),
+        "pases, so that the artist refered by this row can be deleted."
+      )
+      eq(
+        true,
+        artists:try("remove", { where = { name = "Frank Sinatra" } }),
+        "passes since nothing referencing that artist is referencing it "
+      )
+      eq(
+        false,
+        artists:try("update", { values = { id = 4 }, where = { name = "Dean Martin" } }),
+        "fails since there is a record referencing it "
+      )
+      eq(
+        true,
+        tracks:try("remove", { name = { "That's Amore", "Christmas Blues" } }),
+        "passes, thus enabling the artist id above to be updated"
+      )
+
+      tracks = db:table("tracks", {
+        id = "integer",
+        name = "text",
+        artist = {
+          type = "integer",
+          reference = "artists.id",
+          on_update = "cascade",
+          on_delete = "cascade",
+        },
+      })
+
+      tracks.try = try
+      artists.try = try
+
+      tracks:insert {
+        { id = 11, name = "That's Amore", artist = 3 },
+        { id = 12, name = "Christmas Blues", artist = 1 },
+        { id = 13, name = "My Way", artist = 4 },
+        { id = 14, name = "Return to Me", artist = 1 },
+      }
+
+      ---FIXME: shouldn't even considered
+      -- db:execute "PRAGMA foreign_keys=on"
+      -- eq(1, db:eval("pragma foreign_keys")[1].foreign_keys)
+
+      eq(
+        true,
+        artists:try("update", { where = { name = "Dean Martin" }, set = { id = 100 } }),
+        "pases without issues since we have on_update cascade."
+      )
+      eq(
+        true,
+        next(tracks:get { where = { artist = 100 } }) ~= nil,
+        "all row referencing Dean Martin get updated .. got: "
+          .. vim.inspect(tracks:get {})
+          .. vim.inspect(artists:get())
+      )
+      eq(
+        true,
+        artists:try("remove", { where = { name = "Dean Martin" } }),
+        "pases without issues since we have on_delete cascade."
+      )
+      eq(true, next(tracks:get { where = { artist = 100 } }) == nil, "shouldn't be any rows referencing Dean Martin")
+    end)
+
     -- Failing
     --it("case: more than one rename with idetnical number of keys and additonal key", function()
     --  alter {
