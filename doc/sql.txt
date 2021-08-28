@@ -166,17 +166,6 @@ DB:status()                                                      *DB:status()*
         SQLDatabaseStatus
 
 
-DB:execute({statement})                                         *DB:execute()*
-    Execute statement without any return
-
-
-    Parameters: ~
-        {statement} (string)  statement to be executed
-
-    Return: ~
-        boolean: true if successful, error out if not.
-
-
 DB:eval({statement}, {params})                                     *DB:eval()*
     Evaluates a sql {statement} and if there are results from evaluating it
     then the function returns list of row(s). Else, it returns a boolean
@@ -201,6 +190,17 @@ DB:eval({statement}, {params})                                     *DB:eval()*
         value.
         `db:eval("insert into t(a, b) values(:a, :b)", {a = "1", b = 3})`
         evaluate with named arguments.
+
+
+DB:execute({statement})                                         *DB:execute()*
+    Execute statement without any return
+
+
+    Parameters: ~
+        {statement} (string)  statement to be executed
+
+    Return: ~
+        boolean: true if successful, error out if not.
 
 
 DB:exists({tbl_name})                                            *DB:exists()*
