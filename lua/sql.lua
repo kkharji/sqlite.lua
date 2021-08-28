@@ -24,13 +24,6 @@ local flags = clib.flags
 local DB = {}
 DB.__index = DB
 
----@alias SqliteActions
----| '"no action"' : Configuring "no action" means just that: when a parent key is modified or deleted from the database, no special action is taken.
----| '"restrict"' : The "RESTRICT" action means that the application is prohibited from deleting (for ON DELETE RESTRICT) or modifying (for ON UPDATE RESTRICT) a parent key when there exists one or more child keys mapped to it.
----| '"null"' : when a parent key is deleted (for ON DELETE SET NULL) or modified (for ON UPDATE SET NULL), the child key columns of all rows in the child table that mapped to the parent key are set to contain SQL NULL values.
----| '"default"' : "default" actions are similar to "null", except that each of the child key columns is set to contain the column's default value instead of NULL.
----| '"CASCADE"' : propagates the delete or update operation on the parent key to each dependent child key.
-
 ---@class SqlSchemaKeyDefinition
 ---@field cid number: column index
 ---@field name string: column key
@@ -39,8 +32,8 @@ DB.__index = DB
 ---@field primary boolean: whether the column is a primary key
 ---@field default string: the default value of the column
 ---@field reference string: table_name.column
----@field on_update SqliteActions
----@field on_delete SqliteActions
+---@field on_update SqliteActions: what to do when the key gets updated
+---@field on_delete SqliteActions: what to do when the key gets deleted
 
 ---@class SQLQuerySpec @Query spec that are passed to a number of db: methods.
 ---@field where table: key and value
@@ -297,12 +290,6 @@ function DB:drop(tbl_name)
   self.tbl_schemas[tbl_name] = nil
   return self:eval(P.drop(tbl_name))
 end
-
----TODO: Support customization inspired by
----https://simonwillison.net/2020/Sep/23/sqlite-advanced-alter-table/
--- function DB:alter(tbl_name, new_schema, old_schema)
---   return self:execute(P.alter(tbl_name, new_schema, old_schema or self:schema(tbl_name)))
--- end
 
 ---Get {name} table schema, if table does not exist then return an empty table.
 ---@param tbl_name string: the table name.
