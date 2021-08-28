@@ -41,10 +41,10 @@ DB.__index = DB
 
 ---@alias SqliteActions
 ---| '"no action"' : when a parent key is modified or deleted from the database, no special action is taken.
----| '"restrict"' : prohibites from deleting (for ON DELETE RESTRICT) or modifying (for ON UPDATE RESTRICT) a parent key when there exists one or more child keys mapped to it.
----| '"null"' : when a parent key is deleted or modified, the child key columns of all rows in the child table that mapped to the parent key are set to contain SQL NULL values.
----| '"default"' : "default" actions are similar to "null", except that each of the child key columns is set to contain the column's default value instead of NULL.
----| '"CASCADE"' : propagates the delete or update operation on the parent key to each dependent child key.
+---| '"restrict"' : prohibites from deleting/modifying a parent key when a child key is mapped to it.
+---| '"null"' : when a parent key is deleted/modified, the child key that mapped to the parent key gets set to null.
+---| '"default"' : similar to "null", except that sets to the column's default value instead of NULL.
+---| '"cascade"' : propagates the delete or update operation on the parent key to each dependent child key.
 
 ---Get a table schema, or execute a given function to get it
 ---@param schema table|nil
