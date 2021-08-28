@@ -16,6 +16,29 @@ SQLDatabase                                                      *SQLDatabase*
         {conn} (sqlite3_blob)  sqlite connection c object.
 
 
+SqlSchemaKeyDefinition                                *SqlSchemaKeyDefinition*
+
+
+    Fields: ~
+        {cid}       (number)         column index
+        {name}      (string)         column key
+        {type}      (string)         column type
+        {required}  (boolean)        whether the column key is required or not
+        {primary}   (boolean)        whether the column is a primary key
+        {default}   (string)         the default value of the column
+        {reference} (string)         table_name.column
+        {on_update} (SqliteActions)  what to do when the key gets updated
+        {on_delete} (SqliteActions)  what to do when the key gets deleted
+
+
+SQLQuerySpec                                                    *SQLQuerySpec*
+    Query spec that are passed to a number of db: methods.
+
+    Fields: ~
+        {where}  (table)  key and value
+        {values} (table)  key and value to updated.
+
+
 SQLDatabaseExt : SQLDatabase                                  *SQLDatabaseExt*
     Extend sql.nvim object
 
