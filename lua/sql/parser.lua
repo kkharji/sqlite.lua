@@ -464,13 +464,24 @@ end
 ---@param tname string
 ---@param new table<string, SqlSchemaKeyDefinition>
 ---@param old table<string, SqlSchemaKeyDefinition>
-M.auto_alter = function(tname, new, old, dry)
+M.table_alter_key_defs = function(tname, new, old, dry)
   local tmpname = tname .. "_new"
   local create = M.create(tmpname, new, true)
   local drop = M.drop(tname)
   local move = "INSERT INTO %s(%s) SELECT %s FROM %s"
   local rename = ("ALTER TABLE %s RENAME TO %s"):format(tmpname, tname)
-  local stmt = "PRAGMA foreign_keys=off; BEGIN TRANSACTION; %s; COMMIT; PRAGMA foreign_keys=on"
+  local with_foregin_key = false
+
+  for key, def in pairs(new) do
+    if def.reference then
+      with_foregin_key = true
+    end
+  end
+
+  local stmt = "PRAGMA foreign_keys=off; BEGIN TRANSACTION; %s; COMMIT;"
+  if not with_foregin_key then
+    stmt = stmt .. " PRAGMA foreign_keys=on"
+  end
 
   local keys = { new = u.okeys(new), old = u.okeys(old) }
   local idx = { new = {}, old = {} }

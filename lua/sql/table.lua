@@ -14,24 +14,43 @@ local tbl = {}
 tbl.__index = tbl
 
 local check_for_auto_alter = function(o, valid_schema)
+  local with_foregin_key = false
+
   if not valid_schema then
     return
   end
-  local get = fmt("select * from sqlite_master where name = '%s'", o.name)
-  local stmt = o.tbl_exists and o.db:eval(get) or nil
 
-  if type(stmt) == "table" then
-    local origin, parsed = stmt[1].sql, P.create(o.name, o.tbl_schema, true)
-
-    if origin ~= parsed then
-      local ok, cmd = pcall(P.auto_alter, o.name, o.tbl_schema, o.db:schema(o.name))
-      if not ok then
-        print(cmd)
-      else
-        o.db:execute(cmd)
-        o.db_schema = o.db:schema(o.name)
-      end
+  for k, def in pairs(o.tbl_schema) do
+    if type(def) == "table" and def.reference then
+      with_foregin_key = true
+      break
     end
+  end
+
+  local get = fmt("select * from sqlite_master where name = '%s'", o.name)
+
+  local stmt = o.tbl_exists and o.db:eval(get) or nil
+  if type(stmt) ~= "table" then
+    return
+  end
+
+  local origin, parsed = stmt[1].sql, P.create(o.name, o.tbl_schema, true)
+  if origin == parsed then
+    return
+  end
+
+  local ok, cmd = pcall(P.table_alter_key_defs, o.name, o.tbl_schema, o.db:schema(o.name))
+  if not ok then
+    print(cmd)
+    return
+  end
+
+  o.db:execute(cmd)
+  o.db_schema = o.db:schema(o.name)
+
+  if with_foregin_key then
+    o.db:execute "PRAGMA foreign_keys = ON;"
+    o.db.opts.foreign_keys = true
   end
 end
 
@@ -56,6 +75,7 @@ local run = function(func, o)
     if o.tbl_exists == false and valid_schema then
       o.tbl_schema.ensure = u.if_nil(o.tbl_schema.ensure, true)
       o.db:create(o.name, o.tbl_schema)
+      o.db_schema = o.db:schema(o.name)
     end
 
     --- Run once when we don't have schema

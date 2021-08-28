@@ -77,14 +77,14 @@ function DB:open(uri, opts, noconn)
       uri = uri,
       conn = not noconn and clib.connect(uri, opts) or nil,
       closed = noconn and true or false,
-      sqlite_opts = opts,
+      opts = opts or {},
       modified = false,
       created = not noconn and os.date "%Y-%m-%d %H:%M:%S" or nil,
       tbl_schemas = {},
     }, self)
   else
     if self.closed or self.closed == nil then
-      self.conn = clib.connect(self.uri, self.sqlite_opts)
+      self.conn = clib.connect(self.uri, self.opts)
       self.created = os.date "%Y-%m-%d %H:%M:%S"
       self.closed = false
     end
@@ -272,7 +272,8 @@ end
 function DB:create(tbl_name, schema)
   local req = P.create(tbl_name, schema)
   if req:match "reference" then
-    self:eval "pragma foreign_keys = ON"
+    self:execute "pragma foreign_keys = ON"
+    self.opts.foreign_keys = true
   end
   return self:eval(req)
 end
