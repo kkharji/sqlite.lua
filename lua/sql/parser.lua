@@ -473,7 +473,7 @@ M.table_alter_key_defs = function(tname, new, old, dry)
   local with_foregin_key = false
 
   for _, def in pairs(new) do
-    if def.reference then
+    if type(def) == "table" and def.reference then
       with_foregin_key = true
     end
   end
@@ -507,7 +507,7 @@ M.table_alter_key_defs = function(tname, new, old, dry)
   local update_null_vals = {}
   local update_null_stmt = "UPDATE %s SET %s=%s where %s IS NULL"
   for key, def in pairs(new) do
-    if def.default and not def.required then
+    if type(def) == "table" and def.default and not def.required then
       tinsert(update_null_vals, update_null_stmt:format(tmpname, key, def.default, key))
     end
   end
