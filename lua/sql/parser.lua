@@ -472,7 +472,7 @@ M.table_alter_key_defs = function(tname, new, old, dry)
   local rename = ("ALTER TABLE %s RENAME TO %s"):format(tmpname, tname)
   local with_foregin_key = false
 
-  for key, def in pairs(new) do
+  for _, def in pairs(new) do
     if def.reference then
       with_foregin_key = true
     end

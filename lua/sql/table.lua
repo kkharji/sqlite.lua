@@ -20,7 +20,7 @@ local check_for_auto_alter = function(o, valid_schema)
     return
   end
 
-  for k, def in pairs(o.tbl_schema) do
+  for _, def in pairs(o.tbl_schema) do
     if type(def) == "table" and def.reference then
       with_foregin_key = true
       break
