@@ -12,6 +12,7 @@ local errors = {
   missing_req_key = "(insert) missing a required key: %s",
   missing_db_object = "'%s' db object is not set. please set it with `tbl.set_db(db)` and try again.",
   outdated_schema = "`%s` does not exists in {`%s`}, schema is outdateset `self.db.tbl_schemas[table_name]` or reload",
+  auto_alter_more_less_keys = "schema defined ~= db schema. Please drop `%s` table first or set ensure to false.",
 }
 
 for key, value in pairs(errors) do
@@ -71,6 +72,12 @@ end
 M.should_have_db_object = function(db, name)
   assert(db ~= nil, errors.missing_db_object:format(name))
   return true
+end
+
+M.auto_alter_should_have_equal_len = function(len_new, len_old, tname)
+  if len_new - len_old ~= 0 then
+    error(errors.auto_alter_more_less_keys:format(tname))
+  end
 end
 
 return M

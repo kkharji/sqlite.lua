@@ -24,9 +24,27 @@ local flags = clib.flags
 local DB = {}
 DB.__index = DB
 
+---@class SqlSchemaKeyDefinition
+---@field cid number: column index
+---@field name string: column key
+---@field type string: column type
+---@field required boolean: whether the column key is required or not
+---@field primary boolean: whether the column is a primary key
+---@field default string: the default value of the column
+---@field reference string: table_name.column
+---@field on_update SqliteActions: what to do when the key gets updated
+---@field on_delete SqliteActions: what to do when the key gets deleted
+
 ---@class SQLQuerySpec @Query spec that are passed to a number of db: methods.
 ---@field where table: key and value
 ---@field values table: key and value to updated.
+
+---@alias SqliteActions
+---| '"no action"' : when a parent key is modified or deleted from the database, no special action is taken.
+---| '"restrict"' : prohibites from deleting/modifying a parent key when a child key is mapped to it.
+---| '"null"' : when a parent key is deleted/modified, the child key that mapped to the parent key gets set to null.
+---| '"default"' : similar to "null", except that sets to the column's default value instead of NULL.
+---| '"cascade"' : propagates the delete or update operation on the parent key to each dependent child key.
 
 ---Get a table schema, or execute a given function to get it
 ---@param schema table|nil
@@ -69,14 +87,14 @@ function DB:open(uri, opts, noconn)
       uri = uri,
       conn = not noconn and clib.connect(uri, opts) or nil,
       closed = noconn and true or false,
-      sqlite_opts = opts,
+      opts = opts or {},
       modified = false,
       created = not noconn and os.date "%Y-%m-%d %H:%M:%S" or nil,
       tbl_schemas = {},
     }, self)
   else
     if self.closed or self.closed == nil then
-      self.conn = clib.connect(self.uri, self.sqlite_opts)
+      self.conn = clib.connect(self.uri, self.opts)
       self.created = os.date "%Y-%m-%d %H:%M:%S"
       self.closed = false
     end
@@ -239,6 +257,14 @@ function DB:eval(statement, params)
   return res
 end
 
+---Execute statement without any return
+---@param statement string: statement to be executed
+---@return boolean: true if successful, error out if not.
+function DB:execute(statement)
+  local succ = clib.exec_stmt(self.conn, statement) == 0
+  return succ and succ or error(clib.last_errmsg(self.conn))
+end
+
 ---Check if a table with {tbl_name} exists in sqlite db
 ---@param tbl_name string: the table name.
 ---@usage `if not db:exists("todo_tbl") then error("...") end`
@@ -251,13 +277,14 @@ end
 ---Create a new sqlite db table with {name} based on {schema}. if {schema.ensure} then
 ---create only when it does not exists. similar to 'create if not exists'.
 ---@param tbl_name string: table name
----@param schema table: the table keys/column and their types
+---@param schema table<string, SqlSchemaKeyDefinition>
 ---@usage `db:create("todos", {id = {"int", "primary", "key"}, title = "text"})` create table with the given schema.
 ---@return boolean
 function DB:create(tbl_name, schema)
   local req = P.create(tbl_name, schema)
   if req:match "reference" then
-    self:eval "pragma foreign_keys = ON"
+    self:execute "pragma foreign_keys = ON"
+    self.opts.foreign_keys = true
   end
   return self:eval(req)
 end
@@ -273,7 +300,7 @@ end
 
 ---Get {name} table schema, if table does not exist then return an empty table.
 ---@param tbl_name string: the table name.
----@return table list of keys or keys and their type.
+---@return table<string, SqlSchemaKeyDefinition>
 function DB:schema(tbl_name)
   local sch = self:eval(("pragma table_info(%s)"):format(tbl_name))
   local schema = {}
@@ -377,7 +404,7 @@ function DB:delete(tbl_name, where)
   a.is_sqltbl(self, tbl_name, "delete")
 
   if not where then
-    return clib.exec_stmt(self.conn, P.delete(tbl_name)) == 0 and true or clib.last_errmsg(self.conn)
+    return self:execute(P.delete(tbl_name))
   end
 
   where = u.is_nested(where) and where or { where }

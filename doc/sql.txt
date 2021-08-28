@@ -16,6 +16,21 @@ SQLDatabase                                                      *SQLDatabase*
         {conn} (sqlite3_blob)  sqlite connection c object.
 
 
+SqlSchemaKeyDefinition                                *SqlSchemaKeyDefinition*
+
+
+    Fields: ~
+        {cid}       (number)         column index
+        {name}      (string)         column key
+        {type}      (string)         column type
+        {required}  (boolean)        whether the column key is required or not
+        {primary}   (boolean)        whether the column is a primary key
+        {default}   (string)         the default value of the column
+        {reference} (string)         table_name.column
+        {on_update} (SqliteActions)  what to do when the key gets updated
+        {on_delete} (SqliteActions)  what to do when the key gets deleted
+
+
 SQLQuerySpec                                                    *SQLQuerySpec*
     Query spec that are passed to a number of db: methods.
 
@@ -200,6 +215,17 @@ DB:eval({statement}, {params})                                     *DB:eval()*
         evaluate with named arguments.
 
 
+DB:execute({statement})                                         *DB:execute()*
+    Execute statement without any return
+
+
+    Parameters: ~
+        {statement} (string)  statement to be executed
+
+    Return: ~
+        boolean: true if successful, error out if not.
+
+
 DB:exists({tbl_name})                                            *DB:exists()*
     Check if a table with {tbl_name} exists in sqlite db
 
@@ -221,8 +247,8 @@ DB:create({tbl_name}, {schema})                                  *DB:create()*
 
 
     Parameters: ~
-        {tbl_name} (string)  table name
-        {schema}   (table)   the table keys/column and their types
+        {tbl_name} (string)                                 table name
+        {schema}   (table<string, SqlSchemaKeyDefinition>)
 
     Return: ~
         boolean
@@ -255,7 +281,7 @@ DB:schema({tbl_name})                                            *DB:schema()*
         {tbl_name} (string)  the table name.
 
     Return: ~
-        table list of keys or keys and their type.
+        table<string, SqlSchemaKeyDefinition>
 
 
 DB:insert({tbl_name}, {rows})                                    *DB:insert()*
@@ -375,8 +401,8 @@ tbl:new({db}, {name}, {schema})                                    *tbl:new()*
 
     Parameters: ~
         {db}     (SQLDatabase)
-        {name}   (string)       table name
-        {schema} (table)        table schema
+        {name}   (string)                                 table name
+        {schema} (table<string, SqlSchemaKeyDefinition>)
 
     Return: ~
         SQLTable
@@ -391,7 +417,7 @@ tbl:extend({db}, {name}, {schema})                              *tbl:extend()*
     Parameters: ~
         {db}     (SQLDatabase)
         {name}   (string)
-        {schema} (table)
+        {schema} (table<string, SqlSchemaKeyDefinition>)
 
     Return: ~
         SQLTableExt
@@ -404,10 +430,10 @@ tbl:schema({schema})                                            *tbl:schema()*
 
 
     Parameters: ~
-        {schema} (table)  table schema definition
+        {schema} (table<string, SqlSchemaKeyDefinition>)
 
     Return: ~
-        table table | boolean
+        table<string, SqlSchemaKeyDefinition> | boolean
 
     Usage: ~
         `projects:schema()` get project table schema.

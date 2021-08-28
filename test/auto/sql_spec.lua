@@ -834,7 +834,7 @@ describe("sql", function()
       eq("/tmp/extend_db_new", manager.uri, "should set self.uri.")
       eq(true, manager.closed, "should construct without openning connection.")
       eq(nil, manager.conn, "should not set connection object.")
-      eq("boolean", type(manager.sqlite_opts.foreign_keys), "should have added opts to sqlite_opts.")
+      eq("boolean", type(manager.opts.foreign_keys), "should have added opts to sqlite_opts.")
     end)
 
     it("creates self.projects and self.todos", function()

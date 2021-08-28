@@ -51,6 +51,14 @@ M.is_list = function(t)
   end
 end
 
+M.okeys = function(t)
+  local r = {}
+  for k in M.opairs(t) do
+    r[#r + 1] = k
+  end
+  return r
+end
+
 M.opairs = (function()
   local __gen_order_index = function(t)
     local orderedIndex = {}

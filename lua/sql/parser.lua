@@ -341,7 +341,12 @@ local opts_to_str = function(tbl)
       end
     end,
     default = function(v)
-      return "default " .. v
+      local str = "default "
+      if tbl["required"] then
+        return "on conflict replace " .. str .. v
+      else
+        return str .. v
+      end
     end,
     reference = function(v)
       return ("references %s"):format(v:gsub("%.", "(") .. ")")
@@ -386,13 +391,13 @@ end
 ---@param tbl string: table name
 ---@param defs table: keys and type pairs
 ---@return string: the create sql statement.
-M.create = function(tbl, defs)
+M.create = function(tbl, defs, ignore_ensure)
   if not defs then
     return
   end
   local items = {}
 
-  tbl = defs.ensure and "if not exists " .. tbl or tbl
+  tbl = (defs.ensure and not ignore_ensure) and "if not exists " .. tbl or tbl
 
   for k, v in u.opairs(defs) do
     if k ~= "ensure" then
@@ -410,7 +415,7 @@ M.create = function(tbl, defs)
       end
     end
   end
-  return ("create table %s(%s)"):format(tbl, tconcat(items, ", "))
+  return ("CREATE TABLE %s(%s)"):format(tbl, tconcat(items, ", "))
 end
 
 ---Parse table drop statement
@@ -420,7 +425,102 @@ M.drop = function(tbl)
   return "drop table " .. tbl
 end
 
----Preporcess data insert to sql db.
+-- local same_type = function(new, old)
+--   if not new or not old then
+--     return false
+--   end
+
+--   local tnew, told = type(new), type(old)
+
+--   if tnew == told then
+--     if tnew == "string" then
+--       return new == old
+--     elseif tnew == "table" then
+--       if new[1] and old[1] then
+--         return (new[1] == old[1])
+--       elseif new.type and old.type then
+--         return (new.type == old.type)
+--       elseif new.type and old[1] then
+--         return (new.type == old[1])
+--       elseif new[1] and old.type then
+--         return (new[1] == old.type)
+--       end
+--     end
+--   else
+--     if tnew == "table" and told == "string" then
+--       if new.type == old then
+--         return true
+--       elseif new[1] == old then
+--         return true
+--       end
+--     elseif tnew == "string" and told == "table" then
+--       return old.type == new or old[1] == new
+--     end
+--   end
+--   -- return false
+-- end
+
+---Alter a given table, only support changing key definition
+---@param tname string
+---@param new table<string, SqlSchemaKeyDefinition>
+---@param old table<string, SqlSchemaKeyDefinition>
+M.table_alter_key_defs = function(tname, new, old, dry)
+  local tmpname = tname .. "_new"
+  local create = M.create(tmpname, new, true)
+  local drop = M.drop(tname)
+  local move = "INSERT INTO %s(%s) SELECT %s FROM %s"
+  local rename = ("ALTER TABLE %s RENAME TO %s"):format(tmpname, tname)
+  local with_foregin_key = false
+
+  for _, def in pairs(new) do
+    if def.reference then
+      with_foregin_key = true
+    end
+  end
+
+  local stmt = "PRAGMA foreign_keys=off; BEGIN TRANSACTION; %s; COMMIT;"
+  if not with_foregin_key then
+    stmt = stmt .. " PRAGMA foreign_keys=on"
+  end
+
+  local keys = { new = u.okeys(new), old = u.okeys(old) }
+  local idx = { new = {}, old = {} }
+  local len = { new = #keys.new, old = #keys.old }
+  -- local facts = { extra_key = len.new > len.old, drop_key = len.old > len.new }
+
+  a.auto_alter_should_have_equal_len(len.new, len.old, tname)
+
+  for _, varient in ipairs { "new", "old" } do
+    for k, v in pairs(keys[varient]) do
+      idx[varient][v] = k
+    end
+  end
+
+  for i, v in ipairs(keys.new) do
+    if idx.old[v] and idx.old[v] ~= i then
+      local tmp = keys.old[i]
+      keys.old[i] = v
+      keys.old[idx.old[v]] = tmp
+    end
+  end
+
+  local update_null_vals = {}
+  local update_null_stmt = "UPDATE %s SET %s=%s where %s IS NULL"
+  for key, def in pairs(new) do
+    if def.default and not def.required then
+      tinsert(update_null_vals, update_null_stmt:format(tmpname, key, def.default, key))
+    end
+  end
+  update_null_vals = #update_null_vals == 0 and "" or tconcat(update_null_vals, "; ")
+
+  local new_keys, old_keys = tconcat(keys.new, ", "), tconcat(keys.old, ", ")
+  local insert = move:format(tmpname, new_keys, old_keys, tname)
+  stmt = stmt:format(tconcat({ create, insert, update_null_vals, drop, rename }, "; "))
+
+  return not dry and stmt or insert
+end
+
+---Pre-process data insert to sql db.
 ---for now it's mainly used to for parsing lua tables and boolean values.
 ---It throws when a schema key is required and doesn't exists.
 ---@param rows tinserted row.

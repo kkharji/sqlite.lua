@@ -2,6 +2,7 @@ local sql = require "sql"
 local tbl = require "sql.table"
 local luv = require "luv"
 local eq = assert.are.same
+local P = require "sql.parser"
 local demo = {
   { a = 1, b = "lsf", c = "de" },
   { a = 99, b = "sdj", c = "in" },
@@ -28,6 +29,7 @@ local clean = function()
   luv.fs_unlink(dbpath)
 end
 
+clean()
 describe("table", function()
   local t1, t2 = seed()
 
@@ -76,11 +78,10 @@ describe("table", function()
     it("should not rewrite schema.", function()
       local new2 = db:table "newtbl"
       eq(detailed_schema, new2:schema(), "should be identical")
-      eq(detailed_schema, new2.tbl_schema, "should be identical")
-
-      local new3 = db:table("newtbl", { schema = { id = "string" } })
-      eq(detailed_schema, new3:schema(), "should be identical")
-      eq(detailed_schema, new3.tbl_schema, "should be identical")
+      -- eq(detailed_schema, new2.tbl_schema, "should be identical")
+      -- local new3 = db:table("newtbl", { schema = { id = "string" } })
+      -- eq(detailed_schema, new3:schema(), "should be identical")
+      -- eq(detailed_schema, new3.tbl_schema, "should be identical")
     end)
   end)
 
@@ -456,6 +457,10 @@ describe("table", function()
       })
     end)
 
+    -- it("should fail", function()
+    --   eq({}, tracks:schema())
+    -- end)
+
     it("seed", function()
       artists:insert {
         { id = 1, name = "Dean Martin" },
@@ -616,6 +621,7 @@ describe("table", function()
         id = true,
         count = {
           type = "integer",
+          required = true,
           default = 0,
         },
       })
@@ -649,4 +655,323 @@ describe("table", function()
       eq(2, some.where({ name = "ff" }).count)
     end)
   end)
+
+  describe(":auto_alter", function()
+    local fmt = string.format
+    local alter = function(case)
+      local schema, data = case.schema, case.data
+      local tname = case.tname and case.tname
+        or "A" .. string.char(math.random(97, 122)) .. string.char(math.random(97, 122))
+
+      local new_table_cmd = P.table_alter_key_defs(tname, schema.after, schema.before, true)
+
+      local tbefore = db:table(tname, schema.before)
+
+      eq("number", type(tbefore:insert(data.before)), "should insert without issues.")
+
+      local ok, tafter = pcall(db.table, db, tname, schema.after)
+
+      eq(true, ok, fmt('\n\n\n%s:\n\n   "%s"\n\n', tafter, new_table_cmd))
+
+      eq(
+        data.after,
+        tafter:get(),
+        fmt(
+          '\n\n\nnot matching expected data shape\n  "%s"\n\nTable Schema:%s',
+          new_table_cmd,
+          vim.inspect(tafter:schema())
+        )
+      )
+
+      return tafter
+    end
+    it("case: simple rename with idetnical number of keys", function()
+      local t = alter {
+        schema = {
+          before = {
+            id = { type = "integer" },
+            name = { type = "text" },
+          },
+          after = {
+            id = { type = "integer", required = false },
+            some_name = { type = "text" },
+          },
+        },
+        ----------------
+        data = {
+          before = {
+            { id = 1, name = "a" },
+            { id = 2, name = "b" },
+            { id = 3, name = "c" },
+          },
+          after = {
+            { id = 1, some_name = "a" },
+            { id = 2, some_name = "b" },
+            { id = 3, some_name = "c" },
+          },
+        },
+      }
+      eq(true, t:drop())
+    end)
+
+    it("case: simple rename with idetnical number of keys with a key turned to be required", function()
+      local t = alter {
+        schema = {
+          before = {
+            id = { type = "integer" },
+            name = { type = "text" },
+            age = { "integer" },
+          },
+          after = {
+            id = { type = "integer", required = true },
+            some_name = { type = "text" },
+            age = {
+              type = "integer",
+              default = 20,
+              required = true,
+            },
+          },
+        },
+        ----------------
+        data = {
+          before = {
+            { id = 1, name = "a", age = 5 },
+            { id = 2, name = "b", age = 6 },
+            { id = 3, name = "c", age = 7 },
+            { id = 4, name = "e" },
+          },
+          after = {
+            { id = 1, some_name = "a", age = 5 },
+            { id = 2, some_name = "b", age = 6 },
+            { id = 3, some_name = "c", age = 7 },
+            { id = 4, some_name = "e", age = 20 },
+          },
+        },
+      }
+
+      eq(true, t:drop())
+    end)
+
+    it("case: more than one rename with idetnical number of keys", function()
+      local t = alter {
+        schema = {
+          before = { id = { type = "integer" }, name = { type = "text" }, age = { "integer" } },
+          after = {
+            id = { type = "integer", required = true },
+            some_name = { type = "text" },
+            since = {
+              type = "integer",
+              default = 20,
+              required = true,
+            },
+          },
+        },
+        ----------------
+        data = {
+          before = {
+            { id = 1, name = "a", age = 5 },
+            { id = 2, name = "b", age = 6 },
+            { id = 3, name = "c", age = 7 },
+            { id = 4, name = "e" },
+          },
+          after = {
+            { id = 1, some_name = "a", since = 5 },
+            { id = 2, some_name = "b", since = 6 },
+            { id = 3, some_name = "c", since = 7 },
+            { id = 4, some_name = "e", since = 20 },
+          },
+        },
+      }
+
+      eq(true, t:drop())
+    end)
+
+    it("case: more than one rename with idetnical number of keys + default without required = true", function()
+      local t = alter {
+        schema = {
+          before = { id = { type = "integer" }, name = { type = "text" }, age = { "integer" } },
+          after = {
+            id = { type = "integer", required = true },
+            some_name = { type = "text" },
+            since = {
+              type = "integer",
+              default = 20,
+            },
+          },
+        },
+        ----------------
+        data = {
+          before = {
+            { id = 1, name = "a", age = 5 },
+            { id = 2, name = "b", age = 6 },
+            { id = 3, name = "c", age = 7 },
+            { id = 4, name = "e" },
+          },
+          after = {
+            { id = 1, some_name = "a", since = 5 },
+            { id = 2, some_name = "b", since = 6 },
+            { id = 3, some_name = "c", since = 7 },
+            { id = 4, some_name = "e", since = 20 },
+          },
+        },
+      }
+
+      eq(true, t:drop())
+    end)
+
+    clean()
+    describe("case: foreign key:", function()
+      local artists = db:table("artists", {
+        id = true,
+        name = "text",
+      })
+
+      artists:insert {
+        { id = 1, name = "Dean Martin" },
+        { id = 2, name = "Frank Sinatra" },
+        { id = 3, name = "Sammy Davis Jr." },
+      }
+
+      local tracks
+      it("transforms to foregin key", function()
+        tracks = alter {
+          tname = "tracks",
+          schema = {
+            before = {
+              id = "integer",
+              name = "text",
+              artist = "integer",
+            },
+            after = {
+              id = "integer",
+              name = "text",
+              artist = {
+                type = "integer",
+                reference = "artists.id",
+                -- on_update = "cascade",
+                -- on_delete = "cascade",
+              },
+            },
+          },
+          ----------------
+          data = {
+            before = {
+              { id = 11, name = "That's Amore", artist = 1 },
+              { id = 12, name = "Christmas Blues", artist = 1 },
+              { id = 13, name = "My Way", artist = 2 },
+            },
+            after = {
+              { id = 11, name = "That's Amore", artist = 1 },
+              { id = 12, name = "Christmas Blues", artist = 1 },
+              { id = 13, name = "My Way", artist = 2 },
+            },
+          },
+        }
+      end)
+
+      it("pass sqlite.org tests", function()
+        local function try(self, action, args)
+          return pcall(self[action], self, args)
+        end
+
+        -- db:open()
+
+        tracks.try = try
+        artists.try = try
+
+        eq(
+          false,
+          tracks:try("insert", { id = 4, name = "Mr. Bojangles", artist = 5 }),
+          "fails when artist with id of 5 doesn't exists"
+        )
+        eq(
+          true,
+          tracks:try("insert", { id = 4, name = "Mr. Bojangles" }),
+          "passes, since artist here in null and it is nullable in schema definition."
+        )
+        eq(
+          false,
+          tracks:try("update", { values = { artist = 5 }, where = { name = "Mr. Bojangles" } }),
+          "fails on update as well."
+        )
+        eq(true, artists:try("insert", { id = 4, name = "Sammy" }), "pases as it normall would without foregin keys")
+        eq(
+          true,
+          tracks:try("update", { values = { artist = 3 }, where = { name = "Mr. Bojangles" } }),
+          "passes, now that artist of id 3 is created"
+        )
+        eq(
+          true,
+          tracks:try("insert", { id = 15, name = "Boogie Woogie", artist = 3 }),
+          "passes since artist of id 3 is created"
+        )
+        eq(
+          false,
+          artists:try("remove", { where = { name = "Frank Sinatra" } }),
+          "fails due to existing rows refering to it."
+        )
+        eq(
+          true,
+          tracks:try("remove", { where = { name = "My Way" } }),
+          "pases, so that the artist refered by this row can be deleted."
+        )
+        eq(
+          true,
+          artists:try("remove", { where = { name = "Frank Sinatra" } }),
+          "passes since nothing referencing that artist is referencing it "
+        )
+        eq(
+          false,
+          artists:try("update", { values = { id = 4 }, where = { name = "Dean Martin" } }),
+          "fails since there is a record referencing it "
+        )
+        eq(
+          true,
+          tracks:try("remove", { name = { "That's Amore", "Christmas Blues" } }),
+          "passes, thus enabling the artist id above to be updated"
+        )
+
+        tracks = db:table("tracks", {
+          id = "integer",
+          name = "text",
+          artist = {
+            type = "integer",
+            reference = "artists.id",
+            on_update = "cascade",
+            on_delete = "cascade",
+          },
+        })
+
+        tracks.try = try
+        artists.try = try
+
+        tracks:insert {
+          { id = 11, name = "That's Amore", artist = 3 },
+          { id = 12, name = "Christmas Blues", artist = 1 },
+          { id = 13, name = "My Way", artist = 4 },
+          { id = 14, name = "Return to Me", artist = 1 },
+        }
+
+        eq(
+          true,
+          artists:try("update", { where = { name = "Dean Martin" }, set = { id = 100 } }),
+          "pases without issues since we have on_update cascade."
+        )
+        eq(
+          true,
+          next(tracks:get { where = { artist = 100 } }) ~= nil,
+          "all row referencing Dean Martin get updated .. got: "
+            .. vim.inspect(tracks:get {})
+            .. vim.inspect(artists:get())
+        )
+        eq(
+          true,
+          artists:try("remove", { where = { name = "Dean Martin" } }),
+          "pases without issues since we have on_delete cascade."
+        )
+        eq(true, next(tracks:get { where = { artist = 100 } }) == nil, "shouldn't be any rows referencing Dean Martin")
+      end)
+    end)
+  end)
+  clean()
 end)
