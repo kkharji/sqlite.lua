@@ -277,7 +277,7 @@ end
 ---Create a new sqlite db table with {name} based on {schema}. if {schema.ensure} then
 ---create only when it does not exists. similar to 'create if not exists'.
 ---@param tbl_name string: table name
----@param schema table: the table keys/column and their types
+---@param schema table<string, SqlSchemaKeyDefinition>
 ---@usage `db:create("todos", {id = {"int", "primary", "key"}, title = "text"})` create table with the given schema.
 ---@return boolean
 function DB:create(tbl_name, schema)
