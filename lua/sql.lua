@@ -25,11 +25,11 @@ local DB = {}
 DB.__index = DB
 
 ---@alias SqliteActions
----| '"no action"'
----| '"restrict"'
----| '"null"'
----| '"default"'
----| '"CASCADE"'
+---| '"no action"' : Configuring "no action" means just that: when a parent key is modified or deleted from the database, no special action is taken.
+---| '"restrict"' : The "RESTRICT" action means that the application is prohibited from deleting (for ON DELETE RESTRICT) or modifying (for ON UPDATE RESTRICT) a parent key when there exists one or more child keys mapped to it.
+---| '"null"' : when a parent key is deleted (for ON DELETE SET NULL) or modified (for ON UPDATE SET NULL), the child key columns of all rows in the child table that mapped to the parent key are set to contain SQL NULL values.
+---| '"default"' : "default" actions are similar to "null", except that each of the child key columns is set to contain the column's default value instead of NULL.
+---| '"CASCADE"' : propagates the delete or update operation on the parent key to each dependent child key.
 
 ---@class SqlSchemaKeyDefinition
 ---@field cid number: column index
@@ -37,7 +37,7 @@ DB.__index = DB
 ---@field type string: column type
 ---@field required boolean: whether the column key is required or not
 ---@field primary boolean: whether the column is a primary key
----@field default string|number: the default value of the column
+---@field default string: the default value of the column
 ---@field reference string: table_name.column
 ---@field on_update SqliteActions
 ---@field on_delete SqliteActions
@@ -195,14 +195,6 @@ function DB:status()
   }
 end
 
----Execute statement without any return
----@param statement string: statement to be executed
----@return boolean: true if successful, error out if not.
-function DB:execute(statement)
-  local succ = clib.exec_stmt(self.conn, statement) == 0
-  return succ and succ or error(clib.last_errmsg(self.conn))
-end
-
 ---Evaluates a sql {statement} and if there are results from evaluating it then
 ---the function returns list of row(s). Else, it returns a boolean indecating
 ---whether the evaluation was successful. Optionally, the function accept
@@ -263,6 +255,14 @@ function DB:eval(statement, params)
   self.modified = true
 
   return res
+end
+
+---Execute statement without any return
+---@param statement string: statement to be executed
+---@return boolean: true if successful, error out if not.
+function DB:execute(statement)
+  local succ = clib.exec_stmt(self.conn, statement) == 0
+  return succ and succ or error(clib.last_errmsg(self.conn))
 end
 
 ---Check if a table with {tbl_name} exists in sqlite db
