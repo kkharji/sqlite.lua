@@ -10,12 +10,26 @@
 ---@brief ]]
 ---@tag sql.lua
 
+local clib = require "sql.defs"
+local stmt = require "sql.stmt"
+local u = require "sql.utils"
+local a = require "sql.assert"
+local t = require "sql.table"
+local P = require "sql.parser"
+local flags = clib.flags
+
+---@class SQLDatabase @Main sql.nvim object.
+---@field uri string: database uri
+---@field conn sqlite3_blob: sqlite connection c object.
+local DB = {}
+DB.__index = DB
+
 ---@alias SqliteActions
----| '"no action"' : Configuring "no action" means just that: when a parent key is modified or deleted from the database, no special action is taken.
----| '"restrict"' : The "RESTRICT" action means that the application is prohibited from deleting (for ON DELETE RESTRICT) or modifying (for ON UPDATE RESTRICT) a parent key when there exists one or more child keys mapped to it.
----| '"null"' : when a parent key is deleted (for ON DELETE SET NULL) or modified (for ON UPDATE SET NULL), the child key columns of all rows in the child table that mapped to the parent key are set to contain SQL NULL values.
----| '"default"' : "default" actions are similar to "null", except that each of the child key columns is set to contain the column's default value instead of NULL.
----| '"CASCADE"' : propagates the delete or update operation on the parent key to each dependent child key.
+---| '"no action"'
+---| '"restrict"'
+---| '"null"'
+---| '"default"'
+---| '"CASCADE"'
 
 ---@class SqlSchemaKeyDefinition
 ---@field cid number: column index
@@ -31,20 +45,6 @@
 ---@class SQLQuerySpec @Query spec that are passed to a number of db: methods.
 ---@field where table: key and value
 ---@field values table: key and value to updated.
-
-local clib = require "sql.defs"
-local stmt = require "sql.stmt"
-local u = require "sql.utils"
-local a = require "sql.assert"
-local t = require "sql.table"
-local P = require "sql.parser"
-local flags = clib.flags
-
----@class SQLDatabase @Main sql.nvim object.
----@field uri string: database uri
----@field conn sqlite3_blob: sqlite connection c object.
-local DB = {}
-DB.__index = DB
 
 ---Get a table schema, or execute a given function to get it
 ---@param schema table|nil
