@@ -8,32 +8,12 @@ https://github.com/tami5/sql.nvim
   :h sql
   :h sql.table
 
-SqlSchemaKeyDefinition                                *SqlSchemaKeyDefinition*
-
-
-    Fields: ~
-        {cid}      (number)         column index
-        {name}     (string)         column key
-        {type}     (string)         column type
-        {required} (boolean)        whether the column key is required or not
-        {primary}  (boolean)        whether the column is a primary key
-        {default}  (string|number)  the default value of the column
-
-
 SQLDatabase                                                      *SQLDatabase*
     Main sql.nvim object.
 
     Fields: ~
         {uri}  (string)        database uri
         {conn} (sqlite3_blob)  sqlite connection c object.
-
-
-SQLQuerySpec                                                    *SQLQuerySpec*
-    Query spec that are passed to a number of db: methods.
-
-    Fields: ~
-        {where}  (table)  key and value
-        {values} (table)  key and value to updated.
 
 
 SQLDatabaseExt : SQLDatabase                                  *SQLDatabaseExt*
@@ -191,7 +171,10 @@ DB:execute({statement})                                         *DB:execute()*
 
 
     Parameters: ~
-        {statement} (string)
+        {statement} (string)  statement to be executed
+
+    Return: ~
+        boolean: true if successful, error out if not.
 
 
 DB:eval({statement}, {params})                                     *DB:eval()*
@@ -241,8 +224,8 @@ DB:create({tbl_name}, {schema})                                  *DB:create()*
 
 
     Parameters: ~
-        {tbl_name} (string)  table name
-        {schema}   (table)   the table keys/column and their types
+        {tbl_name} (string)                                 table name
+        {schema}   (table<string, SqlSchemaKeyDefinition>)
 
     Return: ~
         boolean
@@ -365,8 +348,8 @@ tbl:new({db}, {name}, {schema})                                    *tbl:new()*
 
     Parameters: ~
         {db}     (SQLDatabase)
-        {name}   (string)       table name
-        {schema} (table)        table schema
+        {name}   (string)                                 table name
+        {schema} (table<string, SqlSchemaKeyDefinition>)
 
     Return: ~
         SQLTable
@@ -381,7 +364,7 @@ tbl:extend({db}, {name}, {schema})                              *tbl:extend()*
     Parameters: ~
         {db}     (SQLDatabase)
         {name}   (string)
-        {schema} (table)
+        {schema} (table<string, SqlSchemaKeyDefinition>)
 
     Return: ~
         SQLTableExt
@@ -394,10 +377,10 @@ tbl:schema({schema})                                            *tbl:schema()*
 
 
     Parameters: ~
-        {schema} (table)  table schema definition
+        {schema} (table<string, SqlSchemaKeyDefinition>)
 
     Return: ~
-        table table | boolean
+        table<string, SqlSchemaKeyDefinition> | boolean
 
     Usage: ~
         `projects:schema()` get project table schema.
