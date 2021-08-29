@@ -19,7 +19,7 @@ local clib_path = path
 
 local clib = ffi.load(clib_path)
 
----@class sqldb.flags
+---@class sqldb.flags @sqlite3 error flag
 M.flags = {
   -- Result codes
   ["ok"] = 0,
@@ -580,7 +580,6 @@ ffi.cdef [[
 
 ---@class sqlite3 @sqlite3 db object
 ---@class sqldb.types.blob @sqlite3 blob object
----@class sqldb.flags @sqlite3 error flag
 
 M.to_str = function(ptr, len)
   if ptr == nil then

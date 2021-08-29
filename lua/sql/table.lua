@@ -113,7 +113,7 @@ end
 ---@param db sqldb
 ---@param name string
 ---@param schema table<string, sqltbl.key>
----@return sqltbl
+---@return sqltbl.ext
 function tbl:extend(db, name, schema)
   if not schema and type(db) == "string" then
     name, db, schema = db, nil, name
@@ -215,17 +215,17 @@ function tbl:count()
 end
 
 ---Query the table and return results.
----@param query table: query.where, query.keys, query.join
+---@param query sqlquery.select
 ---@return table
 ---@usage `projects:get()` get a list of all rows in project table.
 ---@usage `projects:get({ where = { status = "pending", client = "neovim" }})`
 ---@usage `projects:get({ where = { status = "done" }, limit = 5})` get the last 5 done projects
 ---@see DB:select
 function tbl:get(query)
-  query = query or { query = { all = 1 } }
+  -- query = query or { query = { all = 1 } }
 
   return run(function()
-    local res = self.db:select(self.name, query, self.db_schema)
+    local res = self.db:select(self.name, query or { query = { all = 1 } }, self.db_schema)
     return res
   end, self)
 end
@@ -366,12 +366,6 @@ function tbl:update(specs)
     return succ
   end, self)
 end
-
--- DB:update({
---   id = 1,
--- }, {
---   actions = "todo",
--- })
 
 ---replaces table content with {rows}
 ---@param rows table: a row or a group of rows

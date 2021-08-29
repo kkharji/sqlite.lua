@@ -21,6 +21,8 @@ local flags = clib.flags
 ---@class sqldb @Main sql.nvim object.
 ---@field uri string: database uri
 ---@field conn sqldb.types.blob: sqlite connection c object.
+---@field db sqldb: fallback when the user overwrite @sqldb methods (extended only).
+
 local DB = {}
 DB.__index = DB
 
@@ -97,9 +99,6 @@ function DB:open(uri, opts, noconn)
     return self
   end
 end
-
----@class sqldb: sqldb @Extend sql.nvim object
----@field db sqldb: fallback when the user overwrite @sqldb methods.
 
 ---Use to Extend sqldb Object with extra sugar syntax and api.
 ---@param sql sqldb
@@ -347,14 +346,14 @@ function DB:insert(tbl_name, rows, schema)
   return succ, last_rowid
 end
 
----@class sqldb.query.update @Query spec that are passed to a number of db: methods.
+---@class sqlquery.update @Query spec that are passed to a number of db: methods.
 ---@field where table: filter down values using key values.
 ---@field set table: key and value to updated.
 
 ---Update table row with where closure and list of values
 ---returns true incase the table was updated successfully.
 ---@param tbl_name string: the name of the db table.
----@param specs sqldb.query.update | sqldb.query.update[]
+---@param specs sqlquery.update | sqlquery.update[]
 ---@return boolean
 ---@usage `db:update("todos", { where = { id = "1" }, values = { action = "DONE" }})` update id 1 with the given keys
 ---@usage `db:update("todos", {{ where = { id = "1" }, values = { action = "DONE" }}, {...}, {...}})` multi updates.
@@ -391,13 +390,13 @@ function DB:update(tbl_name, specs, schema)
   end)
 end
 
----@alias sqldb.query.delete table<string, string>
+---@alias sqlquery.delete table<string, string>
 ---TOOD: support querys with `and`
 
 ---Delete a {tbl_name} row/rows based on the {specs} given. if no spec was given,
 ---then all the {tbl_name} content will be deleted.
 ---@param tbl_name string: the name of the db table.
----@param where sqldb.query.delete: key value pair to delete matching rows,
+---@param where sqlquery.delete: key value pair to delete matching rows,
 ---@return boolean: true if operation is successfully, false otherwise.
 ---@usage `db:delete("todos")` delete todos table content
 ---@usage `db:delete("todos", { id = 1 })` delete row that has id as 1
@@ -427,13 +426,14 @@ function DB:delete(tbl_name, where)
   return true
 end
 
----@class sqldb.query.select @Query spec that are passed to select method
+---@class sqlquery.select @Query spec that are passed to select method
 ---@field where table: filter down values using key values.
 ---@field keys table: keys to include. (default all)
+---@field join table: table_name = foreign key, foreign_table_name = primary key
 
 ---Query from a table with where and join options
 ---@param tbl_name string: the name of the db table to select on
----@param spec sqldb.query_select
+---@param spec sqlquery.select
 ---@usage `db:select("todos")` get everything
 ---@usage `db:select("todos", { where = { id = 1 })` get row with id of 1
 ---@usage `db:select("todos", { where = { status = {"later", "paused"} })` get row with status value of later or paused

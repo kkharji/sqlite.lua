@@ -60,7 +60,11 @@ function Stmt:finalize()
   self.finalized = self.errcode == flags.ok
   assert(
     self.finalized,
-    string.format("sql.nvim: couldn't finalize statement, ERRMSG: %s", sqlite.to_str(sqlite.errmsg(self.conn)))
+    string.format(
+      "sql.nvim: couldn't finalize statement, ERRMSG: %s stmt = (%s)",
+      sqlite.to_str(sqlite.errmsg(self.conn)),
+      self.str
+    )
   )
   return self.finalized
 end
