@@ -42,7 +42,7 @@ local ts = function(ts)
   else
     str = "'%s'"
   end
-  return str:format(ts)
+  return str:format(ts or "now")
 end
 
 ---Format date according {format}
