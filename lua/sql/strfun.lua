@@ -35,6 +35,16 @@ customstr = function(str)
   return str
 end
 
+local ts = function(ts)
+  local str = ""
+  if ts ~= "now" and (type(ts) == "string" and not ts:match "%d") then
+    str = "%s"
+  else
+    str = "'%s'"
+  end
+  return str:format(ts)
+end
+
 ---Format date according {format}
 ---@param format string the format
 ---     %d 	day of month: 00
@@ -56,8 +66,8 @@ end
 ---@usage `sqlstrftime('%H %M %S %s','now')` -> 12 40 18 1414759218
 ---@usage `sqlstrftime('%s','now') - strftime('%s','2014-10-07 02:34:56')` -> 2110042
 M.strftime = function(format, timestring)
-  local str = [[strftime('%s', '%s')]]
-  return customstr(str:format(format, timestring or "now"))
+  local str = [[strftime('%s', %s)]]
+  return customstr(str:format(format, ts(timestring)))
 end
 
 ---Return the number of days since noon in Greenwich on November 24, 4714 B.C.
@@ -66,12 +76,8 @@ end
 ---@usage `sqljulianday('now')` -> ...
 ---@usage `sqljulianday('now') - julianday('1947-08-15')` -> 24549.5019360879
 M.julianday = function(timestring)
-  local str = "julianday('%s')"
-  timestring = timestring or "now"
-  if timestring ~= "now" and (type(timestring) == "string" and not timestring:match "%d") then
-    str = "julianday(%s)"
-  end
-  return customstr(str:format(timestring))
+  local str = "julianday(%s)"
+  return customstr(str:format(ts(timestring)))
 end
 
 ---Returns date as "YYYY-MM-DD HH:MM:SS"

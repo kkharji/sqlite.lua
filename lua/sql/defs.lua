@@ -19,7 +19,7 @@ local clib_path = path
 
 local clib = ffi.load(clib_path)
 
--- Constants
+---@class sqldb.flags
 M.flags = {
   -- Result codes
   ["ok"] = 0,
@@ -579,8 +579,8 @@ ffi.cdef [[
 ]]
 
 ---@class sqlite3 @sqlite3 db object
----@class sqlite3_blob @sqlite3 blob object
----@class sqlite3_flag @sqlite3 error flag
+---@class sqldb.types.blob @sqlite3 blob object
+---@class sqldb.flags @sqlite3 error flag
 
 M.to_str = function(ptr, len)
   if ptr == nil then
@@ -649,7 +649,7 @@ end
 ---Create new connection and modify `sqldb` object
 ---@param uri string
 ---@param sqldb table
----@return sqlite3_blob*
+---@return sqldb.types.blob*
 ---@TODO: support open_v2 to enable control over how the database file is opened.
 M.connect = function(uri, opts)
   opts = opts or {}

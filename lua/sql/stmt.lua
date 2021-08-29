@@ -10,10 +10,10 @@ Stmt.__index = Stmt
 ---@tag Stmt.lua
 
 ---Create new object for {conn} to deal with sqlite {Stmt}
----@class Stmt @object to deal with sqlite statements
+---@class sqldb.stmt @object to deal with sqlite statements
 ---@param conn sqlite3: the database connection.
 ---@param str string: the sqlite statement to be parsed.
----@return Stmt: collection of methods, applicable to the parsed statement.
+---@return sqldb.stmt: collection of methods, applicable to the parsed statement.
 ---@see Stmt:__parse
 ---@usage local Stmt = Stmt:parse(db, "insert into todos (title,desc) values(:title, :desc)")
 function Stmt:parse(conn, str)
@@ -340,7 +340,7 @@ end
 
 ---Binds a blob at {idx} with {size}
 ---@param idx number: index starting at 1
----@param pointer sqlite3_blob: blob to bind
+---@param pointer sqldb.types.blob: blob to bind
 ---@param size number: pointer size
 ---@return sqlite_flag
 function Stmt:bind_blob(idx, pointer, size)

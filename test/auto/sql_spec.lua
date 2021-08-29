@@ -805,9 +805,9 @@ describe("sql", function()
     local ok, manager
 
     it("Initialize manager", function()
-      ---@class Manager:SQLDatabaseExt
-      ---@field projects SQLTableExt
-      ---@field todos SQLTableExt
+      ---@class Manager:sqldb
+      ---@field projects sqltable
+      ---@field todos sqltable
       ok, manager = pcall(sql, {
         uri = testrui,
         projects = {

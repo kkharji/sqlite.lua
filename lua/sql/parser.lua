@@ -341,6 +341,7 @@ local opts_to_str = function(tbl)
       end
     end,
     default = function(v)
+      v = (type(v) == "string" and v:match "^%a+%(.+%)$") and "(" .. tostring(v) .. ")" or v
       local str = "default "
       if tbl["required"] then
         return "on conflict replace " .. str .. v
@@ -462,8 +463,8 @@ end
 
 ---Alter a given table, only support changing key definition
 ---@param tname string
----@param new table<string, SqlSchemaKeyDefinition>
----@param old table<string, SqlSchemaKeyDefinition>
+---@param new table<string, sqltbl.key>
+---@param old table<string, sqltbl.key>
 M.table_alter_key_defs = function(tname, new, old, dry)
   local tmpname = tname .. "_new"
   local create = M.create(tmpname, new, true)

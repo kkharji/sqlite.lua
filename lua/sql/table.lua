@@ -8,8 +8,8 @@ local fmt = string.format
 local P = require "sql.parser"
 local luv = require "luv"
 
----@class SQLTable @Main table class
----@field db SQLDatabase: database in which the tbl is part of.
+---@class sqltbl @Main table class
+---@field db sqldb: database in which the tbl is part of.
 local tbl = {}
 tbl.__index = tbl
 
@@ -56,7 +56,7 @@ end
 
 ---Run tbl functions
 ---@param func function: wrapped function to run
----@param o SQLTable
+---@param o sqltbl
 ---@return any
 local run = function(func, o)
   a.should_have_db_object(o.db, o.name)
@@ -94,10 +94,10 @@ local run = function(func, o)
 end
 
 ---Create new sql table object
----@param db SQLDatabase
+---@param db sqldb
 ---@param name string: table name
----@param schema table<string, SqlSchemaKeyDefinition>
----@return SQLTable
+---@param schema table<string, sqltbl.key>
+---@return sqltbl
 function tbl:new(db, name, schema)
   schema = schema or {}
   local o = setmetatable({ db = db, name = name, tbl_schema = u.if_nil(schema.schema, schema) }, self)
@@ -110,10 +110,10 @@ end
 ---Extend Sqlite Table Object. if first argument is {name} then second should be {schema}.
 ---If no {db} is provided, the tbl object won't be initialized until tbl.set_db
 ---is called
----@param db SQLDatabase
+---@param db sqldb
 ---@param name string
----@param schema table<string, SqlSchemaKeyDefinition>
----@return SQLTableExt
+---@param schema table<string, sqltbl.key>
+---@return sqltbl
 function tbl:extend(db, name, schema)
   if not schema and type(db) == "string" then
     name, db, schema = db, nil, name
@@ -143,8 +143,8 @@ end
 ---Create or change table schema. If no {schema} is given,
 ---then it return current the used schema if it exists or empty table otherwise.
 ---On change schema it returns boolean indecting success.
----@param schema table<string, SqlSchemaKeyDefinition>
----@return table<string, SqlSchemaKeyDefinition> | boolean
+---@param schema table<string, sqltbl.key>
+---@return table<string, sqltbl.key> | boolean
 ---@usage `projects:schema()` get project table schema.
 ---@usage `projects:schema({...})` mutate project table schema
 ---@todo do alter when updating the schema instead of droping it completely
@@ -366,6 +366,12 @@ function tbl:update(specs)
     return succ
   end, self)
 end
+
+-- DB:update({
+--   id = 1,
+-- }, {
+--   actions = "todo",
+-- })
 
 ---replaces table content with {rows}
 ---@param rows table: a row or a group of rows
