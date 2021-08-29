@@ -3,7 +3,7 @@
 
 ## unreleased
 
-> 2021-08-26
+> 2021-08-28
 
 ### :art: Structure/Formating
 
@@ -35,6 +35,8 @@ changes access to sugar functions and store it in lib. It was weird typing out `
 
 
 ### :bug: Bug Fixes
+
+- <a href="https://github.com/tami5/sql.nvim/commit/1778aa857367c17c1468cc85a64fcda542b5c252"><tt>1778aa8</tt></a> (parser) only check when type is table (closes <a href="https://github.com/tami5/sql.nvim/issues/103"> #103</a>)
 
 <dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/1c88610b902c122560fdd28683b101c755853a8e"><tt>1c88610</tt></a> extended tables referencing mutable db object + other fixes (<a href="https://github.com/tami5/sql.nvim/pull/00">#100</a>) (closes <a href="https://github.com/tami5/sql.nvim/issues/101"> #101</a>, <a href="https://github.com/tami5/sql.nvim/issues/99"> #99</a>)</summary>
 
@@ -77,6 +79,32 @@ No breaking changes here :)
 
 
 ### :sparkles: Features
+
+<dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/25748dd0f8947533fe4cff14d8900ae30f774241"><tt>25748dd</tt></a> auto alter table key definition  (<a href="https://github.com/tami5/sql.nvim/pull/03">#103</a>)</summary>
+
+Support for modifying schema key definitions without wasting the table content. It has little support for renaming, in fact, renaming should be avoided for the time being.
+ 
+✨ New: 
+  - `db:execute` for executing statement without any return.
+  - emmylua classes`SqlSchemaKeyDefinition` and `SqliteActions`.
+  - when a key has default, then all the columns with nulls will be replaced with the default.
+  - support for auto altering key to reference a foreign key.
+
+🐛 Fixes 
+  - when a foreign_keys is enabled on a connection, closing and opening disables it.
+
+♻️ Changes
+  - rename `db.sqlite_opts` to `db.opts`.
+
+✅ Added Tests
+  - auto alter: simple rename with idetnical number of keys
+  - auto alter: simple rename with idetnical number of keys with a key turned to be required
+  - auto alter: more than one rename with idetnical number of keys
+  - auto alter: more than one rename with idetnical number of keys + default without required = true
+  - auto alter: transform to foreign key
+  - auto alter: pass sqlite.org tests
+
+</details></dd></dl>
 
 <dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/73d8fa60e1037d0a8b58c898ed641430d8b0c0c4"><tt>73d8fa6</tt></a> dot access for extended tbl object (<a href="https://github.com/tami5/sql.nvim/pull/92">#92</a>)</summary>
 
