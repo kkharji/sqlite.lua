@@ -1,23 +1,31 @@
 ---@brief [[
 ---SQLite/LuaJIT binding and highly opinionated wrapper for storing,
 ---retrieving, caching, persisting, querying, and connecting to SQLite databases.
---- To find out more: https://github.com/tami5/sql.nvim
 ---
+--- To find out more
+--- visit https://github.com/tami5/sql.nvim
+---<pre>
+--- Help usage in neovim:
+---   :h sqlinfo   -- main sql.nvim classes
+---   :h sqltbl    -- show help for sqltbl
+---   :h sqldb     -- show help for sqltbl
+---   :h sqldb:... -- show help for a sqldb method
+---</pre>
 --- Classes and Types:
 ---@brief ]]
----@tag sqlite.lua
+---@tag sqlinfo
 
 ---@class sqldb @Main sql.nvim object.
 ---@field uri string: database uri
 ---@field conn sqlite_blob: sqlite connection c object.
 ---@field db sqldb: fallback when the user overwrite @sqldb methods (extended only).
-
+---@field opts sqlopts: sqlite options see https://www.sqlite.org/pragma.html
 ---@class sqltbl @Main sql table class
 ---@field db sqldb: database in which the tbl is part of.
 ---@field name string: table name
 ---@field mtime number: db last modified time
 
----@class sqltblext @Extended version of sql table class. This class is generated through |tbl:extend| or sql.tbl()
+---@class sqltblext @Extended version of sql table class. This class is generated through |sqltbl:extend| or sql.tbl()
 ---@field db sqldb
 ---@field name string: table name
 ---@field mtime number: db last modified time

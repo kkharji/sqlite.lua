@@ -1,7 +1,7 @@
 ---@brief [[
 ---Main sqlite.lua object and methods
 ---@brief ]]
----@tag sqlite.db
+---@tag sqldb.overview
 
 ---@type sqldb
 local sqldb = {}
@@ -30,7 +30,7 @@ end
 ---Creates a new sql.nvim object, without creating a connection to uri.
 ---|sqldb.new| is identical to |sqldb:open| but it without opening sqlite db connection.
 ---@param uri string: path to db.if nil, then create in memory database.
----@param opts sqlopts: sqlite db options see https://www.sqlite.org/pragma.html
+---@param opts sqlopts: see |sqlopts|
 ---@usage `require'sql'.new()` in memory
 ---@usage `require'sql'.new("./path/to/sql.sqlite")` to given path
 ---@usage `require'sql'.new("$ENV_VARABLE")` reading from env variable
@@ -43,7 +43,7 @@ end
 ---Connect, or create new sqlite db, either in memory or via a {uri}.
 ---|sqldb:open| is identical to |sqldb.new| but it additionally opens the db
 ---@param uri string: if uri is nil, then create in memory database.
----@param opts sqlopts: sqlite db options see https://www.sqlite.org/pragma.html
+---@param opts sqlopts: see |sqlopts|
 ---@usage `require("sql"):open()` in memory.
 ---@usage `require("sql"):open("./path/to/sql.sqlite")` to given path.
 ---@usage `require("sql"):open("$ENV_VARABLE")` reading from env variable
