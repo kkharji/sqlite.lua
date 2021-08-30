@@ -92,7 +92,7 @@ end
 ---<pre>
 ---```lua
 --- local db = sqldb { -- or sqldb:extend
----   uri = "path/to/db", -- i table created with |sqltbl:extend()|
+---   uri = "path/to/db", -- path to db file
 ---   entries = entries,  -- pre-made |sqltblext| with |sqltbl:extend()| without db
 ---   category = { title = { "text", unique = true, primary = true}  },
 ---   opts = {} or nil -- custom sqlite3 options, see |sqlopts|
@@ -124,8 +124,8 @@ function sqldb:extend(opts)
 end
 
 ---Close sqlite db connection. returns true if closed, error otherwise.
----<pre>
 ---
+---<pre>
 ---```lua
 --- local db = sqldb:open()
 --- db:close() -- close connection
@@ -307,7 +307,7 @@ end
 ---Check if a table with {tbl_name} exists in sqlite db
 ---<pre>
 ---```lua
---- if not db:exists("todo_tbl") then error("Table doesn't exists!!!") end`
+--- if not db:exists("todo_tbl") then error("Table doesn't exists!!!") end
 ---```
 ---</pre>
 ---@param tbl_name string: the table name.
@@ -319,7 +319,7 @@ end
 
 ---Create a new sqlite db table with {name} based on {schema}. if {schema.ensure} then
 ---create only when it does not exists. similar to 'create if not exists'.
---
+---
 ---<pre>
 ---```lua
 --- db:create("todos", {
@@ -343,8 +343,7 @@ function sqldb:create(tbl_name, schema)
 end
 
 ---Remove {tbl_name} from database
----@param tbl_name string: table name
---
+---
 ---<pre>
 ---```lua
 --- if db:exists("todos") then
@@ -352,6 +351,7 @@ end
 --- end
 ---```
 ---</pre>
+---@param tbl_name string: table name
 ---@return boolean
 function sqldb:drop(tbl_name)
   self.tbl_schemas[tbl_name] = nil
