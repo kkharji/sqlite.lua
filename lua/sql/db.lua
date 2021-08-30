@@ -32,14 +32,14 @@ end
 ---connection. Thus its most suited for cases where the database might be
 ---acccess from multiple places. For neovim use cases, this mean from different
 ---neovim instances.
----<pre>
+---
 ---
 ---```lua
 ---local sql = require "sql"
 ---local db = sql.new("path/to/db" or "$env_var", { ... } or nil)
 ---```
 ---
----</pre>
+---
 ---@param uri string: uri to db file.
 ---@param opts sqlopts: (optional) see |sqlopts|
 ---@return sqldb
