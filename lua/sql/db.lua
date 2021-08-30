@@ -5,7 +5,8 @@
 
 ---@type sqlite_db
 local sqlite = {}
-sqlite.__index = sqlite
+sqlite.db = {}
+sqlite.db.__index = sqlite.db
 
 local clib = require "sql.defs"
 local stmt = require "sql.stmt"
@@ -28,7 +29,7 @@ local get_schema = function(tbl_name, self)
 end
 
 ---Creates a new sql.nvim object, without creating a connection to uri.
----|sqlite.new| is identical to |sqlite:open| but it without opening sqlite db
+---|sqlite.new| is identical to |sqlite.db:open| but it without opening sqlite db
 ---connection. Thus its most suited for cases where the database might be
 ---acccess from multiple places. For neovim use cases, this mean from different
 ---neovim instances.
@@ -41,8 +42,8 @@ end
 ---@param uri string: uri to db file.
 ---@param opts sqlite_opts: (optional) see |sqlite_opts|
 ---@return sqlite_db
-function sqlite.new(uri, opts)
-  return sqlite:open(uri, opts, true)
+function sqlite.db.new(uri, opts)
+  return sqlite.db:open(uri, opts, true)
 end
 
 ---Creates and connect to new sqlite db object, either in memory or via a {uri}.
@@ -51,7 +52,7 @@ end
 ---<pre>
 ---```lua
 --- -- Open db file at path or environment variable, otherwise open in memory.
---- local db = sqlite:open("./pathto/dbfile" or "$ENV_VARABLE" or nil, {...})
+--- local db = sqlite.db:open("./pathto/dbfile" or "$ENV_VARABLE" or nil, {...})
 --- -- reopen connection if closed.
 --- db:open()
 ---```
@@ -59,7 +60,7 @@ end
 ---@param uri string: (optional) {uri} == {nil} then in-memory db.
 ---@param opts sqlite_opts|nil:  see |sqlite_opts|
 ---@return sqlite_db
-function sqlite:open(uri, opts, noconn)
+function sqlite.db:open(uri, opts, noconn)
   if not self.uri then
     uri = type(uri) == "string" and u.expand(uri) or ":memory:"
     return setmetatable({
@@ -86,7 +87,7 @@ end
 ---it try its best to doing any ffi calls until the first operation done on a table.
 ---
 ---In the case you want to keep db connection open and not on invocation bases.
----Run |sqlite:open()| right after creating the object or when you
+---Run |sqlite.db:open()| right after creating the object or when you
 ---intend,
 ---
 ---<pre>
@@ -108,7 +109,7 @@ end
 ---@field tnameN string: pointing to |sqlite_etbl| or |sqlite_schema_dict|
 ---@see sqlite_tbl:extend
 ---@return sqlite_db
-function sqlite:extend(opts)
+function sqlite.db:extend(opts)
   local db = self.new(opts.uri, opts.opts)
   local cls = setmetatable({ db = db }, { __index = db })
   for tbl_name, schema in pairs(opts) do
@@ -127,18 +128,18 @@ end
 ---
 ---<pre>
 ---```lua
---- local db = sqlite:open()
+--- local db = sqlite.db:open()
 --- db:close() -- close connection
 ---```
 ---</pre>
 ---@return boolean
-function sqlite:close()
+function sqlite.db:close()
   self.closed = self.closed or clib.close(self.conn) == 0
   a.should_close(self.conn, self.closed)
   return self.closed
 end
 
----Same as |sqlite:open| but execute {func} then closes db connection.
+---Same as |sqlite.db:open| but execute {func} then closes db connection.
 ---If the function is called as a method to db object e.g. 'db:with_open', then
 ---{args[1]} must be a function. Else {args[1]} need to be the uri and {args[2]} the function.
 ---
@@ -157,12 +158,12 @@ end
 ---
 ---@varargs If used as db method, then the {args[1]} should be a function, else
 ---{args[1]} is uri and {args[2]} is function.
----@see sqlite:open
+---@see sqlite.db:open
 ---@return any
-function sqlite:with_open(...)
+function sqlite.db:with_open(...)
   local args = { ... }
   if type(self) == "string" or not self then
-    self = sqlite:open(self)
+    self = sqlite.db:open(self)
   end
 
   local func = type(args[1]) == "function" and args[1] or args[2]
@@ -186,7 +187,7 @@ end
 ---```
 ---</pre>
 ---@return boolean
-function sqlite:isopen()
+function sqlite.db:isopen()
   return not self.closed
 end
 
@@ -200,7 +201,7 @@ end
 ---```
 ---</pre>
 ---@return boolean
-function sqlite:isclose()
+function sqlite.db:isclose()
   return self.closed
 end
 
@@ -214,7 +215,7 @@ end
 ---```
 ---</pre>
 ---@return sqlite_db_status
-function sqlite:status()
+function sqlite.db:status()
   return {
     msg = clib.last_errmsg(self.conn),
     code = clib.last_errcode(self.conn),
@@ -238,7 +239,7 @@ end
 ---@param statement string: SQL statement.
 ---@param params table|nil: params to be bind to {statement}
 ---@return boolean|table
-function sqlite:eval(statement, params)
+function sqlite.db:eval(statement, params)
   local res = {}
   local s = stmt:parse(self.conn, statement)
 
@@ -299,7 +300,7 @@ end
 ---</pre>
 ---@param statement string: statement to be executed
 ---@return boolean: true if successful, error out if not.
-function sqlite:execute(statement)
+function sqlite.db:execute(statement)
   local succ = clib.exec_stmt(self.conn, statement) == 0
   return succ and succ or error(clib.last_errmsg(self.conn))
 end
@@ -314,7 +315,7 @@ end
 ---</pre>
 ---@param tbl_name string: the table name.
 ---@return boolean
-function sqlite:exists(tbl_name)
+function sqlite.db:exists(tbl_name)
   local q = self:eval("select name from sqlite_master where name= ?", tbl_name)
   return type(q) == "table" and true or false
 end
@@ -335,7 +336,7 @@ end
 ---@param tbl_name string: table name
 ---@param schema sqlite_schema_dict
 ---@return boolean
-function sqlite:create(tbl_name, schema)
+function sqlite.db:create(tbl_name, schema)
   local req = P.create(tbl_name, schema)
   if req:match "reference" then
     self:execute "pragma foreign_keys = ON"
@@ -355,7 +356,7 @@ end
 ---</pre>
 ---@param tbl_name string: table name
 ---@return boolean
-function sqlite:drop(tbl_name)
+function sqlite.db:drop(tbl_name)
   self.tbl_schemas[tbl_name] = nil
   return self:eval(P.drop(tbl_name))
 end
@@ -373,7 +374,7 @@ end
 ---</pre>
 ---@param tbl_name string: the table name.
 ---@return sqlite_schema_dict
-function sqlite:schema(tbl_name)
+function sqlite.db:schema(tbl_name)
   local sch = self:eval(("pragma table_info(%s)"):format(tbl_name))
   local schema = {}
   for _, v in ipairs(type(sch) == "boolean" and {} or sch) do
@@ -401,7 +402,7 @@ end
 ---@param tbl_name string: the table name
 ---@param rows table: rows to insert to the table.
 ---@return boolean|integer: boolean (true == success), and the last inserted row id.
-function sqlite:insert(tbl_name, rows, schema)
+function sqlite.db:insert(tbl_name, rows, schema)
   a.is_sqltbl(self, tbl_name, "insert")
   local ret_vals = {}
   schema = schema and schema or get_schema(tbl_name, self)
@@ -448,7 +449,7 @@ end
 ---@param tbl_name string: sqlite table name.
 ---@param specs sqlite_query_update | sqlite_query_update[]
 ---@return boolean
-function sqlite:update(tbl_name, specs, schema)
+function sqlite.db:update(tbl_name, specs, schema)
   a.is_sqltbl(self, tbl_name, "update")
   if not specs then
     return false
@@ -499,7 +500,7 @@ end
 ---@param where sqlite_query_delete: key value pair to where delete operation should effect.
 ---@todo support querys with `and`
 ---@return boolean: true if operation is successfully, false otherwise.
-function sqlite:delete(tbl_name, where)
+function sqlite.db:delete(tbl_name, where)
   a.is_sqltbl(self, tbl_name, "delete")
 
   if not where then
@@ -548,7 +549,7 @@ end
 ---@param tbl_name string: the name of the db table to select on
 ---@param spec sqlite_query_select
 ---@return table[]
-function sqlite:select(tbl_name, spec, schema)
+function sqlite.db:select(tbl_name, spec, schema)
   a.is_sqltbl(self, tbl_name, "select")
   return clib.wrap_stmts(self.conn, function()
     local ret = {}
@@ -592,13 +593,13 @@ end
 ---@param tbl_name string: the name of the table. can be new or existing one.
 ---@param opts table: {schema, ensure (defalut true)}
 ---@return sqlite_tbl
-function sqlite:table(tbl_name, opts)
+function sqlite.db:table(tbl_name, opts)
   return t:new(self, tbl_name, opts)
 end
 
 ---Sqlite functions sugar wrappers. See `sql/strfun`
-sqlite.lib = require "sql.strfun"
+sqlite.db.lib = require "sql.strfun"
 
-sqlite = setmetatable(sqlite, { __call = sqlite.extend })
+sqlite.db = setmetatable(sqlite.db, { __call = sqlite.db.extend })
 
-return sqlite
+return sqlite.db
