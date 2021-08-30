@@ -118,8 +118,8 @@ sqldb.new({uri}, {opts})                                         *sqldb.new()*
         sqldb
 
     Usage: ~
-        `db = require'sql'.new("./path/to/sql.sqlite")` to given path
-        `db = require'sql'.new("$ENV_VARABLE", { ... })` with opts
+        - Create to given path `db = sqldb.new("./path/to/sql.sqlite")`
+        - Read path from '$VAR' `db = sqldb.new("$VAR", {..})` with opts
 
 
 sqldb:open({uri}, {opts})                                       *sqldb:open()*
@@ -129,8 +129,8 @@ sqldb:open({uri}, {opts})                                       *sqldb:open()*
 
 
     Parameters: ~
-        {uri}  (string)   if uri is nil, then create in memory database.
-        {opts} (sqlopts)  see |sqlopts|
+        {uri}  (string)   (optional) {uri} == nil = create in memory database.
+        {opts} (sqlopts)  (optional) see |sqlopts|
 
     Return: ~
         sqldb
