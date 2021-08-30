@@ -60,6 +60,8 @@
 ---@field keys table: keys to include. (default all)
 ---@field join table: (TODO: support)
 ---@field order_by table: { asc = "key", dsc = {"key", "another_key"} }
+---@field limit number: the number of result to limit by
+---@field contains table: for sqlite glob ex. { title = "fix*" }
 
 ---@class sqlflag @Sqlite3 Error Flags (TODO: add sqlite error flags value and description)
 

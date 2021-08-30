@@ -523,12 +523,29 @@ function sqldb:delete(tbl_name, where)
 end
 
 ---Query from a table with where and join options
+---
+---<pre>
+---```lua
+--- db:select("todos") get everything
+--- --- get row with id of 1
+--- db:select("todos", { where = { id = 1 })
+--- ---  get row with status value of later or paused
+--- db:select("todos", { where = { status = {"later", "paused"} })
+--- --- get 5 items from todos table
+--- db:select("todos", { limit = 5 })
+--- --- select a set of keys with computed one
+--- db:select("timestamps", {
+---   select = {
+---     age = (strftime("%s", "now") - strftime("%s", "timestamp")) * 24 * 60,
+---     "id",
+---     "timestamp",
+---     "entry",
+---     },
+---   })
+---```
+---</pre>
 ---@param tbl_name string: the name of the db table to select on
 ---@param spec sqlquery_select
----@usage `db:select("todos")` get everything
----@usage `db:select("todos", { where = { id = 1 })` get row with id of 1
----@usage `db:select("todos", { where = { status = {"later", "paused"} })` get row with status value of later or paused
----@usage `db:select("todos", { limit = 5 })` get 5 items from todos table
 ---@return table[]
 function sqldb:select(tbl_name, spec, schema)
   a.is_sqltbl(self, tbl_name, "select")
@@ -553,9 +570,27 @@ end
 
 ---Create new sql-table object.
 ---If {opts}.ensure = false, on each run it will drop the table and recreate it.
+---
+---<pre>
+---```lua
+--- local tbl = db:table("todos", {
+---   id = true, -- { type = "integer", required = true, primary = true }
+---   title = "text",
+---   since = { "date", default = strftime("%s", "now") },
+---   count = { "number", default = 0 },
+---   type = { "text", required = true },
+---   category = {
+---     type = "text",
+---     reference = "category.id",
+---     on_update = "cascade", -- means when category get updated update
+---     on_delete = "null", -- means when category get deleted, set to null
+---   },
+--- })
+---```
+---</pre>
 ---@param tbl_name string: the name of the table. can be new or existing one.
 ---@param opts table: {schema, ensure (defalut true)}
----@return sqltale
+---@return sqltbl
 function sqldb:table(tbl_name, opts)
   return t:new(self, tbl_name, opts)
 end

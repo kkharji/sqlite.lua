@@ -94,6 +94,24 @@ local run = function(func, o)
 end
 
 ---Create new sql table object
+---
+---<pre>
+---```lua
+--- local tbl = sqltbl:new(db, "todos", {
+---   id = true, -- { type = "integer", required = true, primary = true }
+---   title = "text",
+---   since = { "date", default = strftime("%s", "now") },
+---   count = { "number", default = 0 },
+---   type = { "text", required = true },
+---   category = {
+---     type = "text",
+---     reference = "category.id",
+---     on_update = "cascade", -- means when category get updated update
+---     on_delete = "null", -- means when category get deleted, set to null
+---   },
+--- })
+---```
+---</pre>
 ---@param db sqldb
 ---@param name string: table name
 ---@param schema sqlschema
@@ -107,9 +125,26 @@ function sqltbl:new(db, name, schema)
   return o
 end
 
----Extend Sqlite Table Object. if first argument is {name} then second should be {schema}.
----If no {db} is provided, the sqltbl object won't be initialized until sqltbl.set_db
----is called
+---Same as |sqltbl:new()| but used to extend user defined object. This is the
+---recommended way of constructing and using sqlite tables. The only difference
+---between this and |sqltbl:new()| or |sqldb:table()| is the fact that all
+---resulting methods are access using the dot notation '.', and when the user
+---overwrites a sqltbl methods, it gets renamed to `_method_name`.
+---
+---if first argument is {name} then second should be {schema}. If no {db} is
+---provided, the sqltbl object won't be initialized until 'sqltbl.set_db' is
+---called, thus it can't be defined in different files.
+---
+---<pre>
+---```lua
+--- local t = tbl("entries", { ... } })
+--- t.insert {...} -- insert rows NOTICE: dot notation
+--- --- get all entries
+--- t.get()
+--- --- Overwrite method name and access original via t._get
+--- t.get = function() return t._get({ where = {...}, select = {...} })[1] end
+---```
+---</pre>
 ---@param db sqldb
 ---@param name string
 ---@param schema sqlschema
@@ -143,11 +178,18 @@ end
 ---Create or change table schema. If no {schema} is given,
 ---then it return current the used schema if it exists or empty table otherwise.
 ---On change schema it returns boolean indecting success.
+---
+---<pre>
+---```lua
+--- local projects = sqltbl:new("", {...})
+--- --- get project table schema.
+--- projects:schema() -- or 'project.schema()' dot notation with |sqltbl:extend|
+--- --- mutate project table schema with droping content if not schema.ensure
+--- projects:schema {...} -- or 'project.schema {...}' dot notation with |sqltbl:extend|
+---```
+---</pre>
 ---@param schema sqlschema
 ---@return sqlschema | boolean
----@usage `projects:schema()` get project table schema.
----@usage `projects:schema({...})` mutate project table schema
----@todo do alter when updating the schema instead of droping it completely
 function sqltbl:schema(schema)
   return run(function()
     local exists = self.db:exists(self.name)
@@ -158,7 +200,7 @@ function sqltbl:schema(schema)
       self.tbl_exists = self.db:create(self.name, schema)
       return self.tbl_exists
     end
-    if not schema.ensure then -- maybe better to use alter
+    if not schema.ensure then -- TODO: use alter
       local res = exists and self.db:drop(self.name) or true
       res = res and self.db:create(self.name, schema) or false
       self.tbl_schema = schema
@@ -168,7 +210,13 @@ function sqltbl:schema(schema)
 end
 
 ---Remove table from database, if the table is already drooped then it returns false.
----@usage `todos:drop()` drop todos table content.
+---
+---<pre>
+---```lua
+--- --- drop todos table content.
+--- todos:drop() or 'todos.drop()' -- dot notation for |sqltbl:extend|
+---```
+---</pre>
 ---@see sqldb:drop
 ---@return boolean
 function sqltbl:drop()
@@ -187,14 +235,28 @@ function sqltbl:drop()
 end
 
 ---Predicate that returns true if the table is empty.
----@usage `if todos:empty() then echo "no more todos, you are free :D" end`
+---
+---<pre>
+---```lua
+--- if todos:empty() then -- or 'todos.emtpy()' for |sqltbl:extend|
+---   print "no more todos, we are free :D"
+--- end
+---```
+---</pre>
 ---@return boolean
 function sqltbl:empty()
   return self:exists() and self:count() == 0 or false
 end
 
 ---Predicate that returns true if the table exists.
----@usage `if not goals:exists() then error("I'm disappointed in you ") end`
+---
+---<pre>
+---```lua
+--- if goals:exists() then -- or 'goals.exists()' for |sqltbl:extend|
+---   error("I'm disappointed in you :D")
+--- end
+---```
+---</pre>
 ---@return boolean
 function sqltbl:exists()
   return run(function()
@@ -203,6 +265,13 @@ function sqltbl:exists()
 end
 
 ---Get the current number of rows in the table
+---
+---<pre>
+---```lua
+--- if notes:count() == 0 then -- or 'notes.counts()' for |sqltbl:extend|
+---   print("no more notes")
+--- end
+---```
 ---@return number
 function sqltbl:count()
   return run(function()
@@ -215,11 +284,26 @@ function sqltbl:count()
 end
 
 ---Query the table and return results.
+---
+---<pre>
+---```lua
+--- --- get everything
+--- todos:get() -- or 'todos.get()' with |sqltbl:extend|
+--- --- get row with id of 1
+--- todos:get { where = { id = 1 } } -- or 'todos.get { ... }' with |sqltbl:extend|
+--- --- select a set of keys with computed one
+--- timestamps:get { -- or 'timestamps.get {... }'  with |sqltbl:extend|
+---   select = {
+---     age = (strftime("%s", "now") - strftime("%s", "timestamp")) * 24 * 60,
+---     "id",
+---     "timestamp",
+---     "entry",
+---     },
+---   }
+---```
+---</pre>
 ---@param query sqlquery_select
 ---@return table
----@usage `projects:get()` get a list of all rows in project table.
----@usage `projects:get({ where = { status = "pending", client = "neovim" }})`
----@usage `projects:get({ where = { status = "done" }, limit = 5})` get the last 5 done projects
 ---@see sqldb:select
 function sqltbl:get(query)
   -- query = query or { query = { all = 1 } }
@@ -231,29 +315,51 @@ function sqltbl:get(query)
 end
 
 ---Get first match.
+---
+---<pre>
+---```lua
+--- --- get single entry. notice that we don't pass where key.
+--- tbl:where{ id = 1 } -- or tbl.where()  with |sqltbl:extend|
+--- --- get row with id of 1 or 'todos.where { id = 1 }'
+---```
+---</pre>
 ---@param where table: where key values
 ---@return nil or row
----@usage `sqltbl:where{id = 1}`
+---@usage ``
 ---@see sqldb:select
 function sqltbl:where(where)
   return where and self:get({ where = where })[1] or nil
 end
 
 ---Iterate over table rows and execute {func}.
----Returns true only when rows is not emtpy.
+---Returns false if no row is returned.
+---
+---<pre>
+---```lua
+--- --- Execute a function on each returned row
+--- todos:each(function(row)
+---   print(row.title)
+--- end, {
+---   where = { status = "pending" },
+---   contains = { title = "fix*" }
+--- })
+--- --- This works too. use 'todos.each(..)' with |sqltbl:extend|
+--- todos:each({ where = { ... }}, function(row)
+---   print(row.title)
+--- end)
+---```
+---</pre>
 ---@param func function: func(row)
----@param query table: query.where, query.keys, query.join
----@usage `let query = { where = { status = "pending"}, contains = { title = "fix*" } }`
----@usage `todos:each(function(row) print(row.title) end, query)`
+---@param query sqlquery_select|nil
 ---@return boolean
 function sqltbl:each(func, query)
-  query = query or {}
+
   if type(func) == "table" then
     func, query = query, func
   end
 
   return run(function()
-    local rows = self.db:select(self.name, query, self.db_schema)
+    local rows = self.db:select(self.name, query = query or {}, self.db_schema)
     if not rows then
       return false
     end
@@ -266,21 +372,38 @@ function sqltbl:each(func, query)
   end, self)
 end
 
----Create a new table from iterating over {self.name} rows with {func}.
+---Create a new table from iterating over a tbl rows with {func}.
+---
+---<pre>
+---```lua
+--- --- transform rows. use todos.map(..) with |sqltbl:extend|
+--- local rows = todos:map(function(row)
+---   row.somekey = ""
+---   row.f = callfunction(row)
+---   return row
+--- end, {
+---   where = { status = "pending" },
+---   contains = { title = "fix*" }
+--- })
+--- --- This works too.
+--- local titles = todos:map({ where = { ... }}, function(row)
+---   return row.title
+--- end)
+--- --- no query, no problem :D
+--- local all = todos:map(function(row) return row.title end)
+---```
+---</pre>
 ---@param func function: func(row)
----@param query table: query.where, query.keys, query.join
----@usage `let query = { where = { status = "pending"}, contains = { title = "fix*" } }`
----@usage `local t = todos:map(function(row) return row.title end, query)`
+---@param query sqltblext|nil
 ---@return table[]
 function sqltbl:map(func, query)
-  query = query or {}
   if type(func) == "table" then
     func, query = query, func
   end
 
   return run(function()
     local res = {}
-    local rows = self.db:select(self.name, query, self.db_schema)
+    local rows = self.db:select(self.name, query = query or {}, self.db_schema)
     if not rows then
       return {}
     end
@@ -298,17 +421,24 @@ end
 ---Sorts a table in-place using a transform. Values are ranked in a custom order of the results of
 ---running `transform (v)` on all values. `transform` may also be a string name property  sort by.
 ---`comp` is a comparison function. Adopted from Moses.lua
----@param query table: query.where, query.keys, query.join
+---
+---<pre>
+---```lua
+--- --- return rows sort by id. t1.sort() with |sqltbl:extend|
+--- local res = t1:sort({ where = {id = {32,12,35}}})
+--- --- return rows sort by age
+--- local res = t1:sort({ where = {id = {32,12,35}}}, "age")`
+--- --- return with custom sort function (recommended)
+--- local res = t1:sort({where = { ... }}, "age", function(a, b) return a > b end)`
+---```
+---</pre>
+---@param query sqlquery_select|nil
 ---@param transform function: a `transform` function to sort elements. Defaults to @{identity}
 ---@param comp function: a comparison function, defaults to the `<` operator
 ---@return table[]
----@usage `local res = t1:sort({ where = {id = {32,12,35}}})` return rows sort by id
----@usage `local res = t1:sort({ where = {id = {32,12,35}}}, "age")` return rows sort by age
----@usage `local res = t1:sort({where = { ... }}, "age", function(a, b) return a > b end)` with custom function
 function sqltbl:sort(query, transform, comp)
-  query = query or { query = { all = 1 } }
   return run(function()
-    local res = self.db:select(self.name, query, self.db_schema)
+    local res = self.db:select(self.name, query = query or { query = { all = 1 } }, self.db_schema)
     local f = transform or function(r)
       return r[u.keys(query.where)[1]]
     end
