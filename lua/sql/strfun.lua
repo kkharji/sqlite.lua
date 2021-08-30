@@ -36,7 +36,7 @@ customstr = function(str)
 end
 
 local ts = function(ts)
-  local str = ""
+  local str
   if ts ~= "now" and (type(ts) == "string" and not ts:match "%d") then
     str = "%s"
   else
