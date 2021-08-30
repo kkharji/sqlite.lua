@@ -33,13 +33,11 @@ end
 ---acccess from multiple places. For neovim use cases, this mean from different
 ---neovim instances.
 ---
----
+---<pre>
 ---```lua
----local sql = require "sql"
----local db = sql.new("path/to/db" or "$env_var", { ... } or nil)
+--- local db = sqldb.new("path/to/db" or "$env_var", { ... } or nil)
 ---```
----
----
+---</pre>
 ---@param uri string: uri to db file.
 ---@param opts sqlopts: (optional) see |sqlopts|
 ---@return sqldb
@@ -48,13 +46,17 @@ function sqldb.new(uri, opts)
 end
 
 ---Creates and connect to new sqlite db object, either in memory or via a {uri}.
----If it is called on pre-made |sqldb| object, than it should open it if it's closed, or ignore otherwise.
----@param uri string: (optional) {uri} == nil = create in memory database.
+---If it is called on pre-made |sqldb| object, than it should open it. otherwise ignore.
+---<pre>
+---```lua
+--- -- Open db file at path or environment variable, otherwise open in memory.
+--- local db = sqldb:open("./pathto/dbfile" or "$ENV_VARABLE" or nil, {...})
+--- -- reopen connection if closed.
+--- db:open()
+---```
+---</pre>
+---@param uri string: (optional) {uri} == {nil} then in-memory db.
 ---@param opts sqlopts: (optional) see |sqlopts|
----@usage `db = require("sql"):open()` in memory.
----@usage `db = require("sql"):open("./path/to/sql.sqlite")` to given path.
----@usage `db = require("sql"):open("$ENV_VARABLE")` reading from env variable
----@usage `db:open()` reopen connection if closed.
 ---@return sqldb
 function sqldb:open(uri, opts, noconn)
   if not self.uri then
@@ -80,15 +82,29 @@ end
 
 ---Extend |sqldb| object with extra sugar syntax and api. This is recommended
 ---for all sqlite use case as it provide convenience. This method is super lazy.
----it try it's best to doing any ffi calls until the first operation done on a table.
----To avoid closing/opening database connection on each operation. Make sure to
----run |sqldb:open()| right after creating the object or when you intend to keep it open.
+---it try its best to doing any ffi calls until the first operation done on a table.
+---
+---Make sure to run |sqldb:open()| right after creating the object or when you
+---intend, if you want to keep it open and not pre-method invocation bases.
+---
+---<pre>
+---```lua
+--- ---@type sqldb
+--- local db = sqldb {
+---   uri = "path/to/db", -- i table created with |sqltbl:extend|
+---   entries = entries,  -- pre-made |sqltblext| with |sqltbl:extend| without db
+---   category = { title = { "text", unique = true, primary = true}  }
+---   opts = {}, -- custom sqlite3 options, see |sqlopts|
+--- }
+--- -- unlike |sqltbl|, |sqltblext| is accessed by dot notation.
+--- db.entries.insert { {..}, {..} }
+---```
+---</pre>
 ---@param opts table: uri, init, |sqlopts|, tbl_name, tbl_name ....
----@usage `tbl = sqltbl:extend("tasks", { ... })` -- pre-made table
----@usage `tbl = { ... }` normal schema table schema
----@usage `tbl = { _name = "tasks", ... }` normal schema and custom table name.
----@usage `db = sqldb:extend { uri = "", t = tbl }` -- 'db.t' to access |sqltbl|.
----@usage `db.t.insert {...}; db.t.get(); db.t.remove(); db:isopen()` dot notation.
+---@field uri string: path to db file.
+---@field opts sqlopts: (optional) see |sqlopts|
+---@field tbl_name string: table name pointing to |sqltblext| or |sqlschema|
+---@see sqltblext
 ---@return sqldb
 function sqldb:extend(opts)
   local db = self.new(opts.uri, opts.opts)
