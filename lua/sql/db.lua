@@ -32,10 +32,14 @@ end
 ---connection. Thus it's most suited for cases where the database might be
 ---acccess from multiple places. For neovim use cases, this mean from different
 ---neovim instances.
+---
+---```lua
+---local sql = require "sql"
+---local db = sql.new("path/to/db" or "$env_var", { ... } or nil)
+---```
+---
 ---@param uri string: uri to db file.
 ---@param opts sqlopts: (optional) see |sqlopts|
----@usage - Create to given path  `db = sqldb.new("./path/to/sql.sqlite")`
----@usage - Read path from '$VAR' `db = sqldb.new("$VAR", {..})` with opts
 ---@return sqldb
 function sqldb.new(uri, opts)
   return sqldb:open(uri, opts, true)
