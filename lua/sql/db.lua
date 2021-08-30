@@ -91,8 +91,7 @@ end
 ---
 ---<pre>
 ---```lua
---- ---@type sqldb
---- local db = sqldb {
+--- local db = sqldb { -- or sqldb:extend
 ---   uri = "path/to/db", -- i table created with |sqltbl:extend|
 ---   entries = entries,  -- pre-made |sqltblext| with |sqltbl:extend| without db
 ---   category = { title = { "text", unique = true, primary = true}  },
