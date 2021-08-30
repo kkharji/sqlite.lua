@@ -184,34 +184,40 @@ sqldb:extend({opts})                                          *sqldb:extend()*
 sqldb:close()                                                  *sqldb:close()*
     Close sqlite db connection. returns true if closed, error otherwise.
 
+    ```lua
+    local db = sqldb:open()
+    db:close() -- close connection
+    ```
+
 
     Return: ~
         boolean
 
-    Usage: ~
-        `db:close()`
-
 
 sqldb:with_open()                                          *sqldb:with_open()*
-    Same as |sqldb:open| but closes db connection after executing {args[1]} or
-    {args[2]} depending of how its called. if the function is called as a
-    method to db object e.g. *db:with_open*, then {args[1]} must be a function.
-    Else {args[1]} need to be the uri and {args[2]} the function. The function
-    should accept and use db object.
+    Same as |sqldb:open| but execute {func} then closes db connection. If the
+    function is called as a method to db object e.g. 'db:with_open', then
+    {args[1]} must be a function. Else {args[1]} need to be the uri and
+    {args[2]} the function.
+
+    ```lua
+    -- as a function
+    local entries = sqldb.with_open("path/to/db", function(db)
+       return db:select("todos", { where = { status = "done" } })
+    end)
+    -- as a method
+    local exists = db:with_open(function()
+      return db:exists("projects")
+     end)
+    ```
+
 
 
     Varargs: ~
         If used as db method, then the {args[1]} should be a function, else
-        {args[1]} and {args[2]}.
 
     Return: ~
         any
-
-    Usage: ~
-        `require"sql".open_with("path", function(db) db:eval("...") end)` use
-        a the sqlite db at path.
-        `db:with_open(function() db:insert{...} end)` open db connection,
-        execute insert and close.
 
     See: ~
         |sqldb:open()|
@@ -220,23 +226,29 @@ sqldb:with_open()                                          *sqldb:with_open()*
 sqldb:isopen()                                                *sqldb:isopen()*
     Predict returning true if db connection is active.
 
+    ```lua
+    if db:isopen() then
+      db:close()
+    end
+    ```
+
 
     Return: ~
         boolean
-
-    Usage: ~
-        `if db:isopen() then db:close() end` use in if statement.
 
 
 sqldb:isclose()                                              *sqldb:isclose()*
     Predict returning true if db connection is indeed closed.
 
+    ```lua
+    if db:isclose() then
+      error("db is closed")
+    end
+    ```
+
 
     Return: ~
         boolean
-
-    Usage: ~
-        `if db:isclose() then db:open() end` use in if statement.
 
 
 sqldb:status()                                                *sqldb:status()*
