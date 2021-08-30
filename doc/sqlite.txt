@@ -109,6 +109,10 @@ sqldb.new({uri}, {opts})                                         *sqldb.new()*
     acccess from multiple places. For neovim use cases, this mean from
     different neovim instances.
 
+    ```lua local sql = require "sql" local db = sql.new("path/to/db" or
+    "$env_var", { ... } or nil) ```
+
+
 
     Parameters: ~
         {uri}  (string)   uri to db file.
@@ -116,10 +120,6 @@ sqldb.new({uri}, {opts})                                         *sqldb.new()*
 
     Return: ~
         sqldb
-
-    Usage: ~
-        - Create to given path `db = sqldb.new("./path/to/sql.sqlite")`
-        - Read path from '$VAR' `db = sqldb.new("$VAR", {..})` with opts
 
 
 sqldb:open({uri}, {opts})                                       *sqldb:open()*
