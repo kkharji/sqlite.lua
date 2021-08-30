@@ -353,13 +353,12 @@ end
 ---@param query sqlquery_select|nil
 ---@return boolean
 function sqltbl:each(func, query)
-
   if type(func) == "table" then
     func, query = query, func
   end
 
   return run(function()
-    local rows = self.db:select(self.name, query = query or {}, self.db_schema)
+    local rows = self.db:select(self.name, query or {}, self.db_schema)
     if not rows then
       return false
     end
@@ -403,7 +402,7 @@ function sqltbl:map(func, query)
 
   return run(function()
     local res = {}
-    local rows = self.db:select(self.name, query = query or {}, self.db_schema)
+    local rows = self.db:select(self.name, query or {}, self.db_schema)
     if not rows then
       return {}
     end
@@ -438,7 +437,7 @@ end
 ---@return table[]
 function sqltbl:sort(query, transform, comp)
   return run(function()
-    local res = self.db:select(self.name, query = query or { query = { all = 1 } }, self.db_schema)
+    local res = self.db:select(self.name, query or { query = { all = 1 } }, self.db_schema)
     local f = transform or function(r)
       return r[u.keys(query.where)[1]]
     end
@@ -457,7 +456,18 @@ function sqltbl:sort(query, transform, comp)
   end, self)
 end
 
----Same functionalities as |sqldb:insert()|
+---Insert rows into a table.
+---
+---<pre>
+---```lua
+--- --- single item.
+--- todos:insert { title = "new todo" }
+--- --- insert multiple items, using todos table as first param
+--- sqltbl.insert(todos, "items", {  { name = "a"}, { name = "b" }, { name = "c" } })
+--- --- insert with |sqltbl:extend|
+--- todos.insert { ... }
+---```
+---</pre>
 ---@param rows table: a row or a group of rows
 ---@see sqldb:insert
 ---@usage `todos:insert { title = "stop writing examples :D" }` insert single item.
@@ -473,22 +483,52 @@ function sqltbl:insert(rows)
   end, self)
 end
 
----Same functionalities as |sqldb:delete()|
----@param where table: query
+---Delete a rows/row or table content based on {where} closure. If {where == nil}
+---then clear table content.
+---
+---<pre>
+---```lua
+--- --- delete todos table content
+--- todos:remove()
+--- --- delete row that has id as 1
+--- todos:remove { id = 1 }
+--- --- delete all rows that has value of id 1 or 2 or 3
+--- todos:remove { id = {1,2,3} }
+--- --- matching ids or greater than 5
+--- todos:remove { id = {"<", 5} } -- or {id = "<5"}
+--- --- with |sqtbl:extend|
+--- todos.remove {...}
+---```
+---</pre>
+---@param where sqlquery_delete
 ---@see sqldb:delete
 ---@return boolean
----@usage `todos:remove()` remove todos table content.
----@usage `todos:remove{ project = "neovim" }` remove all todos where project == "neovim".
----@usage `todos:remove{{project = "neovim"}, {id = 1}}` remove all todos where project == "neovim" or id =1
 function sqltbl:remove(where)
   return run(function()
     return self.db:delete(self.name, where)
   end, self)
 end
 
----Same functionalities as |sqldb:update()|
----@param specs table: a table or a list of tables with where and values keys.
+---Update table row with where closure and list of values
+---returns true incase the table was updated successfully.
+---
+---<pre>
+---```lua
+--- --- update todos status linked to project "lua-hello-world" or "rewrite-neoivm-in-rust"
+--- todos:update { -- or 'todos.update { .. }' with |sqltbl:extend|
+---   where = { project = {"lua-hello-world", "rewrite-neoivm-in-rust"} },
+---   set = { status = "later" }
+--- }
+--- --- pass custom statement and boolean
+--- ts:update { -- or 'ts.update { .. }' with |sqltbl:extend|
+---   where = { id = "<" .. 4 }, -- mimcs WHERE id < 4
+---   set = { seen = true } -- will be converted to 0.
+--- }
+---```
+---</pre>
+---@param specs sqlquery_update
 ---@see sqldb:update
+---@see sqlquery_update
 ---@return boolean
 function sqltbl:update(specs)
   return run(function()
@@ -497,8 +537,23 @@ function sqltbl:update(specs)
   end, self)
 end
 
----replaces table content with {rows}
----@param rows table: a row or a group of rows
+---Replaces table content with a given set of {rows}.
+---
+---<pre>
+---```lua
+--- --- replace project table content with a single call
+--- todos:replace { -- or 'todos.replace { ... }' with |sqltbl:extend|
+---   { ... },
+---   { ... },
+---   { ... },
+--- }
+--- --- replace everything with a single row
+--- ts:replace { -- or 'ts.replace { .. }' with |sqltbl:extend|
+---   key = "val"
+--- }
+---```
+---</pre>
+---@param rows table[]|table
 ---@see sqldb:delete
 ---@see sqldb:insert
 ---@return boolean

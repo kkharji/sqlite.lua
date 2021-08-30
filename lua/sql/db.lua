@@ -392,9 +392,9 @@ end
 ---
 ---<pre>
 ---```lua
---- -- single item.
+--- --- single item.
 --- db:insert("todos", { title = "new todo" })
---- -- insert multiple items.
+--- --- insert multiple items.
 --- db:insert("items", {  { name = "a"}, { name = "b" }, { name = "c" } })
 ---```
 ---</pre>
@@ -432,12 +432,13 @@ end
 ---
 ---<pre>
 ---```lua
---- -- update todos status linked to project "lua-hello-world" or "rewrite-neoivm-in-rust"
+--- --- update todos status linked to project "lua-hello-world" or "rewrite-neoivm-in-rust"
 --- db:update("todos", {
 ---   where = { project = {"lua-hello-world", "rewrite-neoivm-in-rust"} },
 ---   set = { status = "later" }
 --- })
---- -- pass custom statement and boolean
+---
+--- --- pass custom statement and boolean
 --- db:update("timestamps", {
 ---   where = { id = "<" .. 4 }, -- mimcs WHERE id < 4
 ---   set = { seen = true } -- will be converted to 0.
