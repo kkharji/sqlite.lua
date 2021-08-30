@@ -1,7 +1,8 @@
 ---@brief [[
 ---Abstraction to produce more readable code.
 ---@brief ]]
----@tag table.lua
+---@tag sqlite.tbl
+
 local u = require "sql.utils"
 local a = require "sql.assert"
 local fmt = string.format
@@ -9,8 +10,8 @@ local P = require "sql.parser"
 local luv = require "luv"
 
 ---@type sqltbl
-local tbl = {}
-tbl.__index = tbl
+local sqltbl = {}
+sqltbl.__index = sqltbl
 
 local check_for_auto_alter = function(o, valid_schema)
   local with_foregin_key = false
@@ -53,7 +54,7 @@ local check_for_auto_alter = function(o, valid_schema)
   end
 end
 
----Run tbl functions
+---Run sqltbl functions
 ---@param func function: wrapped function to run
 ---@param o sqltbl
 ---@return any
@@ -70,7 +71,7 @@ local run = function(func, o)
       check_for_auto_alter(o, valid_schema)
     end
 
-    --- Run when tbl doesn't exists anymore
+    --- Run when sqltbl doesn't exists anymore
     if o.tbl_exists == false and valid_schema then
       o.tbl_schema.ensure = u.if_nil(o.tbl_schema.ensure, true)
       o.db:create(o.name, o.tbl_schema)
@@ -97,7 +98,7 @@ end
 ---@param name string: table name
 ---@param schema sqlschema
 ---@return sqltbl
-function tbl:new(db, name, schema)
+function sqltbl:new(db, name, schema)
   schema = schema or {}
   local o = setmetatable({ db = db, name = name, tbl_schema = u.if_nil(schema.schema, schema) }, self)
   if db then
@@ -107,13 +108,13 @@ function tbl:new(db, name, schema)
 end
 
 ---Extend Sqlite Table Object. if first argument is {name} then second should be {schema}.
----If no {db} is provided, the tbl object won't be initialized until tbl.set_db
+---If no {db} is provided, the sqltbl object won't be initialized until sqltbl.set_db
 ---is called
 ---@param db sqldb
 ---@param name string
 ---@param schema sqlschema
----@return sqltbl.ext
-function tbl:extend(db, name, schema)
+---@return sqltblext
+function sqltbl:extend(db, name, schema)
   if not schema and type(db) == "string" then
     name, db, schema = db, nil, name
   end
@@ -147,7 +148,7 @@ end
 ---@usage `projects:schema()` get project table schema.
 ---@usage `projects:schema({...})` mutate project table schema
 ---@todo do alter when updating the schema instead of droping it completely
-function tbl:schema(schema)
+function sqltbl:schema(schema)
   return run(function()
     local exists = self.db:exists(self.name)
     if not schema then -- TODO: or table is empty
@@ -168,9 +169,9 @@ end
 
 ---Remove table from database, if the table is already drooped then it returns false.
 ---@usage `todos:drop()` drop todos table content.
----@see DB:drop
+---@see sqldb:drop
 ---@return boolean
-function tbl:drop()
+function sqltbl:drop()
   return run(function()
     if not self.db:exists(self.name) then
       return false
@@ -188,14 +189,14 @@ end
 ---Predicate that returns true if the table is empty.
 ---@usage `if todos:empty() then echo "no more todos, you are free :D" end`
 ---@return boolean
-function tbl:empty()
+function sqltbl:empty()
   return self:exists() and self:count() == 0 or false
 end
 
 ---Predicate that returns true if the table exists.
 ---@usage `if not goals:exists() then error("I'm disappointed in you ") end`
 ---@return boolean
-function tbl:exists()
+function sqltbl:exists()
   return run(function()
     return self.db:exists(self.name)
   end, self)
@@ -203,7 +204,7 @@ end
 
 ---Get the current number of rows in the table
 ---@return number
-function tbl:count()
+function sqltbl:count()
   return run(function()
     if not self.db:exists(self.name) then
       return 0
@@ -219,8 +220,8 @@ end
 ---@usage `projects:get()` get a list of all rows in project table.
 ---@usage `projects:get({ where = { status = "pending", client = "neovim" }})`
 ---@usage `projects:get({ where = { status = "done" }, limit = 5})` get the last 5 done projects
----@see DB:select
-function tbl:get(query)
+---@see sqldb:select
+function sqltbl:get(query)
   -- query = query or { query = { all = 1 } }
 
   return run(function()
@@ -232,9 +233,9 @@ end
 ---Get first match.
 ---@param where table: where key values
 ---@return nil or row
----@usage `tbl:where{id = 1}`
----@see DB:select
-function tbl:where(where)
+---@usage `sqltbl:where{id = 1}`
+---@see sqldb:select
+function sqltbl:where(where)
   return where and self:get({ where = where })[1] or nil
 end
 
@@ -245,7 +246,7 @@ end
 ---@usage `let query = { where = { status = "pending"}, contains = { title = "fix*" } }`
 ---@usage `todos:each(function(row) print(row.title) end, query)`
 ---@return boolean
-function tbl:each(func, query)
+function sqltbl:each(func, query)
   query = query or {}
   if type(func) == "table" then
     func, query = query, func
@@ -271,7 +272,7 @@ end
 ---@usage `let query = { where = { status = "pending"}, contains = { title = "fix*" } }`
 ---@usage `local t = todos:map(function(row) return row.title end, query)`
 ---@return table[]
-function tbl:map(func, query)
+function sqltbl:map(func, query)
   query = query or {}
   if type(func) == "table" then
     func, query = query, func
@@ -304,7 +305,7 @@ end
 ---@usage `local res = t1:sort({ where = {id = {32,12,35}}})` return rows sort by id
 ---@usage `local res = t1:sort({ where = {id = {32,12,35}}}, "age")` return rows sort by age
 ---@usage `local res = t1:sort({where = { ... }}, "age", function(a, b) return a > b end)` with custom function
-function tbl:sort(query, transform, comp)
+function sqltbl:sort(query, transform, comp)
   query = query or { query = { all = 1 } }
   return run(function()
     local res = self.db:select(self.name, query, self.db_schema)
@@ -326,13 +327,13 @@ function tbl:sort(query, transform, comp)
   end, self)
 end
 
----Same functionalities as |DB:insert()|
+---Same functionalities as |sqldb:insert()|
 ---@param rows table: a row or a group of rows
----@see DB:insert
+---@see sqldb:insert
 ---@usage `todos:insert { title = "stop writing examples :D" }` insert single item.
 ---@usage `todos:insert { { ... }, { ... } }` insert multiple items
 ---@return integer: last inserted id
-function tbl:insert(rows)
+function sqltbl:insert(rows)
   return run(function()
     local succ, last_rowid = self.db:insert(self.name, rows, self.db_schema)
     if succ then
@@ -342,24 +343,24 @@ function tbl:insert(rows)
   end, self)
 end
 
----Same functionalities as |DB:delete()|
+---Same functionalities as |sqldb:delete()|
 ---@param where table: query
----@see DB:delete
+---@see sqldb:delete
 ---@return boolean
 ---@usage `todos:remove()` remove todos table content.
 ---@usage `todos:remove{ project = "neovim" }` remove all todos where project == "neovim".
 ---@usage `todos:remove{{project = "neovim"}, {id = 1}}` remove all todos where project == "neovim" or id =1
-function tbl:remove(where)
+function sqltbl:remove(where)
   return run(function()
     return self.db:delete(self.name, where)
   end, self)
 end
 
----Same functionalities as |DB:update()|
+---Same functionalities as |sqldb:update()|
 ---@param specs table: a table or a list of tables with where and values keys.
----@see DB:update
+---@see sqldb:update
 ---@return boolean
-function tbl:update(specs)
+function sqltbl:update(specs)
   return run(function()
     local succ = self.db:update(self.name, specs, self.db_schema)
     return succ
@@ -368,10 +369,10 @@ end
 
 ---replaces table content with {rows}
 ---@param rows table: a row or a group of rows
----@see DB:delete
----@see DB:insert
+---@see sqldb:delete
+---@see sqldb:insert
 ---@return boolean
-function tbl:replace(rows)
+function sqltbl:replace(rows)
   return run(function()
     self.db:delete(self.name)
     local succ = self.db:insert(self.name, rows, self.db_schema)
@@ -379,6 +380,6 @@ function tbl:replace(rows)
   end, self)
 end
 
-tbl = setmetatable(tbl, { __call = tbl.extend })
+sqltbl = setmetatable(sqltbl, { __call = sqltbl.extend })
 
-return tbl
+return sqltbl

@@ -1,9 +1,11 @@
 ---@brief [[
----Emmylua Classes for completion and better understanding of sql.nvim codebase.
+---SQLite/LuaJIT binding and highly opinionated wrapper for storing,
 ---retrieving, caching, persisting, querying, and connecting to SQLite databases.
+--- To find out more: https://github.com/tami5/sql.nvim
 ---
+--- Classes and Types:
 ---@brief ]]
----@tag sql.emmylua
+---@tag sqlite.lua
 
 ---@class sqldb @Main sql.nvim object.
 ---@field uri string: database uri
