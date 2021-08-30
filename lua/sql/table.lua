@@ -1,7 +1,7 @@
 ---@brief [[
 ---Abstraction to produce more readable code.
 ---@brief ]]
----@tag sqltbl.overview
+---@tag sqlite.tbl.overview
 
 local u = require "sql.utils"
 local a = require "sql.assert"
@@ -9,9 +9,9 @@ local fmt = string.format
 local P = require "sql.parser"
 local luv = require "luv"
 
----@type sqltbl
-local sqltbl = {}
-sqltbl.__index = sqltbl
+---@type sqlite.tbl
+local tbl = {}
+tbl.__index = tbl
 
 local check_for_auto_alter = function(o, valid_schema)
   local with_foregin_key = false
@@ -54,9 +54,9 @@ local check_for_auto_alter = function(o, valid_schema)
   end
 end
 
----Run sqltbl functions
+---Run tbl functions
 ---@param func function: wrapped function to run
----@param o sqltbl
+---@param o sqlite.tbl
 ---@return any
 local run = function(func, o)
   a.should_have_db_object(o.db, o.name)
@@ -71,7 +71,7 @@ local run = function(func, o)
       check_for_auto_alter(o, valid_schema)
     end
 
-    --- Run when sqltbl doesn't exists anymore
+    --- Run when tbl doesn't exists anymore
     if o.tbl_exists == false and valid_schema then
       o.tbl_schema.ensure = u.if_nil(o.tbl_schema.ensure, true)
       o.db:create(o.name, o.tbl_schema)
@@ -97,7 +97,7 @@ end
 ---
 ---<pre>
 ---```lua
---- local tbl = sqltbl:new(db, "todos", {
+--- local tbl = tbl:new(db, "todos", {
 ---   id = true, -- { type = "integer", required = true, primary = true }
 ---   title = "text",
 ---   since = { "date", default = strftime("%s", "now") },
@@ -112,11 +112,11 @@ end
 --- })
 ---```
 ---</pre>
----@param db sqldb
+---@param db sqlite.db
 ---@param name string: table name
----@param schema sqlschema
----@return sqltbl
-function sqltbl:new(db, name, schema)
+---@param schema sqlite.schema.dict
+---@return sqlite.tbl
+function tbl:new(db, name, schema)
   schema = schema or {}
   local o = setmetatable({ db = db, name = name, tbl_schema = u.if_nil(schema.schema, schema) }, self)
   if db then
@@ -125,14 +125,14 @@ function sqltbl:new(db, name, schema)
   return o
 end
 
----Same as |sqltbl:new()| but used to extend user defined object. This is the
+---Same as |tbl:new()| but used to extend user defined object. This is the
 ---recommended way of constructing and using sqlite tables. The only difference
----between this and |sqltbl:new()| or |sqldb:table()| is the fact that all
+---between this and |tbl:new()| or |sqlite:table()| is the fact that all
 ---resulting methods are access using the dot notation '.', and when the user
----overwrites a sqltbl methods, it gets renamed to `_method_name`.
+---overwrites a tbl methods, it gets renamed to `_method_name`.
 ---
 ---if first argument is {name} then second should be {schema}. If no {db} is
----provided, the sqltbl object won't be initialized until 'sqltbl.set_db' is
+---provided, the tbl object won't be initialized until 'tbl.set_db' is
 ---called, thus it can't be defined in different files.
 ---
 ---<pre>
@@ -145,11 +145,11 @@ end
 --- t.get = function() return t._get({ where = {...}, select = {...} })[1] end
 ---```
 ---</pre>
----@param db sqldb
+---@param db sqlite.db
 ---@param name string
----@param schema sqlschema
----@return sqltblext
-function sqltbl:extend(db, name, schema)
+---@param schema sqlite.schema.dict
+---@return sqlite.etbl
+function tbl:extend(db, name, schema)
   if not schema and type(db) == "string" then
     name, db, schema = db, nil, name
   end
@@ -181,16 +181,16 @@ end
 ---
 ---<pre>
 ---```lua
---- local projects = sqltbl:new("", {...})
+--- local projects = tbl:new("", {...})
 --- --- get project table schema.
---- projects:schema() -- or 'project.schema()' dot notation with |sqltbl:extend|
+--- projects:schema() -- or 'project.schema()' dot notation with |tbl:extend|
 --- --- mutate project table schema with droping content if not schema.ensure
---- projects:schema {...} -- or 'project.schema {...}' dot notation with |sqltbl:extend|
+--- projects:schema {...} -- or 'project.schema {...}' dot notation with |tbl:extend|
 ---```
 ---</pre>
----@param schema sqlschema
----@return sqlschema | boolean
-function sqltbl:schema(schema)
+---@param schema sqlite.schema.dict
+---@return sqlite.schema.dict | boolean
+function tbl:schema(schema)
   return run(function()
     local exists = self.db:exists(self.name)
     if not schema then -- TODO: or table is empty
@@ -214,12 +214,12 @@ end
 ---<pre>
 ---```lua
 --- --- drop todos table content.
---- todos:drop() or 'todos.drop()' -- dot notation for |sqltbl:extend|
+--- todos:drop() or 'todos.drop()' -- dot notation for |tbl:extend|
 ---```
 ---</pre>
----@see sqldb:drop
+---@see sqlite:drop
 ---@return boolean
-function sqltbl:drop()
+function tbl:drop()
   return run(function()
     if not self.db:exists(self.name) then
       return false
@@ -238,13 +238,13 @@ end
 ---
 ---<pre>
 ---```lua
---- if todos:empty() then -- or 'todos.emtpy()' for |sqltbl:extend|
+--- if todos:empty() then -- or 'todos.emtpy()' for |tbl:extend|
 ---   print "no more todos, we are free :D"
 --- end
 ---```
 ---</pre>
 ---@return boolean
-function sqltbl:empty()
+function tbl:empty()
   return self:exists() and self:count() == 0 or false
 end
 
@@ -252,13 +252,13 @@ end
 ---
 ---<pre>
 ---```lua
---- if goals:exists() then -- or 'goals.exists()' for |sqltbl:extend|
+--- if goals:exists() then -- or 'goals.exists()' for |tbl:extend|
 ---   error("I'm disappointed in you :D")
 --- end
 ---```
 ---</pre>
 ---@return boolean
-function sqltbl:exists()
+function tbl:exists()
   return run(function()
     return self.db:exists(self.name)
   end, self)
@@ -268,12 +268,12 @@ end
 ---
 ---<pre>
 ---```lua
---- if notes:count() == 0 then -- or 'notes.counts()' for |sqltbl:extend|
+--- if notes:count() == 0 then -- or 'notes.counts()' for |tbl:extend|
 ---   print("no more notes")
 --- end
 ---```
 ---@return number
-function sqltbl:count()
+function tbl:count()
   return run(function()
     if not self.db:exists(self.name) then
       return 0
@@ -288,11 +288,11 @@ end
 ---<pre>
 ---```lua
 --- --- get everything
---- todos:get() -- or 'todos.get()' with |sqltbl:extend|
+--- todos:get() -- or 'todos.get()' with |tbl:extend|
 --- --- get row with id of 1
---- todos:get { where = { id = 1 } } -- or 'todos.get { ... }' with |sqltbl:extend|
+--- todos:get { where = { id = 1 } } -- or 'todos.get { ... }' with |tbl:extend|
 --- --- select a set of keys with computed one
---- timestamps:get { -- or 'timestamps.get {... }'  with |sqltbl:extend|
+--- timestamps:get { -- or 'timestamps.get {... }'  with |tbl:extend|
 ---   select = {
 ---     age = (strftime("%s", "now") - strftime("%s", "timestamp")) * 24 * 60,
 ---     "id",
@@ -302,10 +302,10 @@ end
 ---   }
 ---```
 ---</pre>
----@param query sqlquery_select
+---@param query sqlite.select_query
 ---@return table
----@see sqldb:select
-function sqltbl:get(query)
+---@see sqlite:select
+function tbl:get(query)
   -- query = query or { query = { all = 1 } }
 
   return run(function()
@@ -319,15 +319,15 @@ end
 ---<pre>
 ---```lua
 --- --- get single entry. notice that we don't pass where key.
---- tbl:where{ id = 1 } -- or tbl.where()  with |sqltbl:extend|
+--- tbl:where{ id = 1 } -- or tbl.where()  with |tbl:extend|
 --- --- get row with id of 1 or 'todos.where { id = 1 }'
 ---```
 ---</pre>
 ---@param where table: where key values
 ---@return nil or row
 ---@usage ``
----@see sqldb:select
-function sqltbl:where(where)
+---@see sqlite:select
+function tbl:where(where)
   return where and self:get({ where = where })[1] or nil
 end
 
@@ -343,16 +343,16 @@ end
 ---   where = { status = "pending" },
 ---   contains = { title = "fix*" }
 --- })
---- --- This works too. use 'todos.each(..)' with |sqltbl:extend|
+--- --- This works too. use 'todos.each(..)' with |tbl:extend|
 --- todos:each({ where = { ... }}, function(row)
 ---   print(row.title)
 --- end)
 ---```
 ---</pre>
 ---@param func function: func(row)
----@param query sqlquery_select|nil
+---@param query sqlite.select_query|nil
 ---@return boolean
-function sqltbl:each(func, query)
+function tbl:each(func, query)
   if type(func) == "table" then
     func, query = query, func
   end
@@ -375,7 +375,7 @@ end
 ---
 ---<pre>
 ---```lua
---- --- transform rows. use todos.map(..) with |sqltbl:extend|
+--- --- transform rows. use todos.map(..) with |tbl:extend|
 --- local rows = todos:map(function(row)
 ---   row.somekey = ""
 ---   row.f = callfunction(row)
@@ -393,9 +393,9 @@ end
 ---```
 ---</pre>
 ---@param func function: func(row)
----@param query sqltblext|nil
+---@param query tblext|nil
 ---@return table[]
-function sqltbl:map(func, query)
+function tbl:map(func, query)
   if type(func) == "table" then
     func, query = query, func
   end
@@ -423,7 +423,7 @@ end
 ---
 ---<pre>
 ---```lua
---- --- return rows sort by id. t1.sort() with |sqltbl:extend|
+--- --- return rows sort by id. t1.sort() with |tbl:extend|
 --- local res = t1:sort({ where = {id = {32,12,35}}})
 --- --- return rows sort by age
 --- local res = t1:sort({ where = {id = {32,12,35}}}, "age")`
@@ -431,11 +431,11 @@ end
 --- local res = t1:sort({where = { ... }}, "age", function(a, b) return a > b end)`
 ---```
 ---</pre>
----@param query sqlquery_select|nil
+---@param query sqlite.select_query|nil
 ---@param transform function: a `transform` function to sort elements. Defaults to @{identity}
 ---@param comp function: a comparison function, defaults to the `<` operator
 ---@return table[]
-function sqltbl:sort(query, transform, comp)
+function tbl:sort(query, transform, comp)
   return run(function()
     local res = self.db:select(self.name, query or { query = { all = 1 } }, self.db_schema)
     local f = transform or function(r)
@@ -463,17 +463,17 @@ end
 --- --- single item.
 --- todos:insert { title = "new todo" }
 --- --- insert multiple items, using todos table as first param
---- sqltbl.insert(todos, "items", {  { name = "a"}, { name = "b" }, { name = "c" } })
---- --- insert with |sqltbl:extend|
+--- tbl.insert(todos, "items", {  { name = "a"}, { name = "b" }, { name = "c" } })
+--- --- insert with |tbl:extend|
 --- todos.insert { ... }
 ---```
 ---</pre>
 ---@param rows table: a row or a group of rows
----@see sqldb:insert
+---@see sqlite:insert
 ---@usage `todos:insert { title = "stop writing examples :D" }` insert single item.
 ---@usage `todos:insert { { ... }, { ... } }` insert multiple items
 ---@return integer: last inserted id
-function sqltbl:insert(rows)
+function tbl:insert(rows)
   return run(function()
     local succ, last_rowid = self.db:insert(self.name, rows, self.db_schema)
     if succ then
@@ -500,10 +500,10 @@ end
 --- todos.remove {...}
 ---```
 ---</pre>
----@param where sqlquery_delete
----@see sqldb:delete
+---@param where sqlite.delete_query
+---@see sqlite:delete
 ---@return boolean
-function sqltbl:remove(where)
+function tbl:remove(where)
   return run(function()
     return self.db:delete(self.name, where)
   end, self)
@@ -515,22 +515,22 @@ end
 ---<pre>
 ---```lua
 --- --- update todos status linked to project "lua-hello-world" or "rewrite-neoivm-in-rust"
---- todos:update { -- or 'todos.update { .. }' with |sqltbl:extend|
+--- todos:update { -- or 'todos.update { .. }' with |tbl:extend|
 ---   where = { project = {"lua-hello-world", "rewrite-neoivm-in-rust"} },
 ---   set = { status = "later" }
 --- }
 --- --- pass custom statement and boolean
---- ts:update { -- or 'ts.update { .. }' with |sqltbl:extend|
+--- ts:update { -- or 'ts.update { .. }' with |tbl:extend|
 ---   where = { id = "<" .. 4 }, -- mimcs WHERE id < 4
 ---   set = { seen = true } -- will be converted to 0.
 --- }
 ---```
 ---</pre>
----@param specs sqlquery_update
----@see sqldb:update
----@see sqlquery_update
+---@param specs sqlite.update_query
+---@see sqlite:update
+---@see sqlite.update_query
 ---@return boolean
-function sqltbl:update(specs)
+function tbl:update(specs)
   return run(function()
     local succ = self.db:update(self.name, specs, self.db_schema)
     return succ
@@ -542,22 +542,22 @@ end
 ---<pre>
 ---```lua
 --- --- replace project table content with a single call
---- todos:replace { -- or 'todos.replace { ... }' with |sqltbl:extend|
+--- todos:replace { -- or 'todos.replace { ... }' with |tbl:extend|
 ---   { ... },
 ---   { ... },
 ---   { ... },
 --- }
 --- --- replace everything with a single row
---- ts:replace { -- or 'ts.replace { .. }' with |sqltbl:extend|
+--- ts:replace { -- or 'ts.replace { .. }' with |tbl:extend|
 ---   key = "val"
 --- }
 ---```
 ---</pre>
 ---@param rows table[]|table
----@see sqldb:delete
----@see sqldb:insert
+---@see sqlite:delete
+---@see sqlite:insert
 ---@return boolean
-function sqltbl:replace(rows)
+function tbl:replace(rows)
   return run(function()
     self.db:delete(self.name)
     local succ = self.db:insert(self.name, rows, self.db_schema)
@@ -565,6 +565,6 @@ function sqltbl:replace(rows)
   end, self)
 end
 
-sqltbl = setmetatable(sqltbl, { __call = sqltbl.extend })
+tbl = setmetatable(tbl, { __call = tbl.extend })
 
-return sqltbl
+return tbl

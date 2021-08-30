@@ -19,7 +19,7 @@ local clib_path = path
 
 local clib = ffi.load(clib_path)
 
----@type sqlflag
+---@type sqlite.flags
 M.flags = {
   -- Result codes
   ["ok"] = 0,
@@ -55,7 +55,7 @@ M.flags = {
   ["done"] = 101,
 }
 
----@type sqlopts
+---@type sqlite.db.opts
 M.valid_pargma = {
   ["analysis_limit"] = true,
   ["application_id"] = true,
@@ -579,7 +579,7 @@ ffi.cdef [[
 ]]
 
 ---@class sqlite3 @sqlite3 db object
----@class sqlite_blob @sqlite3 blob object
+---@class sqlite.blob @sqlite3 blob object
 
 M.to_str = function(ptr, len)
   if ptr == nil then
@@ -622,7 +622,6 @@ end
 
 --- Execute a manipulation sql statement within begin and commit block
 ---@param conn_ptr sqlite connction ptr
----@param sqldb table
 ---@param fn func()
 M.wrap_stmts = function(conn_ptr, fn)
   M.exec_stmt(conn_ptr, "BEGIN")
@@ -645,10 +644,10 @@ M.last_errcode = function(conn_ptr)
   return clib.sqlite3_errcode(conn_ptr)
 end
 
----Create new connection and modify `sqldb` object
+---Create new connection and modify `sqlite.db` object
 ---@param uri string
----@param sqldb table
----@return sqlite_blob*
+---@param opts sqlite.db.opts
+---@return sqlite.blob*
 ---@TODO: support open_v2 to enable control over how the database file is opened.
 M.connect = function(uri, opts)
   opts = opts or {}

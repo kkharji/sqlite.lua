@@ -5,7 +5,7 @@ local clib = require "sql.defs"
 --- Functions for asseting and erroring out :D
 
 local errors = {
-  not_sqltbl = "can not execute %s, %s doesn't exists.",
+  not_sqlite.tbl = "can not execute %s, %s doesn't exists.",
   close_fail = "database connection didn't get closed, ERRMSG: %s",
   eval_fail = "eval has failed to execute statement, ERRMSG: %s",
   failed_ops = "operation failed, ERRMSG: %s",
@@ -24,14 +24,14 @@ end
 ---@param tbl_name string
 ---@param method any
 ---@return boolean
-M.is_sqltbl = function(db, tbl_name, method)
-  assert(db:exists(tbl_name), errors.not_sqltbl:format(method, tbl_name))
+M.is_sqlite.tbl = function(db, tbl_name, method)
+  assert(db:exists(tbl_name), errors.not_sqlite.tbl:format(method, tbl_name))
   return true
 end
 
 ---Error out if connection didn't get closed.
 ---This should never happen but is used just in case
----@param conn_ptr sqlite_blob*
+---@param conn_ptr sqlite.blob*
 ---@return boolean
 M.should_close = function(conn_ptr, did_close)
   assert(did_close, errors.close_fail:format(clib.last_errmsg(conn_ptr)))
@@ -40,7 +40,7 @@ end
 
 ---Error out if statement evaluation/executation result in
 ---last_errorcode ~= flags.ok
----@param conn_ptr sqlite_blob*
+---@param conn_ptr sqlite.blob*
 ---@return boolean
 M.should_eval = function(conn_ptr)
   local no_err = clib.last_errcode(conn_ptr) == clib.flags.ok
@@ -51,7 +51,7 @@ end
 ---This because in update we insert and expect some value
 ---returned 'let me id or 'boolean.
 ---When the ret values < 0 then the function didn't do anything.
----@param status sqldb_status
+---@param status sqlite.db_status
 ---@return boolean
 M.should_modify = function(status)
   assert(status.code == 0, errors.failed_ops:format(status.msg))
