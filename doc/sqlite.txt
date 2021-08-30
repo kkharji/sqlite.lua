@@ -8,138 +8,102 @@ To find out more visit https://github.com/tami5/sql.nvim
 
 Help usage in neovim: ignore ||
   :h |sqlinfo|            | main sql.nvim classes
-  :h |sqlite.schema.key|     | open a class or type
-  :h |sqlite.tbl.overview|    | show help for sqlite.tbl.
-  :h |sqlite.db.overview|     | show help for sqlite.tbl.
-  :h sqlite.db:...            | show help for a sqlite.db method.
-  :h sqlite.tbl:...           | show help for a sqlite.tbl method.
+  :h |sqlite_schema_key|     | open a class or type
+  :h |sqlite_tbl.appendix|    | show help for sqlite_tbl.
+  :h |sqlite_db.appendix|     | show help for sqlite_tbl.
+  :h sqlite_db:...            | show help for a sqlite_db method.
+  :h sqlite_tbl:...           | show help for a sqlite_tbl method.
 
 sql.nvim types:
 
-sqlite : .db_status                                                   *sqlite*
-    Status returned from |sqlite.db:status()|
+sqlite_db : .opts                                                  *sqlite_db*
+    Sqlite3 Options (TODO: add sqlite option fields and description)
 
     Parents: ~
-        |.db_status|
+        |.opts|
+
+
+sqlite_tbl                                                        *sqlite_tbl*
+    Main sql table class
 
     Fields: ~
-        {msg} (string)
+        {db}    (sqlite_db)  database .
+        {name}  (string)     table name.
+        {mtime} (number)     db last modified time.
 
 
-sqlite : .db_status                                                   *sqlite*
-    Status returned from |sqlite.db:status()|
+sqlite_tblext                                                  *sqlite_tblext*
+    Extended version of sql table class. This class is generated through
+    |sqlite_tbl:extend|
+
+    Fields: ~
+        {db}    (sqlite_db)
+        {name}  (string)     table name
+        {mtime} (number)     db last modified time
+
+
+sqlite_schema_key                                          *sqlite_schema_key*
+    Sqlite schema key fileds. {name} is the only required field.
+
+    Fields: ~
+        {cid}       (number)                 column index.
+        {name}      (string)                 column key.
+        {type}      (string)                 column type.
+        {required}  (boolean)                whether it's required.
+        {primary}   (boolean)                whether it's a primary key.
+        {default}   (string)                 default value when null.
+        {reference} (string)
+        {on_delete} (sqlite_trigger)         trigger on row delete.
+        {on_update} (table<string, string>)
+
+
+sqlite_db : .opts                                                  *sqlite_db*
+    Sqlite3 Options (TODO: add sqlite option fields and description)
 
     Parents: ~
-        |.db_status|
+        |.opts|
+
+
+sqlite_query_update                                      *sqlite_query_update*
+    Query fileds used when calling |sqlite_db:update| or |sqlite_tbl:update|
 
     Fields: ~
-        {msg} (string)
+        {where} (table)  filter down values using key values.
+        {set}   (table)  key and value to updated.
 
 
-sqlite : .db_status                                                   *sqlite*
-    Status returned from |sqlite.db:status()|
-
-    Parents: ~
-        |.db_status|
+sqlite_query_select                                      *sqlite_query_select*
+    Query fileds used when calling |sqlite_db:select| or |sqlite_tbl:get|
 
     Fields: ~
-        {msg} (string)
+        {where}    (table)   filter down values using key values.
+        {keys}     (table)   keys to include. (default all)
+        {join}     (table)   (TODO: support)
+        {order_by} (table)   { asc = "key", dsc = {"key", "another_key"} }
+        {limit}    (number)  the number of result to limit by
+        {contains} (table)   for sqlite glob ex. { title = "fix*" }
 
 
-sqlite : .db_status                                                   *sqlite*
-    Status returned from |sqlite.db:status()|
-
-    Parents: ~
-        |.db_status|
-
-    Fields: ~
-        {msg} (string)
+sqlite_flags                                                    *sqlite_flags*
+    Sqlite3 Error Flags (TODO: add sqlite error flags value and description)
 
 
-sqlite : .db_status                                                   *sqlite*
-    Status returned from |sqlite.db:status()|
-
-    Parents: ~
-        |.db_status|
+sqlite_db_status                                            *sqlite_db_status*
+    Status returned from |sqlite_db:status()|
 
     Fields: ~
-        {msg} (string)
-
-
-sqlite : .db_status                                                   *sqlite*
-    Status returned from |sqlite.db:status()|
-
-    Parents: ~
-        |.db_status|
-
-    Fields: ~
-        {msg} (string)
-
-
-sqlite : .db_status                                                   *sqlite*
-    Status returned from |sqlite.db:status()|
-
-    Parents: ~
-        |.db_status|
-
-    Fields: ~
-        {msg} (string)
-
-
-sqlite : .db_status                                                   *sqlite*
-    Status returned from |sqlite.db:status()|
-
-    Parents: ~
-        |.db_status|
-
-    Fields: ~
-        {msg} (string)
-
-
-sqlite : .db_status                                                   *sqlite*
-    Status returned from |sqlite.db:status()|
-
-    Parents: ~
-        |.db_status|
-
-    Fields: ~
-        {msg} (string)
+        {msg}  (string)
+        {code} (sqlite_flags)
 
 
 
 ================================================================================
-                                                            *sqlite.db.overview*
+                                                            *sqlite_db.appendix*
 
 Main sql.nvim object and methods.
 
-(optional) see |sqlite.db.opts|
----@return sqlite.db({uri})*(optional) see |sqlite.db.opts|
----@return sqlite.db()*
-    Creates a new sql.nvim object, without creating a connection to uri.
-    |sqlite.new| is identical to |sqlite:open| but it without opening sqlite db
-    connection. Thus its most suited for cases where the database might be
-    acccess from multiple places. For neovim use cases, this mean from
-    different neovim instances.
-
-    ```lua
-    local db = sqlite.new("path/to/db" or "$env_var", { ... } or nil)
-    ```
-
-
-    Parameters: ~
-        {uri} (string)  uri to db file.
-
-
-(optional) see |sqlite.db.opts|
----@field tname1 string: pointing to |sqlite.etbl| or |sqlite.schema.dict|
----@field tnameN string: pointing to |sqlite.etbl| or |sqlite.schema.dict|
----@see sqlite.tbl:extend
----@return sqlite.db({opts})*(optional) see |sqlite.db.opts|
----@field tname1 string: pointing to |sqlite.etbl| or |sqlite.schema.dict|
----@field tnameN string: pointing to |sqlite.etbl| or |sqlite.schema.dict|
----@see sqlite.tbl:extend
----@return sqlite.db()*
-    Extend |sqlite.db| object with extra sugar syntax and api. This is
+sqlite:extend({opts})                                        *sqlite:extend()*
+    Extend |sqlite_db| object with extra sugar syntax and api. This is
     recommended for all sqlite use case as it provide convenience. This method
     is super lazy. it try its best to doing any ffi calls until the first
     operation done on a table.
@@ -149,13 +113,13 @@ Main sql.nvim object and methods.
     intend,
 
     ```lua
-    local db = sqlite { -- or sqlite.db:extend
+    local db = sqlite { -- or sqlite_db:extend
       uri = "path/to/db", -- path to db file
       entries = entries,  -- pre-made |etbl| with |tbl:extend()| without db
       category = { title = { "text", unique = true, primary = true}  },
-      opts = {} or nil -- custom sqlite3 options, see |sqlite.db.opts|
+      opts = {} or nil -- custom sqlite3 options, see |sqlite_db.opts|
     }
-    -- unlike |sqlite.tbl|, |sqlite.etbl| is accessed by dot notation.
+    -- unlike |sqlite_tbl|, |sqlite_etbl| is accessed by dot notation.
     db.entries.insert { {..}, {..} }
     ```
 
@@ -247,7 +211,7 @@ sqlite:status()                                              *sqlite:status()*
 
 
     Return: ~
-        sqlite.db_status
+        sqlite_db_status
 
 
 sqlite:eval({statement}, {params})                             *sqlite:eval()*
@@ -305,7 +269,7 @@ sqlite:exists({tbl_name})                                    *sqlite:exists()*
         boolean
 
 
-sqlite:create({tbl_name})                                    *sqlite:create()*
+sqlite:create({tbl_name}, {schema})                          *sqlite:create()*
     Create a new sqlite db table with {name} based on {schema}. if
     {schema.ensure} then create only when it does not exists. similar to
     'create if not exists'.
@@ -321,7 +285,8 @@ sqlite:create({tbl_name})                                    *sqlite:create()*
 
 
     Parameters: ~
-        {tbl_name} (string)  table name
+        {tbl_name} (string)              table name
+        {schema}   (sqlite_schema_dict)
 
     Return: ~
         boolean
@@ -361,7 +326,7 @@ sqlite:schema({tbl_name})                                    *sqlite:schema()*
         {tbl_name} (string)  the table name.
 
     Return: ~
-        sqlite.schema.dict
+        sqlite_schema_dict
 
 
 sqlite:insert({tbl_name}, {rows})                            *sqlite:insert()*
@@ -404,15 +369,15 @@ sqlite:update({tbl_name}, {specs})                           *sqlite:update()*
 
 
     Parameters: ~
-        {tbl_name} (string)                                       sqlite table
-                                                                  name.
-        {specs}    (sqlite.update_query | sqlite.update_query[])
+        {tbl_name} (string)                                     sqlite table
+                                                                name.
+        {specs}    (sqlite_query_update|sqlite_query_update[])
 
     Return: ~
         boolean
 
 
-sqlite:delete({tbl_name})                                    *sqlite:delete()*
+sqlite:delete({tbl_name}, {where})                           *sqlite:delete()*
     Delete a {tbl_name} row/rows based on the {where} closure. If {where ==
     nil} then all the {tbl_name} content will be deleted.
 
@@ -429,7 +394,9 @@ sqlite:delete({tbl_name})                                    *sqlite:delete()*
 
 
     Parameters: ~
-        {tbl_name} (string)  sqlite table name
+        {tbl_name} (string)               sqlite table name
+        {where}    (sqlite_query_delete)  key value pair to where delete
+                                          operation should effect.
 
     Return: ~
         boolean: true if operation is successfully, false otherwise.
@@ -459,11 +426,12 @@ sqlite:select({tbl_name}, {spec})                            *sqlite:select()*
 
 
     Parameters: ~
-        {tbl_name} (string)                                  the name of the
-                                                             db table to
-                                                             select on
-        {spec}     (sqlite.select_query
----@return table[])
+        {tbl_name} (string)               the name of the db table to select
+                                          on
+        {spec}     (sqlite_query_select)
+
+    Return: ~
+        table[]
 
 
 sqlite:table({tbl_name}, {opts})                              *sqlite:table()*
@@ -493,7 +461,7 @@ sqlite:table({tbl_name}, {opts})                              *sqlite:table()*
         {opts}     (table)   {schema, ensure (defalut true)}
 
     Return: ~
-        sqlite.tbl
+        sqlite_tbl
 
 
 sqlite.lib()                                                    *sqlite.lib()*
@@ -503,11 +471,11 @@ sqlite.lib()                                                    *sqlite.lib()*
 
 
 ================================================================================
-                                                           *sqlite.tbl.overview*
+                                                           *sqlite_tbl.appendix*
 
 Abstraction to produce more readable code.
 
-tbl:new({name})                                                    *tbl:new()*
+tbl:new({db}, {name}, {schema})                                    *tbl:new()*
     Create new sql table object
 
     ```lua
@@ -528,13 +496,15 @@ tbl:new({name})                                                    *tbl:new()*
 
 
     Parameters: ~
-        {name} (string)  table name
+        {db}     (sqlite_db)
+        {name}   (string)              table name
+        {schema} (sqlite_schema_dict)
 
     Return: ~
-        sqlite.tbl
+        sqlite_tbl
 
 
-tbl:extend({name})                                              *tbl:extend()*
+tbl:extend({db}, {name}, {schema})                              *tbl:extend()*
     Same as |tbl:new()| but used to extend user defined object. This is the
     recommended way of constructing and using sqlite tables. The only
     difference between this and |tbl:new()| or |sqlite:table()| is the fact
@@ -556,13 +526,15 @@ tbl:extend({name})                                              *tbl:extend()*
 
 
     Parameters: ~
-        {name} (string)
+        {db}     (sqlite_db)
+        {name}   (string)
+        {schema} (sqlite_schema_dict)
 
     Return: ~
-        sqlite.etbl
+        sqlite_etbl
 
 
-tbl:schema()                                                    *tbl:schema()*
+tbl:schema({schema})                                            *tbl:schema()*
     Create or change table schema. If no {schema} is given, then it return
     current the used schema if it exists or empty table otherwise. On change
     schema it returns boolean indecting success.
@@ -576,8 +548,11 @@ tbl:schema()                                                    *tbl:schema()*
     ```
 
 
+    Parameters: ~
+        {schema} (sqlite_schema_dict)
+
     Return: ~
-        sqlite.schema.dict | boolean
+        sqlite_schema_dict | boolean
 
 
 tbl:drop()                                                        *tbl:drop()*
@@ -639,7 +614,7 @@ tbl:count()                                                      *tbl:count()*
         number
 
 
-tbl:get()                                                          *tbl:get()*
+tbl:get({query})                                                   *tbl:get()*
     Query the table and return results.
 
     ```lua
@@ -658,6 +633,9 @@ tbl:get()                                                          *tbl:get()*
       }
     ```
 
+
+    Parameters: ~
+        {query} (sqlite_query_select)
 
     Return: ~
         table
@@ -689,7 +667,7 @@ tbl:where({where})                                               *tbl:where()*
         |sqlite:select()|
 
 
-tbl:each({func})                                                  *tbl:each()*
+tbl:each({func}, {query})                                         *tbl:each()*
     Iterate over table rows and execute {func}. Returns false if no row is
     returned.
 
@@ -709,7 +687,8 @@ tbl:each({func})                                                  *tbl:each()*
 
 
     Parameters: ~
-        {func} (function)  func(row)
+        {func}  (function)                 func(row)
+        {query} (sqlite_query_select|nil)
 
     Return: ~
         boolean
@@ -745,7 +724,7 @@ tbl:map({func}, {query})                                           *tbl:map()*
         table[]
 
 
-tbl:sort({transform}, {comp})                                     *tbl:sort()*
+tbl:sort({query}, {transform}, {comp})                            *tbl:sort()*
     Sorts a table in-place using a transform. Values are ranked in a custom
     order of the results of running `transform (v)` on all values. `transform`
     may also be a string name property sort by. `comp` is a comparison
@@ -762,10 +741,12 @@ tbl:sort({transform}, {comp})                                     *tbl:sort()*
 
 
     Parameters: ~
-        {transform} (function)  a `transform` function to sort elements.
-                                Defaults to @{identity}
-        {comp}      (function)  a comparison function, defaults to the `<`
-                                operator
+        {query}     (sqlite_query_select|nil)
+        {transform} (function)                 a `transform` function to sort
+                                               elements. Defaults to
+                                               @{identity}
+        {comp}      (function)                 a comparison function, defaults
+                                               to the `<` operator
 
     Return: ~
         table[]
@@ -799,7 +780,7 @@ tbl:insert({rows})                                              *tbl:insert()*
         |sqlite:insert()|
 
 
-tbl:remove()                                                    *tbl:remove()*
+tbl:remove({where})                                             *tbl:remove()*
     Delete a rows/row or table content based on {where} closure. If {where ==
     nil} then clear table content.
 
@@ -817,6 +798,9 @@ tbl:remove()                                                    *tbl:remove()*
     ```
 
 
+    Parameters: ~
+        {where} (sqlite_query_delete)
+
     Return: ~
         boolean
 
@@ -824,7 +808,7 @@ tbl:remove()                                                    *tbl:remove()*
         |sqlite:delete()|
 
 
-tbl:update()                                                    *tbl:update()*
+tbl:update({specs})                                             *tbl:update()*
     Update table row with where closure and list of values returns true incase
     the table was updated successfully.
 
@@ -842,12 +826,15 @@ tbl:update()                                                    *tbl:update()*
     ```
 
 
+    Parameters: ~
+        {specs} (sqlite_query_update)
+
     Return: ~
         boolean
 
     See: ~
         |sqlite:update()|
-        |sqlite.update_query()|
+        |sqlite_query_update()|
 
 
 tbl:replace({rows})                                            *tbl:replace()*
