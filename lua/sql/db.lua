@@ -92,8 +92,8 @@ end
 ---<pre>
 ---```lua
 --- local db = sqldb { -- or sqldb:extend
----   uri = "path/to/db", -- i table created with |sqltbl:extend|
----   entries = entries,  -- pre-made |sqltblext| with |sqltbl:extend| without db
+---   uri = "path/to/db", -- i table created with |sqltbl:extend()|
+---   entries = entries,  -- pre-made |sqltblext| with |sqltbl:extend()| without db
 ---   category = { title = { "text", unique = true, primary = true}  },
 ---   opts = {} or nil -- custom sqlite3 options, see |sqlopts|
 --- }
@@ -206,7 +206,13 @@ end
 
 ---Returns current connection status
 ---Get last error code
----@todo: decide whether to keep this function
+---
+---<pre>
+---```lua
+--- print(db:status().msg) -- get last error msg
+--- print(db:status().code) -- get last error code.
+---```
+---</pre>
 ---@return sqldb_status
 function sqldb:status()
   return {
@@ -215,17 +221,23 @@ function sqldb:status()
   }
 end
 
----Evaluates a sql {statement} and if there are results from evaluating it then
----the function returns list of row(s). Else, it returns a boolean indecating
----whether the evaluation was successful. Optionally, the function accept
----{params} which can be a dict of values corresponding to the sql statement or
----a list of unamed values.
----@param statement any: string representing the {statement} or a list of {statements}
----@param params table: params to be bind to {statement}, it can be a list or dict or nil
----@usage `db:eval("drop table if exists todos")` evaluate without any extra arguments.
----@usage `db:eval("select * from todos where id = ?", 1)` evaluate with unamed value.
----@usage `db:eval("insert into t(a, b) values(:a, :b)", {a = "1", b = 3})` evaluate with named arguments.
----@return boolean | table
+---Evaluates a sql {statement} and if there are results from evaluation it
+---returns list of rows. Otherwise it returns a boolean indecating
+---whether the evaluation was successful.
+---
+---<pre>
+---```lua
+--- -- evaluate without any extra arguments.
+--- db:eval("drop table if exists todos")
+--- --  evaluate with unamed value.
+--- db:eval("select * from todos where id = ?", 1)
+--- -- evaluate with named arguments.
+--- db:eval("insert into t(a, b) values(:a, :b)", {a = "1", b = 3})
+---```
+---</pre>
+---@param statement string: SQL statement.
+---@param params table|nil: params to be bind to {statement}
+---@return boolean|table
 function sqldb:eval(statement, params)
   local res = {}
   local s = stmt:parse(self.conn, statement)
@@ -278,6 +290,13 @@ function sqldb:eval(statement, params)
 end
 
 ---Execute statement without any return
+---
+---<pre>
+---```lua
+--- db:execute("drop table if exists todos")
+--- db:execute("pragma foreign_keys=on")
+---```
+---</pre>
 ---@param statement string: statement to be executed
 ---@return boolean: true if successful, error out if not.
 function sqldb:execute(statement)
@@ -286,8 +305,12 @@ function sqldb:execute(statement)
 end
 
 ---Check if a table with {tbl_name} exists in sqlite db
+---<pre>
+---```lua
+--- if not db:exists("todo_tbl") then error("Table doesn't exists!!!") end`
+---```
+---</pre>
 ---@param tbl_name string: the table name.
----@usage `if not db:exists("todo_tbl") then error("...") end`
 ---@return boolean
 function sqldb:exists(tbl_name)
   local q = self:eval("select name from sqlite_master where name= ?", tbl_name)
@@ -296,9 +319,19 @@ end
 
 ---Create a new sqlite db table with {name} based on {schema}. if {schema.ensure} then
 ---create only when it does not exists. similar to 'create if not exists'.
+--
+---<pre>
+---```lua
+--- db:create("todos", {
+---   id = {"int", "primary", "key"},
+---   title = "text",
+---   name = { type = "string", reference = "sometbl.id" },
+---   ensure = true -- only create table if it doesn't already exists
+--- })
+---```
+---</pre>
 ---@param tbl_name string: table name
 ---@param schema sqlschema
----@usage `db:create("todos", {id = {"int", "primary", "key"}, title = "text"})` create table with the given schema.
 ---@return boolean
 function sqldb:create(tbl_name, schema)
   local req = P.create(tbl_name, schema)
@@ -311,7 +344,14 @@ end
 
 ---Remove {tbl_name} from database
 ---@param tbl_name string: table name
----@usage `db:drop("todos")` drop table.
+--
+---<pre>
+---```lua
+--- if db:exists("todos") then
+---   db:drop("todos")
+--- end
+---```
+---</pre>
 ---@return boolean
 function sqldb:drop(tbl_name)
   self.tbl_schemas[tbl_name] = nil
@@ -319,6 +359,16 @@ function sqldb:drop(tbl_name)
 end
 
 ---Get {name} table schema, if table does not exist then return an empty table.
+---
+---<pre>
+---```lua
+--- if db:exists("todos") then
+---   inspect(db:schema("todos").project)
+--- else
+---   print("create me")
+--- end
+---```
+---</pre>
 ---@param tbl_name string: the table name.
 ---@return sqlschema
 function sqldb:schema(tbl_name)
@@ -336,15 +386,19 @@ function sqldb:schema(tbl_name)
   return schema
 end
 
----Insert to lua table into sqlite database table.
----returns true incase the table was inserted successfully, and the last
----inserted row id.
+---Insert lua table into sqlite database table.
+---
+---<pre>
+---```lua
+--- -- single item.
+--- db:insert("todos", { title = "new todo" })
+--- -- insert multiple items.
+--- db:insert("items", {  { name = "a"}, { name = "b" }, { name = "c" } })
+---```
+---</pre>
 ---@param tbl_name string: the table name
 ---@param rows table: rows to insert to the table.
----@return boolean|integer
----@usage `db:insert("todos", { title = "new todo" })` single item.
----@usage `db:insert("items", {  { name = "a"}, { name = "b" }, { name = "c" } })` insert multiple items.
----@todo handle inconflict case
+---@return boolean|integer: boolean (true == success), and the last inserted row id.
 function sqldb:insert(tbl_name, rows, schema)
   a.is_sqltbl(self, tbl_name, "insert")
   local ret_vals = {}
