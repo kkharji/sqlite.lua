@@ -16,18 +16,24 @@ Help usage in neovim: ignore ||
 
 sql.nvim types:
 
-sqlite_db : .opts                                                  *sqlite_db*
-    Sqlite3 Options (TODO: add sqlite option fields and description)
+sqlite_db                                                          *sqlite_db*
+    Main sql.nvim object.
 
-    Parents: ~
-        |.opts|
+    Fields: ~
+        {uri}  (string)       database uri. it can be an environment variable
+                              or an absolute path. default ":memory:"
+        {opts} (sqlite_opts)  see https://www.sqlite.org/pragma.html
+                              |sqlite_opts|
+        {conn} (sqlite_blob)  sqlite connection c object.
+        {db}   (sqlite_db)    reference to fallback to when overwriting
+                              |sqlite_db| methods (extended only).
 
 
 sqlite_tbl                                                        *sqlite_tbl*
     Main sql table class
 
     Fields: ~
-        {db}    (sqlite_db)  database .
+        {db}    (sqlite_db)  sqlite.lua database object.
         {name}  (string)     table name.
         {mtime} (number)     db last modified time.
 
@@ -37,7 +43,7 @@ sqlite_tblext                                                  *sqlite_tblext*
     |sqlite_tbl:extend|
 
     Fields: ~
-        {db}    (sqlite_db)
+        {db}    (sqlite_db)  sqlite.lua database object.
         {name}  (string)     table name
         {mtime} (number)     db last modified time
 
@@ -57,15 +63,12 @@ sqlite_schema_key                                          *sqlite_schema_key*
         {on_update} (table<string, string>)
 
 
-sqlite_db : .opts                                                  *sqlite_db*
+sqlite_opts                                                      *sqlite_opts*
     Sqlite3 Options (TODO: add sqlite option fields and description)
-
-    Parents: ~
-        |.opts|
 
 
 sqlite_query_update                                      *sqlite_query_update*
-    Query fileds used when calling |sqlite_db:update| or |sqlite_tbl:update|
+    Query fileds used when calling |sqlite:update| or |sqlite_tbl:update|
 
     Fields: ~
         {where} (table)  filter down values using key values.
@@ -73,7 +76,7 @@ sqlite_query_update                                      *sqlite_query_update*
 
 
 sqlite_query_select                                      *sqlite_query_select*
-    Query fileds used when calling |sqlite_db:select| or |sqlite_tbl:get|
+    Query fileds used when calling |sqlite:select| or |sqlite_tbl:get|
 
     Fields: ~
         {where}    (table)   filter down values using key values.
@@ -89,7 +92,7 @@ sqlite_flags                                                    *sqlite_flags*
 
 
 sqlite_db_status                                            *sqlite_db_status*
-    Status returned from |sqlite_db:status()|
+    Status returned from |sqlite:status()|
 
     Fields: ~
         {msg}  (string)
@@ -101,6 +104,47 @@ sqlite_db_status                                            *sqlite_db_status*
                                                             *sqlite_db.appendix*
 
 Main sql.nvim object and methods.
+
+sqlite.new({uri}, {opts})                                       *sqlite.new()*
+    Creates a new sql.nvim object, without creating a connection to uri.
+    |sqlite.new| is identical to |sqlite:open| but it without opening sqlite db
+    connection. Thus its most suited for cases where the database might be
+    acccess from multiple places. For neovim use cases, this mean from
+    different neovim instances.
+
+    ```lua
+    local db = sqlite.new("path/to/db" or "$env_var", { ... } or nil)
+    ```
+
+
+    Parameters: ~
+        {uri}  (string)       uri to db file.
+        {opts} (sqlite_opts)  (optional) see |sqlite_opts|
+
+    Return: ~
+        sqlite_db
+
+
+sqlite:open({uri}, {opts})                                     *sqlite:open()*
+    Creates and connect to new sqlite db object, either in memory or via a
+    {uri}. If it is called on pre-made |sqlite_db| object, than it should open
+    it. otherwise ignore.
+
+    ```lua
+    -- Open db file at path or environment variable, otherwise open in memory.
+    local db = sqlite:open("./pathto/dbfile" or "$ENV_VARABLE" or nil, {...})
+    -- reopen connection if closed.
+    db:open()
+    ```
+
+
+    Parameters: ~
+        {uri}  (string)           (optional) {uri} == {nil} then in-memory db.
+        {opts} (sqlite_opts|nil)  see |sqlite_opts|
+
+    Return: ~
+        sqlite_db
+
 
 sqlite:extend({opts})                                        *sqlite:extend()*
     Extend |sqlite_db| object with extra sugar syntax and api. This is
@@ -117,7 +161,7 @@ sqlite:extend({opts})                                        *sqlite:extend()*
       uri = "path/to/db", -- path to db file
       entries = entries,  -- pre-made |etbl| with |tbl:extend()| without db
       category = { title = { "text", unique = true, primary = true}  },
-      opts = {} or nil -- custom sqlite3 options, see |sqlite_db.opts|
+      opts = {} or nil -- custom sqlite3 options, see |sqlite_opts|
     }
     -- unlike |sqlite_tbl|, |sqlite_etbl| is accessed by dot notation.
     db.entries.insert { {..}, {..} }
@@ -128,7 +172,18 @@ sqlite:extend({opts})                                        *sqlite:extend()*
         {opts} (table)  see 'Fields'
 
     Fields: ~
-        {uri} (string)  path to db file.
+        {uri}    (string)       path to db file.
+        {opts}   (sqlite_opts)  (optional) see |sqlite_opts|
+        {tname1} (string)       pointing to |sqlite_etbl| or
+                                |sqlite_schema_dict|
+        {tnameN} (string)       pointing to |sqlite_etbl| or
+                                |sqlite_schema_dict|
+
+    Return: ~
+        sqlite_db
+
+    See: ~
+        |sqlite_tbl:extend()|
 
 
 sqlite:close()                                                *sqlite:close()*
