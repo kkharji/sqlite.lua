@@ -4,7 +4,7 @@ local function gen()
   local input_files = {
     "./lua/sql/init.lua",
     "./lua/sql/db.lua",
-    "./lua/sql/table.lua",
+    "./lua/sql/tbl.lua",
   }
 
   local output_file = "./doc/sqlite.txt"

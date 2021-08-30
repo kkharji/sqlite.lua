@@ -896,7 +896,7 @@ describe("sql", function()
     end)
 
     it("use pre-defined sql-table", function()
-      local t = require "sql.table"("sometbl", { id = true, name = "string" })
+      local t = require "sql.tbl"("sometbl", { id = true, name = "string" })
       local db
 
       local ok, db = pcall(sql, {

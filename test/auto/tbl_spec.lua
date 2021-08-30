@@ -1,5 +1,5 @@
 local sql = require "sql"
-local tbl = require "sql.table"
+local tbl = require "sql.tbl"
 local luv = require "luv"
 local eq = assert.are.same
 local P = require "sql.parser"

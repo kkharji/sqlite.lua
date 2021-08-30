@@ -1,10 +1,10 @@
 ---@brief [[
 ---Main sql.nvim object and methods.
 ---@brief ]]
----@tag sqlite_db.appendix
+---@tag sqlite.db.appendix
 
----@type sqlite_db
 local sqlite = {}
+---@type sqlite_db
 sqlite.db = {}
 sqlite.db.__index = sqlite.db
 
@@ -12,7 +12,7 @@ local clib = require "sql.defs"
 local stmt = require "sql.stmt"
 local u = require "sql.utils"
 local a = require "sql.assert"
-local t = require "sql.table"
+local t = require "sql.tbl"
 local P = require "sql.parser"
 local flags = clib.flags
 
@@ -570,9 +570,8 @@ function sqlite.db:select(tbl_name, spec, schema)
   end)
 end
 
----Create new sql-table object.
+---Create new sql-table object. WARNING: deprecated use |sqlite.tbl:extend| instead.
 ---If {opts}.ensure = false, on each run it will drop the table and recreate it.
----
 ---<pre>
 ---```lua
 --- local tbl = db:table("todos", {
