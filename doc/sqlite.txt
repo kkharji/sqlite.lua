@@ -105,12 +105,14 @@ Main sql.nvim object and methods.
 sqldb.new({uri}, {opts})                                         *sqldb.new()*
     Creates a new sql.nvim object, without creating a connection to uri.
     |sqldb.new| is identical to |sqldb:open| but it without opening sqlite db
-    connection. Thus it's most suited for cases where the database might be
+    connection. Thus its most suited for cases where the database might be
     acccess from multiple places. For neovim use cases, this mean from
     different neovim instances.
 
-    ```lua local sql = require "sql" local db = sql.new("path/to/db" or
-    "$env_var", { ... } or nil) ```
+    ```lua
+    local sql = require "sql"
+    local db = sql.new("path/to/db" or "$env_var", { ... } or nil)
+    ```
 
 
 
