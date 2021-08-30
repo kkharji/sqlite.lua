@@ -6,12 +6,12 @@
 --- visit https://github.com/tami5/sql.nvim
 ---<pre>
 ---
---- Help usage in neovim:
----   :h sqlinfo              | main sql.nvim classes
----   :h sqlschemafield       | open a class or type
----   :h sqltbl.overview      | show help for sqltbl.
+--- Help usage in neovim: ignore ||
+---   :h |sqlinfo|            | main sql.nvim classes
+---   :h |sqlschemafield|     | open a class or type
+---   :h |sqltbl.overview|    | show help for sqltbl.
+---   :h |sqldb.overview|     | show help for sqltbl.
 ---   :h sqldb:...            | show help for a sqldb method.
----   :h sqldb.overview       | show help for sqltbl.
 ---   :h sqltbl:...           | show help for a sqltbl method.
 ---
 ---</pre>
@@ -20,49 +20,50 @@
 ---@tag sqlinfo
 
 ---@class sqldb @Main sql.nvim object.
----@field uri string: database uri
+---@field uri string: database uri. it can be an environment variable or an absolute path. default ":memory:"
+---@field opts sqlopts: see https://www.sqlite.org/pragma.html |sqlopts|
 ---@field conn sqlite_blob: sqlite connection c object.
----@field db sqldb: fallback when the user overwrite @sqldb methods (extended only).
----@field opts sqlopts: sqlite options see https://www.sqlite.org/pragma.html
----@class sqltbl @Main sql table class
----@field db sqldb: database in which the tbl is part of.
----@field name string: table name
----@field mtime number: db last modified time
+---@field db sqldb: reference to fallback to when overwriting |sqldb| methods (extended only).
 
----@class sqltblext @Extended version of sql table class. This class is generated through |sqltbl:extend| or sql.tbl()
+---@class sqltbl @Main sql table class
+---@field db sqldb: database .
+---@field name string: table name.
+---@field mtime number: db last modified time.
+
+---@class sqltblext @Extended version of sql table class. This class is generated through |sqltbl:extend|
 ---@field db sqldb
 ---@field name string: table name
 ---@field mtime number: db last modified time
 
 ---@class sqlschemafield @Sqlite schema key fileds. {name} is the only required field.
----@field cid number: column index
----@field name string: column key
----@field type string: column type
----@field required boolean: whether the column key is required or not
----@field primary boolean: whether the column is a primary key
----@field default string: the default value of the column
----@field reference string: "table_name.column"
----@field on_delete sqltrigger: what to do when the key gets deleted
----@field on_update sqltrigger: what to do when the key gets updated
+---@field cid number: column index.
+---@field name string: column key.
+---@field type string: column type.
+---@field required boolean: whether it's required.
+---@field primary boolean: whether it's a primary key.
+---@field default string: default value when null.
+---@field reference string: "table_name.column_key"
+---@field on_delete sqltrigger: trigger on row delete.
+---@field on_update sqltrigger: trigger on row updated.
 
 ---@alias sqlschema table<string, sqlschemafield>
 ---@alias sqlquery_delete table<string, string>
 
 ---@class sqlopts @Sqlite3 Options (TODO: add sqlite option fields and description)
 
----@class sqlquery_update @Query fileds used when calling |sql.update| or |tbl.update|
+---@class sqlquery_update @Query fileds used when calling |sqldb:update| or |sqltbl:update|
 ---@field where table: filter down values using key values.
 ---@field set table: key and value to updated.
 
----@class sqlquery_select @Query spec that are passed to select method
+---@class sqlquery_select @Query fileds used when calling |sqldb:select| or |sqltbl:get|
 ---@field where table: filter down values using key values.
 ---@field keys table: keys to include. (default all)
----@field join table: table_name = foreign key, foreign_table_name = primary key
+---@field join table: (TODO: support)
 ---@field order_by table: { asc = "key", dsc = {"key", "another_key"} }
 
 ---@class sqlflag @Sqlite3 Error Flags (TODO: add sqlite error flags value and description)
 
----@class sqldb_status @Status returned from |sql.status|
+---@class sqldb_status @Status returned from |sqldb:status()|
 ---@field msg string
 ---@field code sqlflag
 
