@@ -307,7 +307,9 @@ end
 ---Check if a table with {tbl_name} exists in sqlite db
 ---<pre>
 ---```lua
---- if not db:exists("todo_tbl") then error("Table doesn't exists!!!") end
+--- if not db:exists("todo_tbl") then
+---   error("Table doesn't exists!!!")
+--- end
 ---```
 ---</pre>
 ---@param tbl_name string: the table name.
@@ -326,7 +328,7 @@ end
 ---   id = {"int", "primary", "key"},
 ---   title = "text",
 ---   name = { type = "string", reference = "sometbl.id" },
----   ensure = true -- only create table if it doesn't already exists
+---   ensure = true -- create table if it doesn't already exists (THIS IS DEFUAULT)
 --- })
 ---```
 ---</pre>
@@ -427,12 +429,24 @@ end
 
 ---Update table row with where closure and list of values
 ---returns true incase the table was updated successfully.
----@param tbl_name string: the name of the db table.
+---
+---<pre>
+---```lua
+--- -- update todos status linked to project "lua-hello-world" or "rewrite-neoivm-in-rust"
+--- db:update("todos", {
+---   where = { project = {"lua-hello-world", "rewrite-neoivm-in-rust"} },
+---   set = { status = "later" }
+--- })
+--- -- pass custom statement and boolean
+--- db:update("timestamps", {
+---   where = { id = "<" .. 4 }, -- mimcs WHERE id < 4
+---   set = { seen = true } -- will be converted to 0.
+--- })
+---```
+---</pre>
+---@param tbl_name string: sqlite table name.
 ---@param specs sqlquery_update | sqlquery_update[]
 ---@return boolean
----@usage `db:update("todos", { where = { id = "1" }, values = { action = "DONE" }})` update id 1 with the given keys
----@usage `db:update("todos", {{ where = { id = "1" }, values = { action = "DONE" }}, {...}, {...}})` multi updates.
----@usage `db:update("todos", { where = { project = "sql.nvim" }, values = { status = "later" } )` update multiple rows
 function sqldb:update(tbl_name, specs, schema)
   a.is_sqltbl(self, tbl_name, "update")
   if not specs then
@@ -465,16 +479,25 @@ function sqldb:update(tbl_name, specs, schema)
   end)
 end
 
----Delete a {tbl_name} row/rows based on the {specs} given. if no spec was given,
+---Delete a {tbl_name} row/rows based on the {where} closure. If {where == nil}
 ---then all the {tbl_name} content will be deleted.
----@param tbl_name string: the name of the db table.
+---
+---<pre>
+---```lua
+--- --- delete todos table content
+--- db:delete("todos")
+--- --- delete row that has id as 1
+--- db:delete("todos", { id = 1 })
+--- --- delete all rows that has value of id 1 or 2 or 3
+--- db:delete("todos", { id = {1,2,3} })
+--- --- matching ids or greater than 5
+--- db:delete("todos", { id = {"<", 5} }) -- or {id = "<5"}
+---```
+---</pre>
+---@param tbl_name string: sqlite table name
 ---@param where sqlquery_delete: key value pair to where delete operation should effect.
----@return boolean: true if operation is successfully, false otherwise.
----@usage `db:delete("todos")` delete todos table content
----@usage `db:delete("todos", { id = 1 })` delete row that has id as 1
----@usage `db:delete("todos", { id = {1,2,3} })` delete all rows that has value of id 1 or 2 or 3
----@usage `db:delete("todos", { id = {1,2,3} }, { id = {"<", 5} } )` matching ids or greater than 5
 ---@todo support querys with `and`
+---@return boolean: true if operation is successfully, false otherwise.
 function sqldb:delete(tbl_name, where)
   a.is_sqltbl(self, tbl_name, "delete")
 
