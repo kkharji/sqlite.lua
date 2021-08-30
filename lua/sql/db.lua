@@ -1,9 +1,9 @@
 ---@brief [[
 ---Main sql.nvim object and methods.
 ---@brief ]]
----@tag sqlite.db.overview
+---@tag sqlite_db.appendix
 
----@type sqlite.db
+---@type sqlite_db
 local sqlite = {}
 sqlite.__index = sqlite
 
@@ -17,7 +17,7 @@ local flags = clib.flags
 
 ---Get a table schema, or execute a given function to get it
 ---@param tbl_name string
----@param self sqlite.db
+---@param self sqlite_db
 local get_schema = function(tbl_name, self)
   local schema = self.tbl_schemas[tbl_name]
   if schema then
@@ -39,14 +39,14 @@ end
 ---```
 ---</pre>
 ---@param uri string: uri to db file.
----@param opts sqlite.db.opts: (optional) see |sqlite.db.opts|
----@return sqlite.db
+---@param opts sqlite_db.opts: (optional) see |sqlite_db.opts|
+---@return sqlite_db
 function sqlite.new(uri, opts)
   return sqlite:open(uri, opts, true)
 end
 
 ---Creates and connect to new sqlite db object, either in memory or via a {uri}.
----If it is called on pre-made |sqlite.db| object, than it should open it. otherwise ignore.
+---If it is called on pre-made |sqlite_db| object, than it should open it. otherwise ignore.
 ---
 ---<pre>
 ---```lua
@@ -57,8 +57,8 @@ end
 ---```
 ---</pre>
 ---@param uri string: (optional) {uri} == {nil} then in-memory db.
----@param opts sqlite.db.opts: (optional) see |sqlite.db.opts|
----@return sqlite.db
+---@param opts sqlite_db.opts: (optional) see |sqlite_db.opts|
+---@return sqlite_db
 function sqlite:open(uri, opts, noconn)
   if not self.uri then
     uri = type(uri) == "string" and u.expand(uri) or ":memory:"
@@ -81,7 +81,7 @@ function sqlite:open(uri, opts, noconn)
   end
 end
 
----Extend |sqlite.db| object with extra sugar syntax and api. This is recommended
+---Extend |sqlite_db| object with extra sugar syntax and api. This is recommended
 ---for all sqlite use case as it provide convenience. This method is super lazy.
 ---it try its best to doing any ffi calls until the first operation done on a table.
 ---
@@ -91,23 +91,23 @@ end
 ---
 ---<pre>
 ---```lua
---- local db = sqlite { -- or sqlite.db:extend
+--- local db = sqlite { -- or sqlite_db:extend
 ---   uri = "path/to/db", -- path to db file
 ---   entries = entries,  -- pre-made |etbl| with |tbl:extend()| without db
 ---   category = { title = { "text", unique = true, primary = true}  },
----   opts = {} or nil -- custom sqlite3 options, see |sqlite.db.opts|
+---   opts = {} or nil -- custom sqlite3 options, see |sqlite_db.opts|
 --- }
---- -- unlike |sqlite.tbl|, |sqlite.etbl| is accessed by dot notation.
+--- -- unlike |sqlite_tbl|, |sqlite_etbl| is accessed by dot notation.
 --- db.entries.insert { {..}, {..} }
 ---```
 ---</pre>
 ---@param opts table: see 'Fields'
 ---@field uri string: path to db file.
----@field opts sqlite.db.opts: (optional) see |sqlite.db.opts|
----@field tname1 string: pointing to |sqlite.etbl| or |sqlite.schema.dict|
----@field tnameN string: pointing to |sqlite.etbl| or |sqlite.schema.dict|
----@see sqlite.tbl:extend
----@return sqlite.db
+---@field opts sqlite_db.opts: (optional) see |sqlite_db.opts|
+---@field tname1 string: pointing to |sqlite_etbl| or |sqlite_schema_dict|
+---@field tnameN string: pointing to |sqlite_etbl| or |sqlite_schema_dict|
+---@see sqlite_tbl:extend
+---@return sqlite_db
 function sqlite:extend(opts)
   local db = self.new(opts.uri, opts.opts)
   local cls = setmetatable({ db = db }, { __index = db })
@@ -213,7 +213,7 @@ end
 --- print(db:status().code) -- get last error code.
 ---```
 ---</pre>
----@return sqlite.db_status
+---@return sqlite_db_status
 function sqlite:status()
   return {
     msg = clib.last_errmsg(self.conn),
@@ -333,7 +333,7 @@ end
 ---```
 ---</pre>
 ---@param tbl_name string: table name
----@param schema sqlite.schema.dict
+---@param schema sqlite_schema_dict
 ---@return boolean
 function sqlite:create(tbl_name, schema)
   local req = P.create(tbl_name, schema)
@@ -372,7 +372,7 @@ end
 ---```
 ---</pre>
 ---@param tbl_name string: the table name.
----@return sqlite.schema.dict
+---@return sqlite_schema_dict
 function sqlite:schema(tbl_name)
   local sch = self:eval(("pragma table_info(%s)"):format(tbl_name))
   local schema = {}
@@ -446,7 +446,7 @@ end
 ---```
 ---</pre>
 ---@param tbl_name string: sqlite table name.
----@param specs sqlite.update_query | sqlite.update_query[]
+---@param specs sqlite_query_update | sqlite_query_update[]
 ---@return boolean
 function sqlite:update(tbl_name, specs, schema)
   a.is_sqltbl(self, tbl_name, "update")
@@ -496,7 +496,7 @@ end
 ---```
 ---</pre>
 ---@param tbl_name string: sqlite table name
----@param where sqlite.delete_query: key value pair to where delete operation should effect.
+---@param where sqlite_query_delete: key value pair to where delete operation should effect.
 ---@todo support querys with `and`
 ---@return boolean: true if operation is successfully, false otherwise.
 function sqlite:delete(tbl_name, where)
@@ -546,7 +546,7 @@ end
 ---```
 ---</pre>
 ---@param tbl_name string: the name of the db table to select on
----@param spec sqlite.select_query
+---@param spec sqlite_query_select
 ---@return table[]
 function sqlite:select(tbl_name, spec, schema)
   a.is_sqltbl(self, tbl_name, "select")
@@ -591,7 +591,7 @@ end
 ---</pre>
 ---@param tbl_name string: the name of the table. can be new or existing one.
 ---@param opts table: {schema, ensure (defalut true)}
----@return sqlite.tbl
+---@return sqlite_tbl
 function sqlite:table(tbl_name, opts)
   return t:new(self, tbl_name, opts)
 end

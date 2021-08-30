@@ -1,7 +1,7 @@
 ---@brief [[
 ---Abstraction to produce more readable code.
 ---@brief ]]
----@tag sqlite.tbl.overview
+---@tag sqlite_tbl.appendix
 
 local u = require "sql.utils"
 local a = require "sql.assert"
@@ -9,7 +9,7 @@ local fmt = string.format
 local P = require "sql.parser"
 local luv = require "luv"
 
----@type sqlite.tbl
+---@type sqlite_tbl
 local tbl = {}
 tbl.__index = tbl
 
@@ -56,7 +56,7 @@ end
 
 ---Run tbl functions
 ---@param func function: wrapped function to run
----@param o sqlite.tbl
+---@param o sqlite_tbl
 ---@return any
 local run = function(func, o)
   a.should_have_db_object(o.db, o.name)
@@ -112,10 +112,10 @@ end
 --- })
 ---```
 ---</pre>
----@param db sqlite.db
+---@param db sqlite_db
 ---@param name string: table name
----@param schema sqlite.schema.dict
----@return sqlite.tbl
+---@param schema sqlite_schema_dict
+---@return sqlite_tbl
 function tbl:new(db, name, schema)
   schema = schema or {}
   local o = setmetatable({ db = db, name = name, tbl_schema = u.if_nil(schema.schema, schema) }, self)
@@ -145,10 +145,10 @@ end
 --- t.get = function() return t._get({ where = {...}, select = {...} })[1] end
 ---```
 ---</pre>
----@param db sqlite.db
+---@param db sqlite_db
 ---@param name string
----@param schema sqlite.schema.dict
----@return sqlite.etbl
+---@param schema sqlite_schema_dict
+---@return sqlite_etbl
 function tbl:extend(db, name, schema)
   if not schema and type(db) == "string" then
     name, db, schema = db, nil, name
@@ -188,8 +188,8 @@ end
 --- projects:schema {...} -- or 'project.schema {...}' dot notation with |tbl:extend|
 ---```
 ---</pre>
----@param schema sqlite.schema.dict
----@return sqlite.schema.dict | boolean
+---@param schema sqlite_schema_dict
+---@return sqlite_schema_dict | boolean
 function tbl:schema(schema)
   return run(function()
     local exists = self.db:exists(self.name)
@@ -302,7 +302,7 @@ end
 ---   }
 ---```
 ---</pre>
----@param query sqlite.select_query
+---@param query sqlite_query_select
 ---@return table
 ---@see sqlite:select
 function tbl:get(query)
@@ -350,7 +350,7 @@ end
 ---```
 ---</pre>
 ---@param func function: func(row)
----@param query sqlite.select_query|nil
+---@param query sqlite_query_select|nil
 ---@return boolean
 function tbl:each(func, query)
   if type(func) == "table" then
@@ -431,7 +431,7 @@ end
 --- local res = t1:sort({where = { ... }}, "age", function(a, b) return a > b end)`
 ---```
 ---</pre>
----@param query sqlite.select_query|nil
+---@param query sqlite_query_select|nil
 ---@param transform function: a `transform` function to sort elements. Defaults to @{identity}
 ---@param comp function: a comparison function, defaults to the `<` operator
 ---@return table[]
@@ -500,7 +500,7 @@ end
 --- todos.remove {...}
 ---```
 ---</pre>
----@param where sqlite.delete_query
+---@param where sqlite_query_delete
 ---@see sqlite:delete
 ---@return boolean
 function tbl:remove(where)
@@ -526,9 +526,9 @@ end
 --- }
 ---```
 ---</pre>
----@param specs sqlite.update_query
+---@param specs sqlite_query_update
 ---@see sqlite:update
----@see sqlite.update_query
+---@see sqlite_query_update
 ---@return boolean
 function tbl:update(specs)
   return run(function()

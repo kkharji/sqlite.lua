@@ -343,7 +343,7 @@ end
 
 ---Binds a blob at {idx} with {size}
 ---@param idx number: index starting at 1
----@param pointer sqlite.blob: blob to bind
+---@param pointer sqlite_blob: blob to bind
 ---@param size number: pointer size
 ---@return sqlite_flag
 function sqlstmt:bind_blob(idx, pointer, size)

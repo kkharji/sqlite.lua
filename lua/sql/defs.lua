@@ -19,7 +19,7 @@ local clib_path = path
 
 local clib = ffi.load(clib_path)
 
----@type sqlite.flags
+---@type sqlite_flags
 M.flags = {
   -- Result codes
   ["ok"] = 0,
@@ -55,7 +55,7 @@ M.flags = {
   ["done"] = 101,
 }
 
----@type sqlite.db.opts
+---@type sqlite_db.opts
 M.valid_pargma = {
   ["analysis_limit"] = true,
   ["application_id"] = true,
@@ -579,7 +579,7 @@ ffi.cdef [[
 ]]
 
 ---@class sqlite3 @sqlite3 db object
----@class sqlite.blob @sqlite3 blob object
+---@class sqlite_blob @sqlite3 blob object
 
 M.to_str = function(ptr, len)
   if ptr == nil then
@@ -644,10 +644,10 @@ M.last_errcode = function(conn_ptr)
   return clib.sqlite3_errcode(conn_ptr)
 end
 
----Create new connection and modify `sqlite.db` object
+---Create new connection and modify `sqlite_db` object
 ---@param uri string
----@param opts sqlite.db.opts
----@return sqlite.blob*
+---@param opts sqlite_db.opts
+---@return sqlite_blob*
 ---@TODO: support open_v2 to enable control over how the database file is opened.
 M.connect = function(uri, opts)
   opts = opts or {}

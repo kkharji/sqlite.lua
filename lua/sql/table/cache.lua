@@ -59,7 +59,7 @@ function Cache:is_empty()
 end
 
 ---Get results from cache.
----@param query sqlite.select_query
+---@param query sqlite_query_select
 ---@return table
 function Cache:get(query)
   local stat = luv.fs_stat(self.db.uri)

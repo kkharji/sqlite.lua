@@ -463,8 +463,8 @@ end
 
 ---Alter a given table, only support changing key definition
 ---@param tname string
----@param new sqlite.schema.dict
----@param old sqlite.schema.dict
+---@param new sqlite_schema_dict
+---@param old sqlite_schema_dict
 M.table_alter_key_defs = function(tname, new, old, dry)
   local tmpname = tname .. "_new"
   local create = M.create(tmpname, new, true)
