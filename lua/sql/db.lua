@@ -34,8 +34,8 @@ end
 ---neovim instances.
 ---@param uri string: uri to db file.
 ---@param opts sqlopts: (optional) see |sqlopts|
----@usage `db = require'sql'.new("./path/to/sql.sqlite")` to given path
----@usage `db = require'sql'.new("$ENV_VARABLE", { ... })` with opts
+---@usage - Create to given path  `db = sqldb.new("./path/to/sql.sqlite")`
+---@usage - Read path from '$VAR' `db = sqldb.new("$VAR", {..})` with opts
 ---@return sqldb
 function sqldb.new(uri, opts)
   return sqldb:open(uri, opts, true)
@@ -43,8 +43,8 @@ end
 
 ---Creates and connect to new sqlite db object, either in memory or via a {uri}.
 ---If it is called on pre-made |sqldb| object, than it should open it if it's closed, or ignore otherwise.
----@param uri string: if uri is nil, then create in memory database.
----@param opts sqlopts: see |sqlopts|
+---@param uri string: (optional) {uri} == nil = create in memory database.
+---@param opts sqlopts: (optional) see |sqlopts|
 ---@usage `db = require("sql"):open()` in memory.
 ---@usage `db = require("sql"):open("./path/to/sql.sqlite")` to given path.
 ---@usage `db = require("sql"):open("$ENV_VARABLE")` reading from env variable
