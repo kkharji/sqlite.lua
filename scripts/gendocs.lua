@@ -2,8 +2,8 @@ local docgen = require "docgen"
 
 local function gen()
   local input_files = {
-    "./lua/emmy.lua",
-    "./lua/sql.lua",
+    "./lua/int.lua",
+    "./lua/sql/db.lua",
     "./lua/sql/table.lua",
   }
 

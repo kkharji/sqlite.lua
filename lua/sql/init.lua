@@ -60,3 +60,5 @@
 ---| '"null"' : when a parent key is deleted/modified, the child key that mapped to the parent key gets set to null.
 ---| '"default"' : similar to "null", except that sets to the column's default value instead of NULL.
 ---| '"cascade"' : propagates the delete or update operation on the parent key to each dependent child key.
+
+return require "sql.db"
