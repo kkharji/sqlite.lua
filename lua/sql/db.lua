@@ -85,14 +85,29 @@ end
 ---for all sqlite use case as it provide convenience. This method is super lazy.
 ---it try its best to doing any ffi calls until the first operation done on a table.
 ---
----Make sure to run |sqldb:open()| right after creating the object or when you
----intend, if you want to keep it open and not pre-method invocation bases.
+---In the case you want to keep db connection open and not on invocation bases.
+---Run |sqldb:open()| right after creating the object or when you
+---intend,
 ---
----@param opts table: uri, init, |sqlopts|, tbl_name, tbl_name ....
+---<pre>
+---```lua
+--- ---@type sqldb
+--- local db = sqldb {
+---   uri = "path/to/db", -- i table created with |sqltbl:extend|
+---   entries = entries,  -- pre-made |sqltblext| with |sqltbl:extend| without db
+---   category = { title = { "text", unique = true, primary = true}  },
+---   opts = {} or nil -- custom sqlite3 options, see |sqlopts|
+--- }
+--- -- unlike |sqltbl|, |sqltblext| is accessed by dot notation.
+--- db.entries.insert { {..}, {..} }
+---```
+---</pre>
+---@param opts table: see 'Fields'
 ---@field uri string: path to db file.
 ---@field opts sqlopts: (optional) see |sqlopts|
----@field tbl_name string: table name pointing to |sqltblext| or |sqlschema|
----@see sqltblext
+---@field tname1 string: pointing to |sqltblext| or |sqlschema|
+---@field tnameN string: pointing to |sqltblext| or |sqlschema|
+---@see sqltbl:extend
 ---@return sqldb
 function sqldb:extend(opts)
   local db = self.new(opts.uri, opts.opts)
