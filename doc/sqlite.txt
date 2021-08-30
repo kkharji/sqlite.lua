@@ -105,10 +105,10 @@ sqlite_db_status                                            *sqlite_db_status*
 
 Main sql.nvim object and methods.
 
-sqlite.new({uri}, {opts})                                       *sqlite.new()*
+sqlite.db.new({uri}, {opts})                                 *sqlite.db.new()*
     Creates a new sql.nvim object, without creating a connection to uri.
-    |sqlite.new| is identical to |sqlite:open| but it without opening sqlite db
-    connection. Thus its most suited for cases where the database might be
+    |sqlite.new| is identical to |sqlite.db:open| but it without opening sqlite
+    db connection. Thus its most suited for cases where the database might be
     acccess from multiple places. For neovim use cases, this mean from
     different neovim instances.
 
@@ -125,14 +125,14 @@ sqlite.new({uri}, {opts})                                       *sqlite.new()*
         sqlite_db
 
 
-sqlite:open({uri}, {opts})                                     *sqlite:open()*
+sqlite.db:open({uri}, {opts})                               *sqlite.db:open()*
     Creates and connect to new sqlite db object, either in memory or via a
     {uri}. If it is called on pre-made |sqlite_db| object, than it should open
     it. otherwise ignore.
 
     ```lua
     -- Open db file at path or environment variable, otherwise open in memory.
-    local db = sqlite:open("./pathto/dbfile" or "$ENV_VARABLE" or nil, {...})
+    local db = sqlite.db:open("./pathto/dbfile" or "$ENV_VARABLE" or nil, {...})
     -- reopen connection if closed.
     db:open()
     ```
@@ -146,14 +146,14 @@ sqlite:open({uri}, {opts})                                     *sqlite:open()*
         sqlite_db
 
 
-sqlite:extend({opts})                                        *sqlite:extend()*
+sqlite.db:extend({opts})                                  *sqlite.db:extend()*
     Extend |sqlite_db| object with extra sugar syntax and api. This is
     recommended for all sqlite use case as it provide convenience. This method
     is super lazy. it try its best to doing any ffi calls until the first
     operation done on a table.
 
     In the case you want to keep db connection open and not on invocation
-    bases. Run |sqlite:open()| right after creating the object or when you
+    bases. Run |sqlite.db:open()| right after creating the object or when you
     intend,
 
     ```lua
@@ -186,11 +186,11 @@ sqlite:extend({opts})                                        *sqlite:extend()*
         |sqlite_tbl:extend()|
 
 
-sqlite:close()                                                *sqlite:close()*
+sqlite.db:close()                                          *sqlite.db:close()*
     Close sqlite db connection. returns true if closed, error otherwise.
 
     ```lua
-    local db = sqlite:open()
+    local db = sqlite.db:open()
     db:close() -- close connection
     ```
 
@@ -199,9 +199,9 @@ sqlite:close()                                                *sqlite:close()*
         boolean
 
 
-sqlite:with_open()                                        *sqlite:with_open()*
-    Same as |sqlite:open| but execute {func} then closes db connection. If the
-    function is called as a method to db object e.g. 'db:with_open', then
+sqlite.db:with_open()                                  *sqlite.db:with_open()*
+    Same as |sqlite.db:open| but execute {func} then closes db connection. If
+    the function is called as a method to db object e.g. 'db:with_open', then
     {args[1]} must be a function. Else {args[1]} need to be the uri and
     {args[2]} the function.
 
@@ -225,10 +225,10 @@ sqlite:with_open()                                        *sqlite:with_open()*
         any
 
     See: ~
-        |sqlite:open()|
+        |sqlite.db:open()|
 
 
-sqlite:isopen()                                              *sqlite:isopen()*
+sqlite.db:isopen()                                        *sqlite.db:isopen()*
     Predict returning true if db connection is active.
 
     ```lua
@@ -242,7 +242,7 @@ sqlite:isopen()                                              *sqlite:isopen()*
         boolean
 
 
-sqlite:isclose()                                            *sqlite:isclose()*
+sqlite.db:isclose()                                      *sqlite.db:isclose()*
     Predict returning true if db connection is indeed closed.
 
     ```lua
@@ -256,7 +256,7 @@ sqlite:isclose()                                            *sqlite:isclose()*
         boolean
 
 
-sqlite:status()                                              *sqlite:status()*
+sqlite.db:status()                                        *sqlite.db:status()*
     Returns current connection status Get last error code
 
     ```lua
@@ -269,7 +269,7 @@ sqlite:status()                                              *sqlite:status()*
         sqlite_db_status
 
 
-sqlite:eval({statement}, {params})                             *sqlite:eval()*
+sqlite.db:eval({statement}, {params})                       *sqlite.db:eval()*
     Evaluates a sql {statement} and if there are results from evaluation it
     returns list of rows. Otherwise it returns a boolean indecating whether the
     evaluation was successful.
@@ -292,7 +292,7 @@ sqlite:eval({statement}, {params})                             *sqlite:eval()*
         boolean|table
 
 
-sqlite:execute({statement})                                 *sqlite:execute()*
+sqlite.db:execute({statement})                           *sqlite.db:execute()*
     Execute statement without any return
 
     ```lua
@@ -308,7 +308,7 @@ sqlite:execute({statement})                                 *sqlite:execute()*
         boolean: true if successful, error out if not.
 
 
-sqlite:exists({tbl_name})                                    *sqlite:exists()*
+sqlite.db:exists({tbl_name})                              *sqlite.db:exists()*
     Check if a table with {tbl_name} exists in sqlite db
     ```lua
     if not db:exists("todo_tbl") then
@@ -324,7 +324,7 @@ sqlite:exists({tbl_name})                                    *sqlite:exists()*
         boolean
 
 
-sqlite:create({tbl_name}, {schema})                          *sqlite:create()*
+sqlite.db:create({tbl_name}, {schema})                    *sqlite.db:create()*
     Create a new sqlite db table with {name} based on {schema}. if
     {schema.ensure} then create only when it does not exists. similar to
     'create if not exists'.
@@ -347,7 +347,7 @@ sqlite:create({tbl_name}, {schema})                          *sqlite:create()*
         boolean
 
 
-sqlite:drop({tbl_name})                                        *sqlite:drop()*
+sqlite.db:drop({tbl_name})                                  *sqlite.db:drop()*
     Remove {tbl_name} from database
 
     ```lua
@@ -364,7 +364,7 @@ sqlite:drop({tbl_name})                                        *sqlite:drop()*
         boolean
 
 
-sqlite:schema({tbl_name})                                    *sqlite:schema()*
+sqlite.db:schema({tbl_name})                              *sqlite.db:schema()*
     Get {name} table schema, if table does not exist then return an empty
     table.
 
@@ -384,7 +384,7 @@ sqlite:schema({tbl_name})                                    *sqlite:schema()*
         sqlite_schema_dict
 
 
-sqlite:insert({tbl_name}, {rows})                            *sqlite:insert()*
+sqlite.db:insert({tbl_name}, {rows})                      *sqlite.db:insert()*
     Insert lua table into sqlite database table.
 
     ```lua
@@ -404,7 +404,7 @@ sqlite:insert({tbl_name}, {rows})                            *sqlite:insert()*
         id.
 
 
-sqlite:update({tbl_name}, {specs})                           *sqlite:update()*
+sqlite.db:update({tbl_name}, {specs})                     *sqlite.db:update()*
     Update table row with where closure and list of values returns true incase
     the table was updated successfully.
 
@@ -432,7 +432,7 @@ sqlite:update({tbl_name}, {specs})                           *sqlite:update()*
         boolean
 
 
-sqlite:delete({tbl_name}, {where})                           *sqlite:delete()*
+sqlite.db:delete({tbl_name}, {where})                     *sqlite.db:delete()*
     Delete a {tbl_name} row/rows based on the {where} closure. If {where ==
     nil} then all the {tbl_name} content will be deleted.
 
@@ -457,7 +457,7 @@ sqlite:delete({tbl_name}, {where})                           *sqlite:delete()*
         boolean: true if operation is successfully, false otherwise.
 
 
-sqlite:select({tbl_name}, {spec})                            *sqlite:select()*
+sqlite.db:select({tbl_name}, {spec})                      *sqlite.db:select()*
     Query from a table with where and join options
 
     ```lua
@@ -489,7 +489,7 @@ sqlite:select({tbl_name}, {spec})                            *sqlite:select()*
         table[]
 
 
-sqlite:table({tbl_name}, {opts})                              *sqlite:table()*
+sqlite.db:table({tbl_name}, {opts})                        *sqlite.db:table()*
     Create new sql-table object. If {opts}.ensure = false, on each run it will
     drop the table and recreate it.
 
@@ -519,7 +519,7 @@ sqlite:table({tbl_name}, {opts})                              *sqlite:table()*
         sqlite_tbl
 
 
-sqlite.lib()                                                    *sqlite.lib()*
+sqlite.db.lib()                                              *sqlite.db.lib()*
     Sqlite functions sugar wrappers. See `sql/strfun`
 
 
