@@ -47,6 +47,7 @@ end
 
 ---Creates and connect to new sqlite db object, either in memory or via a {uri}.
 ---If it is called on pre-made |sqldb| object, than it should open it. otherwise ignore.
+---
 ---<pre>
 ---```lua
 --- -- Open db file at path or environment variable, otherwise open in memory.
@@ -101,9 +102,6 @@ end
 ---```
 ---</pre>
 ---@param opts table: uri, init, |sqlopts|, tbl_name, tbl_name ....
----@field uri string: path to db file.
----@field opts sqlopts: (optional) see |sqlopts|
----@field tbl_name string: table name pointing to |sqltblext| or |sqlschema|
 ---@see sqltblext
 ---@return sqldb
 function sqldb:extend(opts)
