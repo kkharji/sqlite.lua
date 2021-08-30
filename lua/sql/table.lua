@@ -1,7 +1,7 @@
 ---@brief [[
 ---Abstraction to produce more readable code.
 ---@brief ]]
----@tag sqldb.overview
+---@tag sqltbl.overview
 
 local u = require "sql.utils"
 local a = require "sql.assert"

@@ -1,10 +1,15 @@
 ================================================================================
-                                                                    *sqlite.lua*
+                                                                       *sqlinfo*
 
 SQLite/LuaJIT binding and highly opinionated wrapper for storing, retrieving,
-caching, persisting, querying, and connecting to SQLite databases. To find out
-more: https://github.com/tami5/sql.nvim
+caching, persisting, querying, and connecting to SQLite databases.
 
+To find out more visit https://github.com/tami5/sql.nvim
+Help usage in neovim:
+  :h sqlinfo   -- main sql.nvim classes
+  :h sqltbl    -- show help for sqltbl
+  :h sqldb     -- show help for sqltbl
+  :h sqldb:... -- show help for a sqldb method
 Classes and Types:
 
 sqldb                                                                  *sqldb*
@@ -15,6 +20,8 @@ sqldb                                                                  *sqldb*
         {conn} (sqlite_blob)  sqlite connection c object.
         {db}   (sqldb)        fallback when the user overwrite @sqldb methods
                               (extended only).
+        {opts} (sqlopts)      sqlite options see
+                              https://www.sqlite.org/pragma.html
 
 
 sqltbl                                                                *sqltbl*
@@ -28,7 +35,7 @@ sqltbl                                                                *sqltbl*
 
 sqltblext                                                          *sqltblext*
     Extended version of sql table class. This class is generated through
-    |tbl:extend| or sql.tbl()
+    |sqltbl:extend| or sql.tbl()
 
     Fields: ~
         {db}    (sqldb)
@@ -91,7 +98,7 @@ sqldb_status                                                    *sqldb_status*
 
 
 ================================================================================
-                                                                     *sqlite.db*
+                                                                *sqldb.overview*
 
 Main sqlite.lua object and methods
 
@@ -103,8 +110,7 @@ sqldb.new({uri}, {opts})                                         *sqldb.new()*
 
     Parameters: ~
         {uri}  (string)   path to db.if nil, then create in memory database.
-        {opts} (sqlopts)  sqlite db options see
-                          https://www.sqlite.org/pragma.html
+        {opts} (sqlopts)  see |sqlopts|
 
     Return: ~
         sqldb
@@ -125,8 +131,7 @@ sqldb:open({uri}, {opts})                                       *sqldb:open()*
 
     Parameters: ~
         {uri}  (string)   if uri is nil, then create in memory database.
-        {opts} (sqlopts)  sqlite db options see
-                          https://www.sqlite.org/pragma.html
+        {opts} (sqlopts)  see |sqlopts|
 
     Return: ~
         sqldb
@@ -422,7 +427,7 @@ sqldb.lib()                                                      *sqldb.lib()*
 
 
 ================================================================================
-                                                                    *sqlite.tbl*
+                                                                *sqldb.overview*
 
 Abstraction to produce more readable code.
 

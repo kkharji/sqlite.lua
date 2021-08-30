@@ -5,13 +5,17 @@
 --- To find out more
 --- visit https://github.com/tami5/sql.nvim
 ---<pre>
+---
 --- Help usage in neovim:
----   :h sqlinfo   -- main sql.nvim classes
----   :h sqltbl    -- show help for sqltbl
----   :h sqldb     -- show help for sqltbl
----   :h sqldb:... -- show help for a sqldb method
+---   :h sqlinfo              | main sql.nvim classes
+---   :h sqlschemafield       | open a class or type
+---   :h sqltbl.overview      | show help for sqltbl.
+---   :h sqldb:...            | show help for a sqldb method.
+---   :h sqldb.overview       | show help for sqltbl.
+---   :h sqltbl:...           | show help for a sqltbl method.
+---
 ---</pre>
---- Classes and Types:
+--- sql.nvim types:
 ---@brief ]]
 ---@tag sqlinfo
 
