@@ -109,10 +109,10 @@ sqldb.new({uri}, {opts})                                         *sqldb.new()*
     acccess from multiple places. For neovim use cases, this mean from
     different neovim instances.
 
-    ```lua
-    local sql = require "sql"
-    local db = sql.new("path/to/db" or "$env_var", { ... } or nil)
-    ```
+
+    ```lua local sql = require "sql" local db = sql.new("path/to/db" or
+    "$env_var", { ... } or nil) ```
+
 
 
 
