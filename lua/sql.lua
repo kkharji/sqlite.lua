@@ -10,6 +10,24 @@
 ---@brief ]]
 ---@tag sql.lua
 
+---@class sqltbl.key
+---@field cid number: column index
+---@field name string: column key
+---@field type string: column type
+---@field required boolean: whether the column key is required or not
+---@field primary boolean: whether the column is a primary key
+---@field default string: the default value of the column
+---@field reference string: table_name.column
+
+---@class sqlquery.update @Query spec that are passed to a number of db: methods.
+---@field where table: filter down values using key values.
+---@field set table: key and value to updated.
+
+---@class sqlquery.select @Query spec that are passed to select method
+---@field where table: filter down values using key values.
+---@field keys table: keys to include. (default all)
+---@field join table: table_name = foreign key, foreign_table_name = primary key
+
 local clib = require "sql.defs"
 local stmt = require "sql.stmt"
 local u = require "sql.utils"
@@ -22,27 +40,8 @@ local flags = clib.flags
 ---@field uri string: database uri
 ---@field conn sqldb.types.blob: sqlite connection c object.
 ---@field db sqldb: fallback when the user overwrite @sqldb methods (extended only).
-
 local DB = {}
 DB.__index = DB
-
----@class sqltbl.key
----@field cid number: column index
----@field name string: column key
----@field type string: column type
----@field required boolean: whether the column key is required or not
----@field primary boolean: whether the column is a primary key
----@field default string: the default value of the column
----@field reference string: table_name.column
----@field on_update sqldb.trigger: what to do when the key gets updated
----@field on_delete sqldb.trigger: what to do when the key gets deleted
-
----@alias sqldb.trigger
----| '"no action"' : when a parent key is modified or deleted from the database, no special action is taken.
----| '"restrict"' : prohibites from deleting/modifying a parent key when a child key is mapped to it.
----| '"null"' : when a parent key is deleted/modified, the child key that mapped to the parent key gets set to null.
----| '"default"' : similar to "null", except that sets to the column's default value instead of NULL.
----| '"cascade"' : propagates the delete or update operation on the parent key to each dependent child key.
 
 ---Get a table schema, or execute a given function to get it
 ---@param schema table|nil
@@ -346,10 +345,6 @@ function DB:insert(tbl_name, rows, schema)
   return succ, last_rowid
 end
 
----@class sqlquery.update @Query spec that are passed to a number of db: methods.
----@field where table: filter down values using key values.
----@field set table: key and value to updated.
-
 ---Update table row with where closure and list of values
 ---returns true incase the table was updated successfully.
 ---@param tbl_name string: the name of the db table.
@@ -390,9 +385,6 @@ function DB:update(tbl_name, specs, schema)
   end)
 end
 
----@alias sqlquery.delete table<string, string>
----TOOD: support querys with `and`
-
 ---Delete a {tbl_name} row/rows based on the {specs} given. if no spec was given,
 ---then all the {tbl_name} content will be deleted.
 ---@param tbl_name string: the name of the db table.
@@ -402,6 +394,7 @@ end
 ---@usage `db:delete("todos", { id = 1 })` delete row that has id as 1
 ---@usage `db:delete("todos", { id = {1,2,3} })` delete all rows that has value of id 1 or 2 or 3
 ---@usage `db:delete("todos", { id = {1,2,3} }, { id = {"<", 5} } )` matching ids or greater than 5
+---@todo support querys with `and`
 function DB:delete(tbl_name, where)
   a.is_sqltbl(self, tbl_name, "delete")
 
@@ -425,11 +418,6 @@ function DB:delete(tbl_name, where)
 
   return true
 end
-
----@class sqlquery.select @Query spec that are passed to select method
----@field where table: filter down values using key values.
----@field keys table: keys to include. (default all)
----@field join table: table_name = foreign key, foreign_table_name = primary key
 
 ---Query from a table with where and join options
 ---@param tbl_name string: the name of the db table to select on
