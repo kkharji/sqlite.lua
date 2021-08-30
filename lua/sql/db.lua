@@ -599,6 +599,6 @@ end
 ---Sqlite functions sugar wrappers. See `sql/strfun`
 sqlite.lib = require "sql.strfun"
 
-sqlite = setmetatable(sqlite.db, { __call = sqlite.extend })
+sqlite = setmetatable(sqlite, { __call = sqlite.extend })
 
 return sqlite

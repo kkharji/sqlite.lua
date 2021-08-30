@@ -5,7 +5,7 @@ local clib = require "sql.defs"
 --- Functions for asseting and erroring out :D
 
 local errors = {
-  not_sqlite.tbl = "can not execute %s, %s doesn't exists.",
+  not_sqltbl = "can not execute %s, %s doesn't exists.",
   close_fail = "database connection didn't get closed, ERRMSG: %s",
   eval_fail = "eval has failed to execute statement, ERRMSG: %s",
   failed_ops = "operation failed, ERRMSG: %s",
@@ -24,8 +24,8 @@ end
 ---@param tbl_name string
 ---@param method any
 ---@return boolean
-M.is_sqlite.tbl = function(db, tbl_name, method)
-  assert(db:exists(tbl_name), errors.not_sqlite.tbl:format(method, tbl_name))
+M.is_sqltbl = function(db, tbl_name, method)
+  assert(db:exists(tbl_name), errors.not_sqltbl:format(method, tbl_name))
   return true
 end
 
