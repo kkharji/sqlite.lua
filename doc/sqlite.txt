@@ -5,37 +5,41 @@ SQLite/LuaJIT binding and highly opinionated wrapper for storing, retrieving,
 caching, persisting, querying, and connecting to SQLite databases.
 
 To find out more visit https://github.com/tami5/sql.nvim
-Help usage in neovim:
-  :h sqlinfo   -- main sql.nvim classes
-  :h sqltbl    -- show help for sqltbl
-  :h sqldb     -- show help for sqltbl
-  :h sqldb:... -- show help for a sqldb method
-Classes and Types:
+
+Help usage in neovim: ignore ||
+  :h |sqlinfo|            | main sql.nvim classes
+  :h |sqlschemafield|     | open a class or type
+  :h |sqltbl.overview|    | show help for sqltbl.
+  :h |sqldb.overview|     | show help for sqltbl.
+  :h sqldb:...            | show help for a sqldb method.
+  :h sqltbl:...           | show help for a sqltbl method.
+
+sql.nvim types:
 
 sqldb                                                                  *sqldb*
     Main sql.nvim object.
 
     Fields: ~
-        {uri}  (string)       database uri
+        {uri}  (string)       database uri. it can be an environment variable
+                              or an absolute path. default ":memory:"
+        {opts} (sqlopts)      see https://www.sqlite.org/pragma.html |sqlopts|
         {conn} (sqlite_blob)  sqlite connection c object.
-        {db}   (sqldb)        fallback when the user overwrite @sqldb methods
-                              (extended only).
-        {opts} (sqlopts)      sqlite options see
-                              https://www.sqlite.org/pragma.html
+        {db}   (sqldb)        reference to fallback to when overwriting
+                              |sqldb| methods (extended only).
 
 
 sqltbl                                                                *sqltbl*
     Main sql table class
 
     Fields: ~
-        {db}    (sqldb)   database in which the tbl is part of.
-        {name}  (string)  table name
-        {mtime} (number)  db last modified time
+        {db}    (sqldb)   database .
+        {name}  (string)  table name.
+        {mtime} (number)  db last modified time.
 
 
 sqltblext                                                          *sqltblext*
     Extended version of sql table class. This class is generated through
-    |sqltbl:extend| or sql.tbl()
+    |sqltbl:extend|
 
     Fields: ~
         {db}    (sqldb)
@@ -47,17 +51,14 @@ sqlschemafield                                                *sqlschemafield*
     Sqlite schema key fileds. {name} is the only required field.
 
     Fields: ~
-        {cid}       (number)                 column index
-        {name}      (string)                 column key
-        {type}      (string)                 column type
-        {required}  (boolean)                whether the column key is
-                                             required or not
-        {primary}   (boolean)                whether the column is a primary
-                                             key
-        {default}   (string)                 the default value of the column
+        {cid}       (number)                 column index.
+        {name}      (string)                 column key.
+        {type}      (string)                 column type.
+        {required}  (boolean)                whether it's required.
+        {primary}   (boolean)                whether it's a primary key.
+        {default}   (string)                 default value when null.
         {reference} (string)
-        {on_delete} (sqltrigger)             what to do when the key gets
-                                             deleted
+        {on_delete} (sqltrigger)             trigger on row delete.
         {on_update} (table<string, string>)
 
 
@@ -66,7 +67,7 @@ sqlopts                                                              *sqlopts*
 
 
 sqlquery_update                                              *sqlquery_update*
-    Query fileds used when calling |sql.update| or |tbl.update|
+    Query fileds used when calling |sqldb:update| or |sqltbl:update|
 
     Fields: ~
         {where} (table)  filter down values using key values.
@@ -74,13 +75,12 @@ sqlquery_update                                              *sqlquery_update*
 
 
 sqlquery_select                                              *sqlquery_select*
-    Query spec that are passed to select method
+    Query fileds used when calling |sqldb:select| or |sqltbl:get|
 
     Fields: ~
         {where}    (table)  filter down values using key values.
         {keys}     (table)  keys to include. (default all)
-        {join}     (table)  table_name = foreign key, foreign_table_name =
-                            primary key
+        {join}     (table)  (TODO: support)
         {order_by} (table)  { asc = "key", dsc = {"key", "another_key"} }
 
 
@@ -89,7 +89,7 @@ sqlflag                                                              *sqlflag*
 
 
 sqldb_status                                                    *sqldb_status*
-    Status returned from |sql.status|
+    Status returned from |sqldb:status()|
 
     Fields: ~
         {msg}  (string)
@@ -100,33 +100,32 @@ sqldb_status                                                    *sqldb_status*
 ================================================================================
                                                                 *sqldb.overview*
 
-Main sqlite.lua object and methods
+Main sql.nvim object and methods.
 
 sqldb.new({uri}, {opts})                                         *sqldb.new()*
     Creates a new sql.nvim object, without creating a connection to uri.
     |sqldb.new| is identical to |sqldb:open| but it without opening sqlite db
-    connection.
+    connection. Thus it's most suited for cases where the database might be
+    acccess from multiple places. For neovim use cases, this mean from
+    different neovim instances.
 
 
     Parameters: ~
-        {uri}  (string)   path to db.if nil, then create in memory database.
-        {opts} (sqlopts)  see |sqlopts|
+        {uri}  (string)   uri to db file.
+        {opts} (sqlopts)  (optional) see |sqlopts|
 
     Return: ~
         sqldb
 
     Usage: ~
-        `require'sql'.new()` in memory
-        `require'sql'.new("./path/to/sql.sqlite")` to given path
-        `require'sql'.new("$ENV_VARABLE")` reading from env variable
-
-    See: ~
-        |sqldb:open()|
+        `db = require'sql'.new("./path/to/sql.sqlite")` to given path
+        `db = require'sql'.new("$ENV_VARABLE", { ... })` with opts
 
 
 sqldb:open({uri}, {opts})                                       *sqldb:open()*
-    Connect, or create new sqlite db, either in memory or via a {uri}.
-    |sqldb:open| is identical to |sqldb.new| but it additionally opens the db
+    Creates and connect to new sqlite db object, either in memory or via a
+    {uri}. If it is called on pre-made |sqldb| object, than it should open it
+    if it's closed, or ignore otherwise.
 
 
     Parameters: ~
@@ -137,14 +136,19 @@ sqldb:open({uri}, {opts})                                       *sqldb:open()*
         sqldb
 
     Usage: ~
-        `require("sql"):open()` in memory.
-        `require("sql"):open("./path/to/sql.sqlite")` to given path.
-        `require("sql"):open("$ENV_VARABLE")` reading from env variable
+        `db = require("sql"):open()` in memory.
+        `db = require("sql"):open("./path/to/sql.sqlite")` to given path.
+        `db = require("sql"):open("$ENV_VARABLE")` reading from env variable
         `db:open()` reopen connection if closed.
 
 
 sqldb:extend({opts})                                          *sqldb:extend()*
-    Use to Extend sqldb Object with extra sugar syntax and api.
+    Extend |sqldb| object with extra sugar syntax and api. This is recommended
+    for all sqlite use case as it provide convenience. This method is super
+    lazy. it try it's best to doing any ffi calls until the first operation
+    done on a table. To avoid closing/opening database connection on each
+    operation. Make sure to run |sqldb:open()| right after creating the object
+    or when you intend to keep it open.
 
 
     Parameters: ~
@@ -154,14 +158,13 @@ sqldb:extend({opts})                                          *sqldb:extend()*
         sqldb
 
     Usage: ~
-        `local tbl = require('sql.table'):extend("tasks", { ... })` --
-        pre-made table
-        `local tbl = { ... }` -- normal schema table schema
-        `local tbl = { _name = "tasks", ... }` -- normal table with schema and
-        custom table name
-        `local db = sqldb:extend { uri = "", t = tbl }` -- db.t to access sql
-        'tbl' object.
-        `db.t.insert {...}; db.t.get(); db.t.remove(); db:isopen()`
+        `tbl = sqltbl:extend("tasks", { ... })` -- pre-made table
+        `tbl = { ... }` normal schema table schema
+        `tbl = { _name = "tasks", ... }` normal schema and custom table name.
+        `db = sqldb:extend { uri = "", t = tbl }` -- 'db.t' to access
+        |sqltbl|.
+        `db.t.insert {...}; db.t.get(); db.t.remove(); db:isopen()` dot
+        notation.
 
 
 sqldb:close()                                                  *sqldb:close()*
@@ -427,7 +430,7 @@ sqldb.lib()                                                      *sqldb.lib()*
 
 
 ================================================================================
-                                                                *sqldb.overview*
+                                                               *sqltbl.overview*
 
 Abstraction to produce more readable code.
 
