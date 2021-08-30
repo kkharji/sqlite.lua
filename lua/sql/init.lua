@@ -7,12 +7,12 @@
 ---<pre>
 ---
 --- Help usage in neovim: ignore ||
----   :h |sqlinfo|            | main sql.nvim classes
+---   :h |sqlinfo|               | main sql.nvim classes
 ---   :h |sqlite_schema_key|     | open a class or type
----   :h |sqlite_tbl.appendix|    | show help for sqlite_tbl.
----   :h |sqlite_db.appendix|     | show help for sqlite_tbl.
----   :h sqlite_db:...            | show help for a sqlite_db method.
----   :h sqlite_tbl:...           | show help for a sqlite_tbl method.
+---   :h |sqlite.tbl|            | show help for sqlite_tbl.
+---   :h |sqlite.db|             | show help for sqlite_tbl.
+---   :h sqlite.db:...           | show help for a sqlite_db method.
+---   :h sqlite.tbl:...          | show help for a sqlite_tbl method.
 ---
 ---</pre>
 --- sql.nvim types:

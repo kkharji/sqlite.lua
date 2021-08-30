@@ -1,7 +1,7 @@
 ---@brief [[
 ---Main sql.nvim object and methods.
 ---@brief ]]
----@tag sqlite.db.appendix
+---@tag sqlite.db
 
 local sqlite = {}
 ---@type sqlite_db

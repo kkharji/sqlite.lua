@@ -1,7 +1,7 @@
 ---@brief [[
 ---Abstraction to produce more readable code.
 ---@brief ]]
----@tag sqlite.tbl.appendix
+---@tag sqlite.tbl
 
 local u = require "sql.utils"
 local a = require "sql.assert"
