@@ -39,7 +39,7 @@ end
 ---```
 ---</pre>
 ---@param uri string: uri to db file.
----@param opts sqlite_db.opts: (optional) see |sqlite_db.opts|
+---@param opts sqlite_opts: (optional) see |sqlite_opts|
 ---@return sqlite_db
 function sqlite.new(uri, opts)
   return sqlite:open(uri, opts, true)
@@ -57,7 +57,7 @@ end
 ---```
 ---</pre>
 ---@param uri string: (optional) {uri} == {nil} then in-memory db.
----@param opts sqlite_db.opts: (optional) see |sqlite_db.opts|
+---@param opts sqlite_opts|nil:  see |sqlite_opts|
 ---@return sqlite_db
 function sqlite:open(uri, opts, noconn)
   if not self.uri then
@@ -95,7 +95,7 @@ end
 ---   uri = "path/to/db", -- path to db file
 ---   entries = entries,  -- pre-made |etbl| with |tbl:extend()| without db
 ---   category = { title = { "text", unique = true, primary = true}  },
----   opts = {} or nil -- custom sqlite3 options, see |sqlite_db.opts|
+---   opts = {} or nil -- custom sqlite3 options, see |sqlite_opts|
 --- }
 --- -- unlike |sqlite_tbl|, |sqlite_etbl| is accessed by dot notation.
 --- db.entries.insert { {..}, {..} }
@@ -103,7 +103,7 @@ end
 ---</pre>
 ---@param opts table: see 'Fields'
 ---@field uri string: path to db file.
----@field opts sqlite_db.opts: (optional) see |sqlite_db.opts|
+---@field opts sqlite_opts: (optional) see |sqlite_opts|
 ---@field tname1 string: pointing to |sqlite_etbl| or |sqlite_schema_dict|
 ---@field tnameN string: pointing to |sqlite_etbl| or |sqlite_schema_dict|
 ---@see sqlite_tbl:extend

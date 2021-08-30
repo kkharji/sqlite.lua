@@ -21,17 +21,17 @@
 
 ---@class sqlite_db @Main sql.nvim object.
 ---@field uri string: database uri. it can be an environment variable or an absolute path. default ":memory:"
----@field opts sqlite_db.opts: see https://www.sqlite.org/pragma.html |sqlite_db.opts|
+---@field opts sqlite_opts: see https://www.sqlite.org/pragma.html |sqlite_opts|
 ---@field conn sqlite_blob: sqlite connection c object.
 ---@field db sqlite_db: reference to fallback to when overwriting |sqlite_db| methods (extended only).
 
 ---@class sqlite_tbl @Main sql table class
----@field db sqlite_db: database .
+---@field db sqlite_db: sqlite.lua database object.
 ---@field name string: table name.
 ---@field mtime number: db last modified time.
 
 ---@class sqlite_tblext @Extended version of sql table class. This class is generated through |sqlite_tbl:extend|
----@field db sqlite_db
+---@field db sqlite_db: sqlite.lua database object.
 ---@field name string: table name
 ---@field mtime number: db last modified time
 
@@ -49,13 +49,13 @@
 ---@alias sqlite_schema_dict table<string, sqlite_schema_key>
 ---@alias sqlite_query_delete table<string, string>
 
----@class sqlite_db.opts @Sqlite3 Options (TODO: add sqlite option fields and description)
+---@class sqlite_opts @Sqlite3 Options (TODO: add sqlite option fields and description)
 
----@class sqlite_query_update @Query fileds used when calling |sqlite_db:update| or |sqlite_tbl:update|
+---@class sqlite_query_update @Query fileds used when calling |sqlite:update| or |sqlite_tbl:update|
 ---@field where table: filter down values using key values.
 ---@field set table: key and value to updated.
 
----@class sqlite_query_select @Query fileds used when calling |sqlite_db:select| or |sqlite_tbl:get|
+---@class sqlite_query_select @Query fileds used when calling |sqlite:select| or |sqlite_tbl:get|
 ---@field where table: filter down values using key values.
 ---@field keys table: keys to include. (default all)
 ---@field join table: (TODO: support)
@@ -65,7 +65,7 @@
 
 ---@class sqlite_flags @Sqlite3 Error Flags (TODO: add sqlite error flags value and description)
 
----@class sqlite_db_status @Status returned from |sqlite_db:status()|
+---@class sqlite_db_status @Status returned from |sqlite:status()|
 ---@field msg string
 ---@field code sqlite_flags
 
