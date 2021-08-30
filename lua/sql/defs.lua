@@ -19,7 +19,7 @@ local clib_path = path
 
 local clib = ffi.load(clib_path)
 
----@class sqldb.flags @sqlite3 error flag
+---@type sqlflag
 M.flags = {
   -- Result codes
   ["ok"] = 0,
@@ -55,7 +55,7 @@ M.flags = {
   ["done"] = 101,
 }
 
----@class SQLOpts
+---@type sqlopts
 M.valid_pargma = {
   ["analysis_limit"] = true,
   ["application_id"] = true,

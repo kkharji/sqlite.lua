@@ -8,8 +8,7 @@ local fmt = string.format
 local P = require "sql.parser"
 local luv = require "luv"
 
----@class sqltbl @Main table class
----@field db sqldb: database in which the tbl is part of.
+---@type sqltbl
 local tbl = {}
 tbl.__index = tbl
 

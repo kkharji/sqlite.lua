@@ -1,7 +1,4 @@
----@class sqltbl.ext
----@field db sqldb
----@field name string: table name
----@field mtime number: db last modified time
+---@type sqltblext
 local tbl = {}
 
 ---Create or change table schema. If no {schema} is given,
