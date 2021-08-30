@@ -10,23 +10,46 @@
 ---@brief ]]
 ---@tag sql.lua
 
----@class sqltbl.key
+---@class sqldb @Main sql.nvim object.
+---@field uri string: database uri
+---@field conn sqlite_blob: sqlite connection c object.
+---@field db sqldb: fallback when the user overwrite @sqldb methods (extended only).
+local DB = {}
+DB.__index = DB
+
+---@class sqlschemafield
 ---@field cid number: column index
 ---@field name string: column key
 ---@field type string: column type
 ---@field required boolean: whether the column key is required or not
 ---@field primary boolean: whether the column is a primary key
 ---@field default string: the default value of the column
----@field reference string: table_name.column
+---@field reference string: "table_name.column"
+---@field on_delete sqltrigger: what to do when the key gets deleted
+---@field on_update sqltrigger: what to do when the key gets updated
 
----@class sqlquery.update @Query spec that are passed to a number of db: methods.
+---@alias sqlschema table<string, sqlschemafield>
+---@alias sqlquery_delete table<string, string>
+
+---@class sqlquery_update @Query spec that are passed to a number of db: methods.
 ---@field where table: filter down values using key values.
 ---@field set table: key and value to updated.
 
----@class sqlquery.select @Query spec that are passed to select method
+---@class sqlquery_select @Query spec that are passed to select method
 ---@field where table: filter down values using key values.
 ---@field keys table: keys to include. (default all)
 ---@field join table: table_name = foreign key, foreign_table_name = primary key
+
+---@class sqldb_status
+---@field msg string
+---@field code sqldb.flags
+
+---@alias sqltrigger
+---| '"no action"' : when a parent key is modified or deleted from the database, no special action is taken.
+---| '"restrict"' : prohibites from deleting/modifying a parent key when a child key is mapped to it.
+---| '"null"' : when a parent key is deleted/modified, the child key that mapped to the parent key gets set to null.
+---| '"default"' : similar to "null", except that sets to the column's default value instead of NULL.
+---| '"cascade"' : propagates the delete or update operation on the parent key to each dependent child key.
 
 local clib = require "sql.defs"
 local stmt = require "sql.stmt"
@@ -36,15 +59,8 @@ local t = require "sql.table"
 local P = require "sql.parser"
 local flags = clib.flags
 
----@class sqldb @Main sql.nvim object.
----@field uri string: database uri
----@field conn sqldb.types.blob: sqlite connection c object.
----@field db sqldb: fallback when the user overwrite @sqldb methods (extended only).
-local DB = {}
-DB.__index = DB
-
 ---Get a table schema, or execute a given function to get it
----@param schema table|nil
+---@param tbl_name string
 ---@param self sqldb
 local get_schema = function(tbl_name, self)
   local schema = self.tbl_schemas[tbl_name]
@@ -100,8 +116,6 @@ function DB:open(uri, opts, noconn)
 end
 
 ---Use to Extend sqldb Object with extra sugar syntax and api.
----@param sql sqldb
----@param tbl sqltable
 ---@param opts table: uri, init, opts, tbl_name, tbl_name ....
 ---@usage `local tbl = require('sql.table'):extend("tasks", { ... })` -- pre-made table
 ---@usage `local tbl = { ... }` -- normal schema table schema
@@ -174,14 +188,10 @@ function DB:isclose()
   return self.closed
 end
 
----@class sqldb.status
----@field msg string
----@field code sqldb.flags
-
 ---Returns current connection status
 ---Get last error code
 ---@todo: decide whether to keep this function
----@return sqldb.status
+---@return sqldb_status
 function DB:status()
   return {
     msg = clib.last_errmsg(self.conn),
@@ -271,7 +281,7 @@ end
 ---Create a new sqlite db table with {name} based on {schema}. if {schema.ensure} then
 ---create only when it does not exists. similar to 'create if not exists'.
 ---@param tbl_name string: table name
----@param schema table<string, sqltbl_key>
+---@param schema sqlschema
 ---@usage `db:create("todos", {id = {"int", "primary", "key"}, title = "text"})` create table with the given schema.
 ---@return boolean
 function DB:create(tbl_name, schema)
@@ -294,7 +304,7 @@ end
 
 ---Get {name} table schema, if table does not exist then return an empty table.
 ---@param tbl_name string: the table name.
----@return table<string, sqltbl_key>
+---@return sqlschema
 function DB:schema(tbl_name)
   local sch = self:eval(("pragma table_info(%s)"):format(tbl_name))
   local schema = {}
@@ -348,7 +358,7 @@ end
 ---Update table row with where closure and list of values
 ---returns true incase the table was updated successfully.
 ---@param tbl_name string: the name of the db table.
----@param specs sqlquery.update | sqlquery.update[]
+---@param specs sqlquery_update | sqlquery_update[]
 ---@return boolean
 ---@usage `db:update("todos", { where = { id = "1" }, values = { action = "DONE" }})` update id 1 with the given keys
 ---@usage `db:update("todos", {{ where = { id = "1" }, values = { action = "DONE" }}, {...}, {...}})` multi updates.
@@ -388,7 +398,7 @@ end
 ---Delete a {tbl_name} row/rows based on the {specs} given. if no spec was given,
 ---then all the {tbl_name} content will be deleted.
 ---@param tbl_name string: the name of the db table.
----@param where sqlquery.delete: key value pair to delete matching rows,
+---@param where sqlquery_delete: key value pair to where delete operation should effect.
 ---@return boolean: true if operation is successfully, false otherwise.
 ---@usage `db:delete("todos")` delete todos table content
 ---@usage `db:delete("todos", { id = 1 })` delete row that has id as 1
@@ -421,7 +431,7 @@ end
 
 ---Query from a table with where and join options
 ---@param tbl_name string: the name of the db table to select on
----@param spec sqlquery.select
+---@param spec sqlquery_select
 ---@usage `db:select("todos")` get everything
 ---@usage `db:select("todos", { where = { id = 1 })` get row with id of 1
 ---@usage `db:select("todos", { where = { status = {"later", "paused"} })` get row with status value of later or paused

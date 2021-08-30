@@ -96,7 +96,7 @@ end
 ---Create new sql table object
 ---@param db sqldb
 ---@param name string: table name
----@param schema table<string, sqltbl.key>
+---@param schema sqlschema
 ---@return sqltbl
 function tbl:new(db, name, schema)
   schema = schema or {}
@@ -112,7 +112,7 @@ end
 ---is called
 ---@param db sqldb
 ---@param name string
----@param schema table<string, sqltbl.key>
+---@param schema sqlschema
 ---@return sqltbl.ext
 function tbl:extend(db, name, schema)
   if not schema and type(db) == "string" then
@@ -143,8 +143,8 @@ end
 ---Create or change table schema. If no {schema} is given,
 ---then it return current the used schema if it exists or empty table otherwise.
 ---On change schema it returns boolean indecting success.
----@param schema table<string, sqltbl.key>
----@return table<string, sqltbl.key> | boolean
+---@param schema sqlschema
+---@return sqlschema | boolean
 ---@usage `projects:schema()` get project table schema.
 ---@usage `projects:schema({...})` mutate project table schema
 ---@todo do alter when updating the schema instead of droping it completely
@@ -215,7 +215,7 @@ function tbl:count()
 end
 
 ---Query the table and return results.
----@param query sqlquery.select
+---@param query sqlquery_select
 ---@return table
 ---@usage `projects:get()` get a list of all rows in project table.
 ---@usage `projects:get({ where = { status = "pending", client = "neovim" }})`

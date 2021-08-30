@@ -463,8 +463,8 @@ end
 
 ---Alter a given table, only support changing key definition
 ---@param tname string
----@param new table<string, sqltbl.key>
----@param old table<string, sqltbl.key>
+---@param new sqlschema
+---@param old sqlschema
 M.table_alter_key_defs = function(tname, new, old, dry)
   local tmpname = tname .. "_new"
   local create = M.create(tmpname, new, true)

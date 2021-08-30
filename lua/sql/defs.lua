@@ -579,7 +579,7 @@ ffi.cdef [[
 ]]
 
 ---@class sqlite3 @sqlite3 db object
----@class sqldb.types.blob @sqlite3 blob object
+---@class sqlite_blob @sqlite3 blob object
 
 M.to_str = function(ptr, len)
   if ptr == nil then
@@ -648,7 +648,7 @@ end
 ---Create new connection and modify `sqldb` object
 ---@param uri string
 ---@param sqldb table
----@return sqldb.types.blob*
+---@return sqlite_blob*
 ---@TODO: support open_v2 to enable control over how the database file is opened.
 M.connect = function(uri, opts)
   opts = opts or {}
