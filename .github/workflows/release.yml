@@ -55,7 +55,7 @@ jobs:
         run: |
           $(go env GOPATH)/bin/git-chglog \
             -c .github/chglog/config.yml \
-            -t .github/chglog/CHANGELOG.tpl.md \
+            -t .github/chglog/CHANGELOG.release.md \
             -o RELEASE_CHANGELOG.md ${{ steps.tag.outputs.TAG }}
           cat RELEASE_CHANGELOG.md
       -
