@@ -12,7 +12,7 @@ local modules = {}
 local description = {
   summary = "SQLite/LuaJIT binding and a highly opinionated wrapper for storing, retrieving, caching, and persisting [SQLite] databases",
   homepage = "https://github.com/tami5/sqlite.lua",
-  labels = { "sqlite3", "binding", "luajit" },
+  labels = { "sqlite3", "binding", "luajit", "database" },
   detailed = "",
   license = "MIT",
 }
@@ -36,19 +36,16 @@ end
 
 local output = ([[
 rockspec_format = "3.0"
-package = 'sqlite-lua'
+package = 'sqlite'
 version = '%s-0'
+description = %s
 source = {
   url = 'git://github.com/tami5/sqlite.lua.git',
   tag = "%s"
 }
-
 dependencies = {
   %s
 }
-
-description = %s
-
 build = {
   type = "builtin",
   modules = %s
@@ -56,7 +53,7 @@ build = {
 
 ]]):format(version, version, dependencies, ins(description), ins(modules))
 
-local file_handle = io.open(("%s/rockspecs/sqlite-lua-%s-0.rockspec"):format(cwd, version), "w")
+local file_handle = io.open(("%s/rockspecs/sqlite-%s-0.rockspec"):format(cwd, version), "w")
 
 file_handle:write(output)
 file_handle:close()

@@ -1,19 +1,19 @@
 rockspec_format = "3.0"
-package = "sqlite-lua"
+package = "sqlite"
 version = "master-0"
 source = {
-  url = "git://github.com/tami5/sql.nvim",
+  url = "git://github.com/tami5/sqlite.lua",
   branch = "master",
 }
 
 dependencies = {
-  "lua >= 5.1",
+  "luv",
 }
 
 description = {
   detailed = "",
   homepage = "https://github.com/tami5/sqlite.lua",
-  labels = { "sqlite3", "binding", "luajit" },
+  labels = { "sqlite3", "binding", "luajit", "database" },
   license = "MIT",
   summary = "SQLite/LuaJIT binding and a highly opinionated wrapper for storing, retrieving, caching, and persisting [SQLite] databases",
 }
