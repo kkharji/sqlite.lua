@@ -54,7 +54,7 @@ job
 
 local output = ([[
 rockspec_format = "3.0"
-package = 'sqlite.lua'
+package = 'sqlite-lua'
 version = '%s-0'
 source = {
   url = 'git://github.com/tami5/sqlite.lua.git',
