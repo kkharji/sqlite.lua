@@ -1,7 +1,7 @@
 ---@brief [[
 ---Main sqlite.lua object and methods.
 ---@brief ]]
----@tag sqlite.db
+---@tag sqlite.db.lua
 
 local sqlite = {}
 ---@type sqlite_db
