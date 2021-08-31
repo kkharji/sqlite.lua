@@ -76,4 +76,11 @@
 ---| '"default"' : similar to "null", except that sets to the column's default value instead of NULL.
 ---| '"cascade"' : propagates the delete or update operation on the parent key to each dependent child key.
 
-return require "sqlite.db" --- TODO: should export { db = require'sqlite.db', tbl = require'sqlite.tbl' }
+local sqlite = {}
+
+sqlite.version = 0.1
+sqlite.db = require "sqlite.db"
+sqlite.tbl = require "sqlite.tbl"
+sqlite.lib = require "sqlite.strfun"
+
+return sqlite
