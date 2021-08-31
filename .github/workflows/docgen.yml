@@ -1,7 +1,5 @@
 name: Generate docs
-
 on: push
-
 jobs:
   build-sources:
     name: Generate docs
@@ -41,7 +39,7 @@ jobs:
       - name: Generating docs
         run: |
           export PATH="${PWD}/build/:${PATH}"
-          make docgen
+          make gen_nvimhelp
       # inspired by nvim-lspconfigs
       - name: Update documentation
         env:
