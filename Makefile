@@ -10,3 +10,7 @@ docgen:
 
 testfile:
 	nvim --headless --noplugin -u test/minimal_init.vim -c "PlenaryBustedDirectory test/auto/$(file)_spec.lua { minimal_init = './test/minimal_init.vim' }"
+
+genluarock:
+	nvim --headless --noplugin -u test/minimal_init.vim -c "luafile ./scripts/gen_rockspec.lua" -c 'qa'
+
