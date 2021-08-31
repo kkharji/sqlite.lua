@@ -2,9 +2,9 @@ name: Create Release
 on:
   push:
     tags: ["v*"]
-
 jobs:
   release:
+    if: github.event.base_ref == 'refs/heads/master' # not sure, maybe not
     runs-on: ubuntu-20.04
     container:
       image: golang:1.16
@@ -31,11 +31,6 @@ jobs:
           apt-get update
           apt-get -y install luarocks
           go get github.com/git-chglog/git-chglog/cmd/git-chglog
-      -
-        name: Install Luajit
-        uses: leafo/gh-actions-lua@v8.0.0
-        with:
-          luaVersion: "luajit-2.1.0-beta3"
       -
         name: Setup  Environment
         run: |
@@ -65,26 +60,34 @@ jobs:
           export PATH="${PWD}/build/:${PATH}"
           make genluarock
       -
-        name: Push version update to master
+        name: Update version in files
+        run: |
+          sed -i '/sqlite\.version/s/".*"/"${{ steps.tag.outputs.TAG }}"/' ./lua/sqlite/init.lua
+          git add ./lua/sqlite/init.lua
+      -
+        name: Upload to luarocks
+        env:
+          LUAROCKS_TOKEN: ${{ secrets.LUAROCKS_TOKEN }}
+        run: |
+          luarocks upload \
+            .sqlite-${{ steps.tag.outputs.TAG }}-0.rockspec \
+            --api-key=${LUAROCKS_TOKEN}
+      -
+        name: Push Release Changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_MSG: |
+            :bookmark: release ${{ steps.tag.outputs.TAG }}
+
+            see https://github.com/${{ github.repository }}/releases/tag/${{ steps.tag.outputs.TAG }}
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
-          git add ./rockspecs
-          git commit -m ":bookmark: release ${{ steps.tag.outputs.TAG }}"
+          git commit -m "${COMMIT_MSG}"
           git push origin HEAD:master
-      # -
-      #   name: Upload to luarocks
-      #   env:
-      #     LUAROCKS_TOKEN: ${{ secrets.LUAROCKS_TOKEN }}
-      #   run: |
-      #     export $LUAROCKSPEC=rockspec/sqlite-lua-${{ steps.version.outputs.VERSION_NUMBER }}-0.rockspec
-      #     luarocks upload $LUAROCKSPEC --api-key=${LUAROCKS_TOKEN}
       -
         name: Create GH Release
         uses: softprops/action-gh-release@v1
         with:
           body_path: RELEASE_CHANGELOG.md
-
