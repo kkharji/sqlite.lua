@@ -3,11 +3,11 @@
 ---retrieving, caching, persisting, querying, and connecting to SQLite databases.
 ---
 --- To find out more
---- visit https://github.com/tami5/sql.nvim
+--- visit https://github.com/tami5/sqlite.lua
 ---<pre>
 ---
 --- Help usage in neovim: ignore ||
----   :h |sqlinfo|               | main sql.nvim classes
+---   :h |readme|                | open readme.md
 ---   :h |sqlite_schema_key|     | open a class or type
 ---   :h |sqlite.tbl|            | show help for sqlite_tbl.
 ---   :h |sqlite.db|             | show help for sqlite_tbl.
@@ -15,11 +15,11 @@
 ---   :h sqlite.tbl:...          | show help for a sqlite_tbl method.
 ---
 ---</pre>
---- sql.nvim types:
+--- sqlite.lua types:
 ---@brief ]]
----@tag sqlinfo
+---@tag readme
 
----@class sqlite_db @Main sql.nvim object.
+---@class sqlite_db @Main sqlite.lua object.
 ---@field uri string: database uri. it can be an environment variable or an absolute path. default ":memory:"
 ---@field opts sqlite_opts: see https://www.sqlite.org/pragma.html |sqlite_opts|
 ---@field conn sqlite_blob: sqlite connection c object.

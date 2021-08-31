@@ -655,12 +655,12 @@ M.connect = function(uri, opts)
   local code = clib.sqlite3_open(uri, conn)
 
   if code ~= M.flags.ok then
-    error(("sql.nvim: couldn't connect to sql database, ERR:"):format(code))
+    error(("sqlite.lua: couldn't connect to sql database, ERR:"):format(code))
   end
 
   for k, v in pairs(opts) do
     if not M.valid_pargma[k] then
-      error("sql.nvim: " .. k .. " is not a valid pragma")
+      error("sqlite.lua: " .. k .. " is not a valid pragma")
     end
     if type(k) == "boolean" then
       k = "ON"

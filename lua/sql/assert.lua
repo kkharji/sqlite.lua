@@ -16,7 +16,7 @@ local errors = {
 }
 
 for key, value in pairs(errors) do
-  errors[key] = "sql.nvim: " .. value
+  errors[key] = "sqlite.lua: " .. value
 end
 
 ---Error out if sql table doesn't exists.

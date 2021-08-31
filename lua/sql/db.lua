@@ -1,5 +1,5 @@
 ---@brief [[
----Main sql.nvim object and methods.
+---Main sqlite.lua object and methods.
 ---@brief ]]
 ---@tag sqlite.db
 
@@ -28,7 +28,7 @@ local get_schema = function(tbl_name, self)
   return self.tbl_schemas[tbl_name]
 end
 
----Creates a new sql.nvim object, without creating a connection to uri.
+---Creates a new sqlite.lua object, without creating a connection to uri.
 ---|sqlite.new| is identical to |sqlite.db:open| but it without opening sqlite db
 ---connection. Thus its most suited for cases where the database might be
 ---acccess from multiple places. For neovim use cases, this mean from different

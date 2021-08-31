@@ -35,7 +35,7 @@ function sqlstmt:__parse()
   assert(
     code == flags.ok,
     string.format(
-      "sql.nvim: sql statement parse, , stmt: `%s`, err: `(`%s`)`",
+      "sqlite.lua: sql statement parse, , stmt: `%s`, err: `(`%s`)`",
       self.str,
       sqlite.to_str(sqlite.errmsg(self.conn))
     )
@@ -60,7 +60,7 @@ function sqlstmt:finalize()
   assert(
     self.finalized,
     string.format(
-      "sql.nvim: couldn't finalize statement, ERRMSG: %s stmt = (%s)",
+      "sqlite.lua: couldn't finalize statement, ERRMSG: %s stmt = (%s)",
       sqlite.to_str(sqlite.errmsg(self.conn)),
       self.str
     )
@@ -75,7 +75,7 @@ function sqlstmt:step()
   assert(
     step_code ~= flags.error or step_code ~= flags.misuse,
     string.format(
-      "sql.nvim: error in step(), ERRMSG: %s. Please report issue.",
+      "sqlite.lua: error in step(), ERRMSG: %s. Please report issue.",
       sqlite.to_str(sqlite.errmsg(self.conn))
     )
   )
@@ -310,7 +310,7 @@ function sqlstmt:bind(...)
     for k, v in pairs(names) do
       local index = parameter_index_cache[k] or table.remove(anon_indices, 1)
       if ((type(v) == "string" and v:match "%a+%(.+%)") and flags.ok or self:bind(index, v)) ~= flags.ok then
-        error("sql.nvim error at stmt:bind(), failed to bind a given value '%s'. Please report issue."):format(v)
+        error("sqlite.lua error at stmt:bind(), failed to bind a given value '%s'. Please report issue."):format(v)
       end
     end
     return flags.ok
@@ -324,7 +324,7 @@ function sqlstmt:bind(...)
 
     if not func then
       return error [[
-        sql.nvim error at stmt:bind(): Unrecognized or unsupported type.
+        sqlite.lua error at stmt:bind(): Unrecognized or unsupported type.
         Please report issue.
       ]]
     end
