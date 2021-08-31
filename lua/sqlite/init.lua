@@ -7,7 +7,7 @@
 ---<pre>
 ---
 --- Help usage in neovim: ignore ||
----   :h |readme|                | open readme.md
+---   :h |sqlite.readme|         | open help readme
 ---   :h |sqlite_schema_key|     | open a class or type
 ---   :h |sqlite.tbl|            | show help for sqlite_tbl.
 ---   :h |sqlite.db|             | show help for sqlite_tbl.
@@ -17,7 +17,7 @@
 ---</pre>
 --- sqlite.lua types:
 ---@brief ]]
----@tag readme
+---@tag sqlite.readme
 
 ---@class sqlite_db @Main sqlite.lua object.
 ---@field uri string: database uri. it can be an environment variable or an absolute path. default ":memory:"
@@ -76,4 +76,4 @@
 ---| '"default"' : similar to "null", except that sets to the column's default value instead of NULL.
 ---| '"cascade"' : propagates the delete or update operation on the parent key to each dependent child key.
 
-return require "sql.db"
+return require "sqlite.db" --- TODO: should export { db = require'sqlite.db', tbl = require'sqlite.tbl' }

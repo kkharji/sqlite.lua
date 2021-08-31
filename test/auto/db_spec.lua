@@ -1,11 +1,11 @@
 local P = require "plenary.path"
 local curl = require "plenary.curl"
 local eq = assert.are.same
-local sql = require "sql"
-local u = require "sql.utils"
+local sql = require "sqlite.db"
+local u = require "sqlite.utils"
 local luv = require "luv"
 
-describe("sql", function()
+describe("sqlite.db", function()
   local path = "/tmp/db.sqlite3"
   luv.fs_unlink(path)
 
@@ -896,7 +896,7 @@ describe("sql", function()
     end)
 
     it("use pre-defined sql-table", function()
-      local t = require "sql.tbl"("sometbl", { id = true, name = "string" })
+      local t = require "sqlite.tbl"("sometbl", { id = true, name = "string" })
       local db
 
       local ok, db = pcall(sql, {

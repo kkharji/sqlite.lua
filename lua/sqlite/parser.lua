@@ -1,8 +1,8 @@
-local u = require "sql.utils"
-local json = require "sql.json"
+local u = require "sqlite.utils"
+local json = require "sqlite.json"
 local tinsert = table.insert
 local tconcat = table.concat
-local a = require "sql.assert"
+local a = require "sqlite.assert"
 local M = {}
 
 ---@brief [[

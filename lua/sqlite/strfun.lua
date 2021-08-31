@@ -1,5 +1,5 @@
 local M = {}
-local u = require "sql.utils"
+local u = require "sqlite.utils"
 
 local customstr
 customstr = function(str)

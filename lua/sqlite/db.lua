@@ -8,12 +8,12 @@ local sqlite = {}
 sqlite.db = {}
 sqlite.db.__index = sqlite.db
 
-local clib = require "sql.defs"
-local stmt = require "sql.stmt"
-local u = require "sql.utils"
-local a = require "sql.assert"
-local t = require "sql.tbl"
-local P = require "sql.parser"
+local clib = require "sqlite.defs"
+local stmt = require "sqlite.stmt"
+local u = require "sqlite.utils"
+local a = require "sqlite.assert"
+local t = require "sqlite.tbl"
+local P = require "sqlite.parser"
 local flags = clib.flags
 
 ---Get a table schema, or execute a given function to get it
@@ -597,7 +597,7 @@ function sqlite.db:table(tbl_name, opts)
 end
 
 ---Sqlite functions sugar wrappers. See `sql/strfun`
-sqlite.db.lib = require "sql.strfun"
+sqlite.db.lib = require "sqlite.strfun"
 
 sqlite.db = setmetatable(sqlite.db, { __call = sqlite.db.extend })
 

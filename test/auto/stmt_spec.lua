@@ -1,18 +1,18 @@
-local sqlite = require "sql.defs"
-local stmt = require "sql.stmt"
+local clib = require "sqlite.defs"
+local stmt = require "sqlite.stmt"
 
 local eval = function(conn, st, callback, arg1, errmsg)
-  return sqlite.exec(conn, st, callback, arg1, errmsg)
+  return clib.exec(conn, st, callback, arg1, errmsg)
 end
 
 local conn = function(uri)
   uri = uri or ":memory:"
-  local conn = sqlite.get_new_db_ptr()
-  local code = sqlite.open(uri, conn)
-  if code == sqlite.flags.ok then
+  local conn = clib.get_new_db_ptr()
+  local code = clib.open(uri, conn)
+  if code == clib.flags.ok then
     return conn[0]
   else
-    error(string.format("sql.nvim: couldn't connect to sql database, ERR:", code))
+    error(string.format("sqlite.lua: couldn't connect to sql database, ERR:", code))
   end
 end
 
@@ -22,7 +22,7 @@ describe("stmt", function()
     if not s.finalized then
       eq(true, s:finalize())
     end
-    eq(0, sqlite.close(db))
+    eq(0, clib.close(db))
   end
 
   describe(":parse()     ", function()
@@ -258,7 +258,7 @@ describe("stmt", function()
   describe(":bind_blob() ", function()
     it("binds blobs by idx", function()
       bind_s:bind_clear()
-      bind_s:bind_blob(1, sqlite.get_new_blob_ptr(), 10)
+      bind_s:bind_blob(1, clib.get_new_blob_ptr(), 10)
     end)
   end)
 
@@ -327,7 +327,7 @@ describe("stmt", function()
   describe(":bind_blob() ", function()
     it('does as expected with "anonymous parmas"', function()
       bind_s:bind_clear()
-      bind_s:bind_blob(1, sqlite.get_new_blob_ptr(), 10)
+      bind_s:bind_blob(1, clib.get_new_blob_ptr(), 10)
     end)
   end)
 
@@ -396,7 +396,7 @@ describe("stmt", function()
   describe(":bind_blob() ", function()
     it('does as expected with "anonymous params" and "named params"', function()
       bind_s:bind_clear()
-      bind_s:bind_blob(1, sqlite.get_new_blob_ptr(), 10)
+      bind_s:bind_blob(1, clib.get_new_blob_ptr(), 10)
     end)
   end)
 

@@ -2,8 +2,8 @@
 --- sqlstmt is a collection of methods to deal with sqlite statements.
 ---@brief ]]
 ---@tag sqlstmt
-local sqlite = require "sql.defs"
-local flags = sqlite.flags
+local clib = require "sqlite.defs"
+local flags = clib.flags
 
 ---@class sqlstmt @Object to deal with sqlite statements
 local sqlstmt = {}
@@ -16,7 +16,7 @@ sqlstmt.__index = sqlstmt
 ---@see sqlstmt:__parse
 ---@usage local sqlstmt = sqlstmt:parse(db, "insert into todos (title,desc) values(:title, :desc)")
 function sqlstmt:parse(conn, str)
-  assert(sqlite.type_of(conn) == sqlite.type_of_db_ptr, "Invalid connection passed to sqlstmt:parse")
+  assert(clib.type_of(conn) == clib.type_of_db_ptr, "Invalid connection passed to sqlstmt:parse")
   assert(type(str) == "string", "Invalid second argument passed to sqlstmt:parse")
   local o = {
     str = str,
@@ -30,14 +30,14 @@ end
 
 ---Parse self.str into an sqlite representation and set it to self.pstmt.
 function sqlstmt:__parse()
-  local pstmt = sqlite.get_new_stmt_ptr()
-  local code = sqlite.prepare_v2(self.conn, self.str, #self.str, pstmt, nil)
+  local pstmt = clib.get_new_stmt_ptr()
+  local code = clib.prepare_v2(self.conn, self.str, #self.str, pstmt, nil)
   assert(
     code == flags.ok,
     string.format(
       "sqlite.lua: sql statement parse, , stmt: `%s`, err: `(`%s`)`",
       self.str,
-      sqlite.to_str(sqlite.errmsg(self.conn))
+      clib.to_str(clib.errmsg(self.conn))
     )
   )
   self.pstmt = pstmt[0]
@@ -49,19 +49,19 @@ end
 ---@return number: falgs.ok or errcode
 ---@TODO should we error out when errcode?
 function sqlstmt:reset()
-  return sqlite.reset(self.pstmt)
+  return clib.reset(self.pstmt)
 end
 
 ---Frees the prepared statement
 ---@return boolean: if no error true.
 function sqlstmt:finalize()
-  self.errcode = sqlite.finalize(self.pstmt)
+  self.errcode = clib.finalize(self.pstmt)
   self.finalized = self.errcode == flags.ok
   assert(
     self.finalized,
     string.format(
       "sqlite.lua: couldn't finalize statement, ERRMSG: %s stmt = (%s)",
-      sqlite.to_str(sqlite.errmsg(self.conn)),
+      clib.to_str(clib.errmsg(self.conn)),
       self.str
     )
   )
@@ -71,13 +71,10 @@ end
 ---Called before evaluating the (next iteration) of the prepared statement.
 ---@return sqlite_flag: Possible Flags: { flags.busy, flags.done, flags.row, flags.error, flags.misuse }
 function sqlstmt:step()
-  local step_code = sqlite.step(self.pstmt)
+  local step_code = clib.step(self.pstmt)
   assert(
     step_code ~= flags.error or step_code ~= flags.misuse,
-    string.format(
-      "sqlite.lua: error in step(), ERRMSG: %s. Please report issue.",
-      sqlite.to_str(sqlite.errmsg(self.conn))
-    )
+    string.format("sqlite.lua: error in step(), ERRMSG: %s. Please report issue.", clib.to_str(clib.errmsg(self.conn)))
   )
   return step_code
 end
@@ -85,7 +82,7 @@ end
 ---Number of keys/columns in results
 ---@return number: column count in the results.
 function sqlstmt:nkeys()
-  return sqlite.column_count(self.pstmt)
+  return clib.column_count(self.pstmt)
 end
 
 ---Number of rows/items in results.
@@ -103,7 +100,7 @@ end
 ---@return string: keyname/column name at {idx}
 ---@TODO should accept 1-index
 function sqlstmt:key(idx)
-  return sqlite.to_str(sqlite.column_name(self.pstmt, idx))
+  return clib.to_str(clib.column_name(self.pstmt, idx))
 end
 
 ---key-names/column-names in results.
@@ -139,7 +136,7 @@ function sqlstmt:convert_type(idx)
     ["blob"] = "binary",
     ["null"] = nil,
   }
-  return convert_dt[sqlite.to_str(sqlite.column_decltype(self.pstmt, idx))]
+  return convert_dt[clib.to_str(clib.column_decltype(self.pstmt, idx))]
 end
 
 ---Keys/Columns types visible in current result.
@@ -159,12 +156,12 @@ end
 ---@return string: value at {idx}
 ---@TODO should accept 1-index
 function sqlstmt:val(idx)
-  local ktype = sqlite.column_type(self.pstmt, idx)
+  local ktype = clib.column_type(self.pstmt, idx)
   if ktype == 5 then
     return
   end
-  local val = sqlite["column_" .. sqlite_datatypes[ktype]](self.pstmt, idx)
-  return ktype == 3 and sqlite.to_str(val) or val
+  local val = clib["column_" .. sqlite_datatypes[ktype]](self.pstmt, idx)
+  return ktype == 3 and clib.to_str(val) or val
 end
 
 ---Ordered list of current result values.
@@ -330,12 +327,12 @@ function sqlstmt:bind(...)
     end
 
     if len then
-      return sqlite["bind_" .. func](self.pstmt, idx, value, len, nil)
+      return clib["bind_" .. func](self.pstmt, idx, value, len, nil)
     else
       if value then
-        return sqlite["bind_" .. func](self.pstmt, idx, value)
+        return clib["bind_" .. func](self.pstmt, idx, value)
       else
-        return sqlite["bind_" .. func](self.pstmt, idx)
+        return clib["bind_" .. func](self.pstmt, idx)
       end
     end
   end
@@ -347,7 +344,7 @@ end
 ---@param size number: pointer size
 ---@return sqlite_flag
 function sqlstmt:bind_blob(idx, pointer, size)
-  return sqlite.bind_blob64(self.pstmt, idx, pointer, size, nil) -- Always 64? or two functions
+  return clib.bind_blob64(self.pstmt, idx, pointer, size, nil) -- Always 64? or two functions
 end
 
 ---Binds zeroblob at {idx} with {size}
@@ -355,14 +352,14 @@ end
 ---@param size number: zeroblob size
 ---@return sqlite_flag
 function sqlstmt:bind_zeroblob(idx, size)
-  return sqlite.bind_zeroblob64(self.pstmt, idx, size)
+  return clib.bind_zeroblob64(self.pstmt, idx, size)
 end
 
 ---The number of parameter to bind.
 ---@return number: number of params in {sqlstmt.pstmt}
 function sqlstmt:nparam()
   if not self.parm_count then
-    self.parm_count = sqlite.bind_parameter_count(self.pstmt)
+    self.parm_count = clib.bind_parameter_count(self.pstmt)
   end
 
   return self.parm_count
@@ -372,7 +369,7 @@ end
 ---@param idx number: index starting at 1
 ---@return string: param key ":key" at {idx}
 function sqlstmt:param(idx)
-  return sqlite.to_str(sqlite.bind_parameter_name(self.pstmt, idx)) or "?"
+  return clib.to_str(clib.bind_parameter_name(self.pstmt, idx)) or "?"
 end
 
 ---Parameters keys/names
@@ -391,7 +388,7 @@ end
 ---@return sqlite_flag
 function sqlstmt:bind_clear()
   self.current_bind_index = nil
-  return sqlite.clear_bindings(self.pstmt)
+  return clib.clear_bindings(self.pstmt)
 end
 
 ---Bind the value at the next index until all values are bound
@@ -414,7 +411,7 @@ end
 ---Expand the resulting statement after binding, used for debugging purpose.
 ---@return string: the resulting statement that can be finalized.
 function sqlstmt:expand()
-  return sqlite.to_str(sqlite.expanded_sql(self.pstmt))
+  return clib.to_str(clib.expanded_sql(self.pstmt))
 end
 
 return sqlstmt

@@ -1,6 +1,6 @@
 local M = {}
-local u = require "sql.utils"
-local clib = require "sql.defs"
+local u = require "sqlite.utils"
+local clib = require "sqlite.defs"
 
 --- Functions for asseting and erroring out :D
 

@@ -2,9 +2,9 @@ local docgen = require "docgen"
 
 local function gen()
   local input_files = {
-    "./lua/sql/init.lua",
-    "./lua/sql/db.lua",
-    "./lua/sql/tbl.lua",
+    "./lua/sqlite/init.lua",
+    "./lua/sqlite/db.lua",
+    "./lua/sqlite/tbl.lua",
   }
 
   local output_file = "./doc/sqlite.txt"

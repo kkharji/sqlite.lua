@@ -1,4 +1,4 @@
-local p = require "sql.parser"
+local p = require "sqlite.parser"
 local eq = assert.are.same
 
 describe("parse", function()

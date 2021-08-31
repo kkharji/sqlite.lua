@@ -1,8 +1,8 @@
-local sql = require "sql"
-local tbl = require "sql.tbl"
+local sql = require "sqlite.db"
+local tbl = require "sqlite.tbl"
 local luv = require "luv"
 local eq = assert.are.same
-local P = require "sql.parser"
+local P = require "sqlite.parser"
 local demo = {
   { a = 1, b = "lsf", c = "de" },
   { a = 99, b = "sdj", c = "in" },
@@ -30,7 +30,7 @@ local clean = function()
 end
 
 clean()
-describe("table", function()
+describe("sqlite.tbl", function()
   local t1, t2 = seed()
 
   describe(":new", function()

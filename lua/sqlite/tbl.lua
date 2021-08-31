@@ -3,10 +3,10 @@
 ---@brief ]]
 ---@tag sqlite.tbl.lua
 
-local u = require "sql.utils"
-local a = require "sql.assert"
+local u = require "sqlite.utils"
+local a = require "sqlite.assert"
 local fmt = string.format
-local P = require "sql.parser"
+local P = require "sqlite.parser"
 local luv = require "luv"
 
 local sqlite = {}
