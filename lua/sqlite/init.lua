@@ -78,7 +78,7 @@
 
 local sqlite = {}
 
-sqlite.version = "v1.0.0"
+sqlite.version = "v0.0.0"
 sqlite.db = require "sqlite.db"
 sqlite.tbl = require "sqlite.tbl"
 sqlite.lib = require "sqlite.strfun"
