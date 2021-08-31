@@ -7,7 +7,7 @@ local c = function(l)
   return table.concat(l, ",\n")
 end
 
-local version = uv.os_getenv "GTAG"
+local version = uv.os_getenv "GTAG" or "master"
 local modules = {}
 local description = {
   summary = "SQLite/LuaJIT binding and a highly opinionated wrapper for storing, retrieving, caching, and persisting [SQLite] databases",
@@ -53,7 +53,7 @@ build = {
 
 ]]):format(version, version, dependencies, ins(description), ins(modules))
 
-local file_handle = io.open(("%s/rockspecs/sqlite-%s-0.rockspec"):format(cwd, version), "w")
+local file_handle = io.open(("%s/.sqlite-%s-0.rockspec"):format(cwd, version), "w")
 
 file_handle:write(output)
 file_handle:close()
