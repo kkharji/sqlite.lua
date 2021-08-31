@@ -101,7 +101,7 @@ sqlite_db_status                                            *sqlite_db_status*
 
 
 ================================================================================
-                                                                     *sqlite.db*
+                                                                 *sqlite.db.lua*
 
 Main sqlite.lua object and methods.
 
@@ -526,7 +526,7 @@ sqlite.db.lib()                                              *sqlite.db.lib()*
 
 
 ================================================================================
-                                                                    *sqlite.tbl*
+                                                                *sqlite.tbl.lua*
 
 Abstraction to produce more readable code.
 
