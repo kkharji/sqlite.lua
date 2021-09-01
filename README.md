@@ -6,7 +6,7 @@ sqlite.lua 💫
 [sqlite.lua] present new possibilities for plugin development and while it's primarily created for [neovim], it support all luajit environments.
 
 - [Changelog](https://github.com/tami5/sqlite.lua/blob/master/CHANGELOG.md)
-- [Docs](https://github.com/tami5/sqlite.lua/blob/master/doc/sql.txt)
+- [Docs](https://github.com/tami5/sqlite.lua/blob/master/doc/sqlite.txt)
 
 <p align="center"> <img src="./doc/preview.svg"> </p>
 
