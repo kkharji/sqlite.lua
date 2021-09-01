@@ -30,11 +30,6 @@
 ---@field name string: table name.
 ---@field mtime number: db last modified time.
 
----@class sqlite_tblext @Extended version of sql table class. This class is generated through |sqlite_tbl:extend|
----@field db sqlite_db: sqlite.lua database object.
----@field name string: table name
----@field mtime number: db last modified time
-
 ---@class sqlite_schema_key @Sqlite schema key fileds. {name} is the only required field.
 ---@field cid number: column index.
 ---@field name string: column key.
