@@ -8,10 +8,7 @@ sqlite.lua 💫
 - [Changelog](https://github.com/tami5/sqlite.lua/blob/master/CHANGELOG.md)
 - [Docs](https://github.com/tami5/sqlite.lua/blob/master/doc/sql.txt)
 
-![]()
-<p align="center">
-  <img width="600" height="394" src="./doc/preview.svg">
-</p>
+<p align="center"> <img src="./doc/preview.svg"> </p>
 
 ✨ Features:
 ------------------
