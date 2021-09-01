@@ -524,3 +524,398 @@ sqlite.db.lib()                                              *sqlite.db.lib()*
 
 
 
+================================================================================
+                                                                *sqlite.tbl.lua*
+
+Abstraction to produce more readable code. local tbl = require'sqlite.tbl'
+
+sqlite.tbl.new({name}, {schema}, {db})                      *sqlite.tbl.new()*
+    Create new |sqlite_tbl| object. This object encouraged to be extend and
+    modified by the user. overwritten method can be still accessed via
+    pre-appending "\_\_" e.g. redefining |sqlite_tbl:get|, result in
+    'sqlite_tbl:\_\_get' available as a backup. This object can be instantiated
+    without a {db}, in which case, it requires 'sqlite.tbl:set_db' is called.
+
+    Common use case might be to define tables in separate files and then
+    require them in file that export db object (TODO: support tbl reuse in
+    different dbs).
+
+    ```lua
+    local t = tbl("todos", { --- or tbl.new
+      id = true, -- same as { "integer", required = true, primary = true }
+      title = "text",
+      since = { "date", default = sqlite.lib.strftime("%s", "now") },
+      category = {
+        type = "text",
+        reference = "category.id",
+        on_update = "cascade", -- means when category get updated update
+        on_delete = "null", -- means when category get deleted, set to null
+      },
+    }, db)
+    --- overwrite
+    t.get = function() return t:__get({ where = {...}, select = {...} })[1] end
+    ```
+
+
+    Parameters: ~
+        {name}   (string)              table name
+        {schema} (sqlite_schema_dict)
+        {db}     (sqlite_db|nil)       if nil, then for it to work, it needs
+                                       setting with sqlite.tbl:set_db().
+
+    Return: ~
+        sqlite_tbl
+
+
+sqlite.tbl:extend({db}, {name}, {schema})                *sqlite.tbl:extend()*
+    ```lua
+    local t = tbl("entries", { ... } })
+    t.insert {...} -- insert rows NOTICE: dot notation
+    --- get all entries
+    t.get()
+    --- Overwrite method name and access original via t._get
+    ```
+
+    Parameters: ~
+        {db}     (sqlite_db)
+        {name}   (string)
+        {schema} (sqlite_schema_dict)
+
+    Return: ~
+        sqlite_etbl
+
+
+sqlite.tbl:schema({schema})                              *sqlite.tbl:schema()*
+    Create or change table schema. If no {schema} is given, then it return
+    current the used schema if it exists or empty table otherwise. On change
+    schema it returns boolean indecting success.
+
+    ```lua
+    local projects = sqlite.tbl:new("", {...})
+    --- get project table schema.
+    projects:schema()
+    --- mutate project table schema with droping content if not schema.ensure
+    projects:schema {...}
+    ```
+
+
+    Parameters: ~
+        {schema} (sqlite_schema_dict)
+
+    Return: ~
+        sqlite_schema_dict | boolean
+
+
+sqlite.tbl:drop()                                          *sqlite.tbl:drop()*
+    Remove table from database, if the table is already drooped then it returns
+    false.
+
+    ```lua
+    --- drop todos table content.
+    todos:drop()
+    ```
+
+
+    Return: ~
+        boolean
+
+    See: ~
+        |sqlite.db:drop()|
+
+
+sqlite.tbl:empty()                                        *sqlite.tbl:empty()*
+    Predicate that returns true if the table is empty.
+
+    ```lua
+    if todos:empty() then
+      print "no more todos, we are free :D"
+    end
+    ```
+
+
+    Return: ~
+        boolean
+
+
+sqlite.tbl:exists()                                      *sqlite.tbl:exists()*
+    Predicate that returns true if the table exists.
+
+    ```lua
+    if goals:exists() then
+      error("I'm disappointed in you :D")
+    end
+    ```
+
+
+    Return: ~
+        boolean
+
+
+sqlite.tbl:count()                                        *sqlite.tbl:count()*
+    Get the current number of rows in the table
+
+    ```lua
+    if notes:count() == 0 then
+      print("no more notes")
+    end
+    ```
+
+
+    Return: ~
+        number
+
+
+sqlite.tbl:get({query})                                     *sqlite.tbl:get()*
+    Query the table and return results.
+
+    ```lua
+    --- get everything
+    todos:get()
+    --- get row with id of 1
+    todos:get { where = { id = 1 } }
+    --- select a set of keys with computed one
+    timestamps:get {
+      select = {
+        age = (strftime("%s", "now") - strftime("%s", "timestamp")) * 24 * 60,
+        "id",
+        "timestamp",
+        "entry",
+        },
+      }
+    ```
+
+
+    Parameters: ~
+        {query} (sqlite_query_select)
+
+    Return: ~
+        table
+
+    See: ~
+        |sqlite.db:select()|
+
+
+sqlite.tbl:where({where})                                 *sqlite.tbl:where()*
+    Get first match.
+
+    ```lua
+    --- get single entry. notice that we don't pass where key.
+    tbl:where{ id = 1 }
+    --- get row with id of 1 or 'todos.where { id = 1 }'
+    ```
+
+
+    Parameters: ~
+        {where} (table)  where key values
+
+    Return: ~
+        nil or row
+
+    Usage: ~
+        ``
+
+    See: ~
+        |sqlite.db:select()|
+
+
+sqlite.tbl:each({func}, {query})                           *sqlite.tbl:each()*
+    Iterate over table rows and execute {func}. Returns false if no row is
+    returned.
+
+    ```lua
+    --- Execute a function on each returned row
+    todos:each(function(row)
+      print(row.title)
+    end, {
+      where = { status = "pending" },
+      contains = { title = "fix*" }
+    })
+
+    todos:each({ where = { ... }}, function(row)
+      print(row.title)
+    end)
+    ```
+
+
+    Parameters: ~
+        {func}  (function)                 func(row)
+        {query} (sqlite_query_select|nil)
+
+    Return: ~
+        boolean
+
+
+sqlite.tbl:map({func}, {query})                             *sqlite.tbl:map()*
+    Create a new table from iterating over a tbl rows with {func}.
+
+    ```lua
+    --- transform rows.
+    local rows = todos:map(function(row)
+      row.somekey = ""
+      row.f = callfunction(row)
+      return row
+    end, {
+      where = { status = "pending" },
+      contains = { title = "fix*" }
+    })
+    --- This works too.
+    local titles = todos:map({ where = { ... }}, function(row)
+      return row.title
+    end)
+    --- no query, no problem :D
+    local all = todos:map(function(row) return row.title end)
+    ```
+
+
+    Parameters: ~
+        {func}  (function)             func(row)
+        {query} (sqlite_query_select)
+
+    Return: ~
+        table[]
+
+
+sqlite.tbl:sort({query}, {transform}, {comp})              *sqlite.tbl:sort()*
+    Sorts a table in-place using a transform. Values are ranked in a custom
+    order of the results of running `transform (v)` on all values. `transform`
+    may also be a string name property sort by. `comp` is a comparison
+    function. Adopted from Moses.lua
+
+    ```lua
+    --- return rows sort by id.
+    local res = t1:sort({ where = {id = {32,12,35}}})
+    --- return rows sort by age
+    local res = t1:sort({ where = {id = {32,12,35}}}, "age")`
+    --- return with custom sort function (recommended)
+    local res = t1:sort({where = { ... }}, "age", function(a, b) return a > b end)`
+    ```
+
+
+    Parameters: ~
+        {query}     (sqlite_query_select|nil)
+        {transform} (function)                 a `transform` function to sort
+                                               elements. Defaults to
+                                               @{identity}
+        {comp}      (function)                 a comparison function, defaults
+                                               to the `<` operator
+
+    Return: ~
+        table[]
+
+
+sqlite.tbl:insert({rows})                                *sqlite.tbl:insert()*
+    Insert rows into a table.
+
+    ```lua
+    --- single item.
+    todos:insert { title = "new todo" }
+    --- insert multiple items, using todos table as first param
+    tbl.insert(todos, "items", {  { name = "a"}, { name = "b" }, { name = "c" } })
+    ```
+
+
+    Parameters: ~
+        {rows} (table)  a row or a group of rows
+
+    Return: ~
+        integer: last inserted id
+
+    Usage: ~
+        `todos:insert { title = "stop writing examples :D" }` insert single
+        item.
+        `todos:insert { { ... }, { ... } }` insert multiple items
+
+    See: ~
+        |sqlite.db:insert()|
+
+
+sqlite.tbl:remove({where})                               *sqlite.tbl:remove()*
+    Delete a rows/row or table content based on {where} closure. If {where ==
+    nil} then clear table content.
+
+    ```lua
+    --- delete todos table content
+    todos:remove()
+    --- delete row that has id as 1
+    todos:remove { id = 1 }
+    --- delete all rows that has value of id 1 or 2 or 3
+    todos:remove { id = {1,2,3} }
+    --- matching ids or greater than 5
+    todos:remove { id = {"<", 5} } -- or {id = "<5"}
+    ```
+
+
+    Parameters: ~
+        {where} (sqlite_query_delete)
+
+    Return: ~
+        boolean
+
+    See: ~
+        |sqlite.db:delete()|
+
+
+sqlite.tbl:update({specs})                               *sqlite.tbl:update()*
+    Update table row with where closure and list of values returns true incase
+    the table was updated successfully.
+
+    ```lua
+    --- update todos status linked to project "lua-hello-world" or "rewrite-neoivm-in-rust"
+    todos:update {
+      where = { project = {"lua-hello-world", "rewrite-neoivm-in-rust"} },
+      set = { status = "later" }
+    }
+    --- pass custom statement and boolean
+    ts:update {
+      where = { id = "<" .. 4 }, -- mimcs WHERE id < 4
+      set = { seen = true } -- will be converted to 0.
+    }
+    ```
+
+
+    Parameters: ~
+        {specs} (sqlite_query_update)
+
+    Return: ~
+        boolean
+
+    See: ~
+        |sqlite.db:update()|
+        |sqlite_query_update()|
+
+
+sqlite.tbl:replace({rows})                              *sqlite.tbl:replace()*
+    Replaces table content with a given set of {rows}.
+
+    ```lua
+    --- replace project table content with a single call
+    todos:replace { { ... }, { ... }, { ... },  }
+
+    --- replace everything with a single row
+    ts:replace { key = "val" }
+    ```
+
+
+    Parameters: ~
+        {rows} (table[]|table)
+
+    Return: ~
+        boolean
+
+    See: ~
+        |sqlite.db:delete()|
+        |sqlite.db:insert()|
+
+
+sqlite.tbl:set_db({db})                                  *sqlite.tbl:set_db()*
+    Changes the db object to which the sqlite_tbl correspond to. If the object
+    is going to be passed to |sqlite.new|, then it will be set automatically at
+    definition.
+
+
+    Parameters: ~
+        {db} (sqlite_db)
+
+
+
+ vim:tw=78:sw=2:ts=2:ft=help:norl:et:listchars=
