@@ -1,6 +1,7 @@
 sqlite.lua 💫
 =================
 
+![](./doc/preview.png)
 
 [SQLite]/[LuaJIT] binding and a highly opinionated wrapper for storing, retrieving, caching, and persisting [SQLite] databases.
 [sqlite.lua] present new possibilities for plugin development and while it's primarily created for [neovim], it support all luajit environments.
@@ -22,10 +23,19 @@ sqlite.lua 💫
 🚧 Installation
 -----------------
 
-Add `sqlite.lua` to your lua `package.path`, neovim `/**/start/` or use your
-favorite vim package manager, and ensure you have `sqlite3` installed locally.
-If you are using macos, then sqlite3 should be installed already, otherwise install using brew.
+### [Packer.nvim](https://github.com/wbthomason/packer.nvim)
 
+```lua
+use { "tami5/sqlite.lua" }
+```
+
+### [luarocks](https://luarocks.org/)
+
+```bash
+luarocks install sqlite
+```
+
+**Ensure you have `sqlite3` installed locally.**
 
 #### Windows
 
@@ -48,7 +58,6 @@ programs.neovim.plugins = [
 ```
 
 [Installation]: #🚧_installation
-[Status]: #status
 [SQLite]: https://www.sqlite.org/index.html
 [LuaJIT]: https://luajit.org
 [sqlite.lua]: https://github.com/tami5/sqlite.lua
