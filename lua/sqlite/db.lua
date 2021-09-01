@@ -13,8 +13,7 @@ local s = require "sqlite.stmt"
 local u = require "sqlite.utils"
 local h = require "sqlite.helpers"
 local a = require "sqlite.assert"
-local t = require "sqlite.tbl"
-local P = require "sqlite.parser"
+local p = require "sqlite.parser"
 local flags = clib.flags
 
 ---Creates a new sqlite.lua object, without creating a connection to uri.
@@ -241,7 +240,7 @@ function sqlite.db:eval(statement, params)
 
     -- when the user run eval("select * from ?", "tbl_name")
   elseif type(params) ~= "table" and statement:match "%?" then
-    local value = P.sqlvalue(params)
+    local value = p.sqlvalue(params)
     stmt:bind { value }
     stmt:each(function(stm)
       table.insert(res, stm:kv())
@@ -326,7 +325,7 @@ end
 ---@param schema sqlite_schema_dict
 ---@return boolean
 function sqlite.db:create(tbl_name, schema)
-  local req = P.create(tbl_name, schema)
+  local req = p.create(tbl_name, schema)
   if req:match "reference" then
     self:execute "pragma foreign_keys = ON"
     self.opts.foreign_keys = true
@@ -347,7 +346,7 @@ end
 ---@return boolean
 function sqlite.db:drop(tbl_name)
   self.tbl_schemas[tbl_name] = nil
-  return self:eval(P.drop(tbl_name))
+  return self:eval(p.drop(tbl_name))
 end
 
 ---Get {name} table schema, if table does not exist then return an empty table.
@@ -395,11 +394,11 @@ function sqlite.db:insert(tbl_name, rows, schema)
   a.is_sqltbl(self, tbl_name, "insert")
   local ret_vals = {}
   schema = schema and schema or h.get_schema(tbl_name, self)
-  local items = P.pre_insert(rows, schema)
+  local items = p.pre_insert(rows, schema)
   local last_rowid
   clib.wrap_stmts(self.conn, function()
     for _, v in ipairs(items) do
-      local stmt = s:parse(self.conn, P.insert(tbl_name, { values = v }))
+      local stmt = s:parse(self.conn, p.insert(tbl_name, { values = v }))
       stmt:bind(v)
       stmt:step()
       stmt:bind_clear()
@@ -452,8 +451,8 @@ function sqlite.db:update(tbl_name, specs, schema)
     for _, v in ipairs(specs) do
       v.set = v.set and v.set or v.values
       if self:select(tbl_name, { where = v.where })[1] then
-        local stmt = s:parse(self.conn, P.update(tbl_name, { set = v.set, where = v.where }))
-        stmt:bind(P.pre_insert(v.set, schema)[1])
+        local stmt = s:parse(self.conn, p.update(tbl_name, { set = v.set, where = v.where }))
+        stmt:bind(p.pre_insert(v.set, schema)[1])
         stmt:step()
         stmt:reset()
         stmt:bind_clear()
@@ -493,14 +492,14 @@ function sqlite.db:delete(tbl_name, where)
   a.is_sqltbl(self, tbl_name, "delete")
 
   if not where then
-    return self:execute(P.delete(tbl_name))
+    return self:execute(p.delete(tbl_name))
   end
 
   where = u.is_nested(where) and where or { where }
   clib.wrap_stmts(self.conn, function()
     for _, spec in ipairs(where) do
       local _where = spec.where and spec.where or spec
-      local stmt = s:parse(self.conn, P.delete(tbl_name, { where = _where }))
+      local stmt = s:parse(self.conn, p.delete(tbl_name, { where = _where }))
       stmt:step()
       stmt:reset()
       stmt:finalize()
@@ -547,7 +546,7 @@ function sqlite.db:select(tbl_name, spec, schema)
     spec = spec or {}
     spec.select = spec.keys and spec.keys or spec.select
 
-    local stmt = s:parse(self.conn, P.select(tbl_name, spec))
+    local stmt = s:parse(self.conn, p.select(tbl_name, spec))
     s.each(stmt, function()
       table.insert(ret, s.kv(stmt))
     end)
@@ -555,7 +554,7 @@ function sqlite.db:select(tbl_name, spec, schema)
     if s.finalize(stmt) then
       self.modified = false
     end
-    return P.post_select(ret, schema)
+    return p.post_select(ret, schema)
   end)
 end
 

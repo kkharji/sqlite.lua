@@ -5,10 +5,7 @@
 ---@tag sqlite.tbl.lua
 
 local u = require "sqlite.utils"
-local a = require "sqlite.assert"
 local h = require "sqlite.helpers"
-local fmt = string.format
-local luv = require "luv"
 
 local sqlite = {}
 
