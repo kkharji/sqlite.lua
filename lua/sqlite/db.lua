@@ -49,16 +49,20 @@ end
 ---
 ---In the case you want to keep db connection open and not on invocation bases.
 ---Run |sqlite.db:open()| right after creating the object or when you
----intend,
+---intend to use it.
 ---
+---Like |sqlite_tbl| original methods can be access through pre-appending "__"
+---when user overwrites it.
 ---<pre>
 ---```lua
 --- local db = sqlite { -- or sqlite_db:extend
 ---   uri = "path/to/db", -- path to db file
----   entries = entries,  -- pre-made |etbl| with |tbl:extend()| without db
+---   entries = require'entries',  -- a pre-made |sqlite_tbl| object.
 ---   category = { title = { "text", unique = true, primary = true}  },
 ---   opts = {} or nil -- custom sqlite3 options, see |sqlite_opts|
 --- }
+--- --- Overwrite method and access it using through pre-appending "__"
+--- db.select = function(...) db:__select(...) end
 ---```
 ---</pre>
 ---@param opts table: see 'Fields'
@@ -70,13 +74,23 @@ end
 ---@return sqlite_db
 function sqlite.db:extend(opts)
   local db = self.new(opts.uri, opts.opts)
-  local cls = setmetatable({ db = db }, { __index = db })
+  local cls = setmetatable({}, {
+    __index = function(_, key, ...)
+      if type(key) == "string" then
+        key = key:sub(1, 2) == "__" and key:sub(3, -1) or key
+        if db[key] then
+          return db[key]
+        end
+      end
+    end,
+  })
+
   for tbl_name, schema in pairs(opts) do
     if tbl_name ~= "uri" and tbl_name ~= "opts" and u.is_tbl(schema) then
       local name = schema._name and schema._name or tbl_name
       cls[tbl_name] = schema.set_db and schema or require("sqlite.tbl").new(name, schema)
       if not cls[tbl_name].db then
-        (cls[tbl_name]):set_db(cls.db)
+        (cls[tbl_name]):set_db(db)
       end
     end
   end
