@@ -453,15 +453,10 @@ end
 ---<pre>
 ---```lua
 --- --- replace project table content with a single call
---- todos:replace {
----   { ... },
----   { ... },
----   { ... },
---- }
+--- todos:replace { { ... }, { ... }, { ... },  }
+---
 --- --- replace everything with a single row
---- ts:replace {
----   key = "val"
---- }
+--- ts:replace { key = "val" }
 ---```
 ---</pre>
 ---@param rows table[]|table

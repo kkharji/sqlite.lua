@@ -32,43 +32,16 @@ local flags = clib.flags
 ---@param opts sqlite_opts: (optional) see |sqlite_opts|
 ---@return sqlite_db
 function sqlite.db.new(uri, opts)
-  return sqlite.db:open(uri, opts, true)
-end
-
----Creates and connect to new sqlite db object, either in memory or via a {uri}.
----If it is called on pre-made |sqlite_db| object, than it should open it. otherwise ignore.
----
----<pre>
----```lua
---- -- Open db file at path or environment variable, otherwise open in memory.
---- local db = sqlite.db:open("./pathto/dbfile" or "$ENV_VARABLE" or nil, {...})
---- -- reopen connection if closed.
---- db:open()
----```
----</pre>
----@param uri string: (optional) {uri} == {nil} then in-memory db.
----@param opts sqlite_opts|nil:  see |sqlite_opts|
----@return sqlite_db
-function sqlite.db:open(uri, opts, noconn)
-  if not self.uri then
-    uri = type(uri) == "string" and u.expand(uri) or ":memory:"
-    return setmetatable({
-      uri = uri,
-      conn = not noconn and clib.connect(uri, opts) or nil,
-      closed = noconn and true or false,
-      opts = opts or {},
-      modified = false,
-      created = not noconn and os.date "%Y-%m-%d %H:%M:%S" or nil,
-      tbl_schemas = {},
-    }, self)
-  else
-    if self.closed or self.closed == nil then
-      self.conn = clib.connect(self.uri, self.opts)
-      self.created = os.date "%Y-%m-%d %H:%M:%S"
-      self.closed = false
-    end
-    return self
-  end
+  uri = type(uri) == "string" and u.expand(uri) or ":memory:"
+  return setmetatable({
+    uri = uri,
+    conn = nil,
+    closed = true,
+    opts = opts or {},
+    modified = false,
+    created = nil,
+    tbl_schemas = {},
+  }, sqlite.db)
 end
 
 ---Extend |sqlite_db| object with extra sugar syntax and api. This is recommended
@@ -109,6 +82,35 @@ function sqlite.db:extend(opts)
     end
   end
   return cls
+end
+
+---Creates and connect to new sqlite db object, either in memory or via a {uri}.
+---If it is called on pre-made |sqlite_db| object, than it should open it. otherwise ignore.
+---
+---<pre>
+---```lua
+--- -- Open db file at path or environment variable, otherwise open in memory.
+--- local db = sqlite.db:open("./pathto/dbfile" or "$ENV_VARABLE" or nil, {...})
+--- -- reopen connection if closed.
+--- db:open()
+---```
+---</pre>
+---@param uri string: (optional) {uri} == {nil} then in-memory db.
+---@param opts sqlite_opts|nil:  see |sqlite_opts|
+---@return sqlite_db
+function sqlite.db:open(uri, opts, noconn)
+  local d = self
+  if not d.uri then
+    d = sqlite.db.new(uri, opts)
+  end
+
+  if d.closed or d.closed == nil then
+    d.conn = clib.connect(d.uri, d.opts)
+    d.created = os.date "%Y-%m-%d %H:%M:%S"
+    d.closed = false
+  end
+
+  return d
 end
 
 ---Close sqlite db connection. returns true if closed, error otherwise.
@@ -593,6 +595,8 @@ end
 ---Sqlite functions sugar wrappers. See `sql/strfun`
 sqlite.db.lib = require "sqlite.strfun"
 
-sqlite.db = setmetatable(sqlite.db, { __call = sqlite.db.extend })
+sqlite.db = setmetatable(sqlite.db, {
+  __call = sqlite.db.extend,
+})
 
 return sqlite.db
