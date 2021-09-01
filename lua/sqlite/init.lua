@@ -71,4 +71,5 @@
 ---| '"default"' : similar to "null", except that sets to the column's default value instead of NULL.
 ---| '"cascade"' : propagates the delete or update operation on the parent key to each dependent child key.
 
+---@type sqlite_db
 return require "sqlite.db"

@@ -590,6 +590,8 @@ end
 ---     on_delete = "null", -- means when category get deleted, set to null
 ---   },
 --- })
+--- --- or without db injected and use as wrapper for |sqlite.tbl.new|
+-- local tbl = db.tbl("name", ...)
 ---```
 ---</pre>
 ---@param tbl_name string: the name of the table. can be new or existing one.
@@ -597,6 +599,9 @@ end
 ---@see |sqlite.tbl.new|
 ---@return sqlite_tbl
 function sqlite.db:tbl(tbl_name, schema)
+  if type(self) == "string" then
+    return require("sqlite.tbl").new(self, schema)
+  end
   return require("sqlite.tbl").new(tbl_name, schema, self)
 end
 
