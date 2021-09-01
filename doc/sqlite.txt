@@ -567,24 +567,6 @@ sqlite.tbl.new({name}, {schema}, {db})                      *sqlite.tbl.new()*
         sqlite_tbl
 
 
-sqlite.tbl:extend({db}, {name}, {schema})                *sqlite.tbl:extend()*
-    ```lua
-    local t = tbl("entries", { ... } })
-    t.insert {...} -- insert rows NOTICE: dot notation
-    --- get all entries
-    t.get()
-    --- Overwrite method name and access original via t._get
-    ```
-
-    Parameters: ~
-        {db}     (sqlite_db)
-        {name}   (string)
-        {schema} (sqlite_schema_dict)
-
-    Return: ~
-        sqlite_etbl
-
-
 sqlite.tbl:schema({schema})                              *sqlite.tbl:schema()*
     Create or change table schema. If no {schema} is given, then it return
     current the used schema if it exists or empty table otherwise. On change
