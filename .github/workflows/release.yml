@@ -1,93 +1,94 @@
-# name: Create Release
-# on:
-#   push:
-#     tags: ["v*"]
-# jobs:
-#   release:
-#     if: github.event.base_ref == 'refs/heads/master' # not sure, maybe not
-#     runs-on: ubuntu-20.04
-#     container:
-#       image: golang:1.16
-#     steps:
-#       -
-#         name: Check out a copy of the repo
-#         uses: actions/checkout@v2
-#         with: { fetch-depth: 0 }
-#       -
-#         run: date +%F > todays-date
-#       -
-#         name: Restore cache for today's nightly.
-#         uses: actions/cache@v2
-#         with:
-#           path: build
-#           key: ${{ runner.os }}-appimage-${{ hashFiles('todays-date') }}
-#       -
-#         name: Show Tag
-#         id: tag
-#         run: echo ::set-output name=TAG::${GITHUB_REF##*/}
-#       -
-#         name: Install required utils
-#         run: |
-#           apt-get update
-#           apt-get -y install luarocks
-#           go get github.com/git-chglog/git-chglog/cmd/git-chglog
-#       -
-#         name: Setup  Environment
-#         run: |
-#           test -d build || {
-#             mkdir -p build
-#             wget https://github.com/neovim/neovim/releases/download/nightly/nvim.appimage
-#             chmod +x nvim.appimage
-#             ./nvim.appimage --appimage-extract
-#             mv ./squashfs-root/usr/bin/nvim ./build/nvim
-#           }
-#           mkdir -p ~/.local/share/nvim/site/pack/vendor/start
-#           git clone --depth 1 https://github.com/nvim-lua/plenary.nvim \
-#             ~/.local/share/nvim/site/pack/vendor/start/plenary.nvim
-#           ln -s $(pwd) ~/.local/share/nvim/site/pack/vendor/start
-#       -
-#         name: Generate changelog
-#         run: |
-#           $(go env GOPATH)/bin/git-chglog \
-#             -c .github/chglog/config.yml \
-#             -t .github/chglog/CHANGELOG.release.md \
-#             -o RELEASE_CHANGELOG.md ${{ steps.tag.outputs.TAG }}
-#           cat RELEASE_CHANGELOG.md
-#       -
-#         name: Generate Luarocks
-#         run: |
-#           export GTAG=${{ steps.tag.outputs.TAG }}
-#           export PATH="${PWD}/build/:${PATH}"
-#           make genluarock
-#       -
-#         name: Update version in files
-#         run: |
-#           sed -i '/sqlite\.db\.__version/s/".*"/"${{ steps.tag.outputs.TAG }}"/' ./lua/sqlite/db.lua
-#           git add ./lua/sqlite/init.lua
-#       -
-#         name: Upload to luarocks
-#         env:
-#           LUAROCKS_TOKEN: ${{ secrets.LUAROCKS_TOKEN }}
-#         run: |
-#           luarocks upload \
-#             .sqlite-${{ steps.tag.outputs.TAG }}-0.rockspec \
-#             --api-key=${LUAROCKS_TOKEN}
-#       -
-#         name: Push Release Changes
-#         env:
-#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#           COMMIT_MSG: |
-#             :bookmark: release ${{ steps.tag.outputs.TAG }}
+name: Create Release
+on:
+  push:
+    tags: ["v*"]
 
-#             see https://github.com/${{ github.repository }}/releases/tag/${{ steps.tag.outputs.TAG }}
-#         run: |
-#           git config --global user.name 'github-actions[bot]'
-#           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-#           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
-#           git commit -m "${COMMIT_MSG}"
-#           git push origin HEAD:master
-#       -
-#         name: Create GH Release
-#         uses: softprops/action-gh-release@v1
-#         with:
-#           body_path: RELEASE_CHANGELOG.md
+jobs:
+  release:
+    if: github.event.base_ref == 'refs/heads/master' # not sure, maybe not
+    runs-on: ubuntu-20.04
+    container:
+      image: golang:1.16
+    steps:
+      -
+        name: Check out a copy of the repo
+        uses: actions/checkout@v2
+        with: { fetch-depth: 0 }
+      -
+        run: date +%F > todays-date
+      -
+        name: Restore cache for today's nightly.
+        uses: actions/cache@v2
+        with:
+          path: build
+          key: ${{ runner.os }}-appimage-${{ hashFiles('todays-date') }}
+      -
+        name: Show Tag
+        id: tag
+        run: echo ::set-output name=TAG::${GITHUB_REF##*/}
+      -
+        name: Install required utils
+        run: |
+          apt-get update
+          apt-get -y install luarocks
+          go get github.com/git-chglog/git-chglog/cmd/git-chglog
+      -
+        name: Setup  Environment
+        run: |
+          test -d build || {
+            mkdir -p build
+            wget https://github.com/neovim/neovim/releases/download/nightly/nvim.appimage
+            chmod +x nvim.appimage
+            ./nvim.appimage --appimage-extract
+            mv ./squashfs-root/usr/bin/nvim ./build/nvim
+          }
+          mkdir -p ~/.local/share/nvim/site/pack/vendor/start
+          git clone --depth 1 https://github.com/nvim-lua/plenary.nvim \
+            ~/.local/share/nvim/site/pack/vendor/start/plenary.nvim
+          ln -s $(pwd) ~/.local/share/nvim/site/pack/vendor/start
+      -
+        name: Generate changelog
+        run: |
+          $(go env GOPATH)/bin/git-chglog \
+            -c .github/chglog/config.yml \
+            -t .github/chglog/CHANGELOG.release.md \
+            -o RELEASE_CHANGELOG.md ${{ steps.tag.outputs.TAG }}
+          cat RELEASE_CHANGELOG.md
+      -
+        name: Generate Luarocks
+        run: |
+          export GTAG=${{ steps.tag.outputs.TAG }}
+          export PATH="${PWD}/build/:${PATH}"
+          make genluarock
+      -
+        name: Update version in files
+        run: |
+          sed -i '/sqlite\.db\.__version/s/".*"/"${{ steps.tag.outputs.TAG }}"/' ./lua/sqlite/db.lua
+          git add ./lua/sqlite/db.lua
+      -
+        name: Upload to luarocks
+        env:
+          LUAROCKS_TOKEN: ${{ secrets.LUAROCKS_TOKEN }}
+        run: |
+          luarocks upload \
+            sqlite-${{ steps.tag.outputs.TAG }}-0.rockspec \
+            --api-key=${LUAROCKS_TOKEN}
+      -
+        name: Push Release Changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_MSG: |
+            :bookmark: release ${{ steps.tag.outputs.TAG }}
+
+            see https://github.com/${{ github.repository }}/releases/tag/${{ steps.tag.outputs.TAG }}
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+          git commit -m "${COMMIT_MSG}"
+          git push origin HEAD:master
+      -
+        name: Create GH Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: RELEASE_CHANGELOG.md

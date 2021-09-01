@@ -51,9 +51,9 @@ build = {
   modules = %s
 }
 
-]]):format(version, version, dependencies, ins(description), ins(modules))
+]]):format(version, ins(description), version, dependencies, ins(modules))
 
-local file_handle = io.open(("%s/.sqlite-%s-0.rockspec"):format(cwd, version), "w")
+local file_handle = io.open(("%s/sqlite-%s-0.rockspec"):format(cwd, version), "w")
 
 file_handle:write(output)
 file_handle:close()
