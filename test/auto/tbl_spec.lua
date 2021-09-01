@@ -972,5 +972,74 @@ describe("sqlite.tbl", function()
       end)
     end)
   end)
+
+  describe(":index access", function()
+    -- local db_path = "/tmp/idx_db"
+    -- vim.loop.fs_unlink(db_path)
+    db = sql:open()
+
+    describe("string_index:", function()
+      local kvpair = tbl("kvpair", {
+        key = { "text", primary = true, required = true, unique = true },
+        value = "integer",
+      }, db)
+
+      it("access/insert-to table using primary key", function()
+        kvpair.a = { value = 1 }
+        eq({ key = "a", value = 1 }, kvpair.a)
+      end)
+
+      it("access/update a row field value", function()
+        kvpair.a.value = 2
+        eq(2, kvpair.where({ value = 2 }).value, "should have been set")
+        eq(2, kvpair.a.value, "should have been set")
+        kvpair.a.value = 3
+        eq({ key = "a", value = 3 }, kvpair.a, "should return values")
+      end)
+
+      it("remove a row using primary key", function()
+        kvpair.a = nil
+        eq(nil, kvpair.where { key = "a" }, "should be empty")
+        eq({}, kvpair.a, "should be empty")
+      end)
+
+      it("sets a row field value without creating the row first", function()
+        kvpair["some key with spaces :D"].value = 4
+        eq(kvpair["some key with spaces :D"], { key = "some key with spaces :D", value = 4 })
+        kvpair["some key with spaces :D"] = nil
+      end)
+
+      it("query using index", function()
+        kvpair.a.value, kvpair.b.value, kvpair.c.value = 1, 2, 3
+        eq(
+        {
+          { key = "a", value = 1 },
+          { key = "b", value = 2 },
+        },
+        kvpair[{
+          where = { value = { 1, 2, 3 } },
+          order_by = { asc = { "key", "value" } },
+          limit = 2,
+        }]
+        )
+      end)
+      -- it("bulk update", function()
+        --   kvpair[{ value = { 1, 2, 3 } }] = { value = 10 }
+        --   eq(
+        --     {
+          --       { key = "a", value = 10 },
+          --       { key = "b", value = 10 },
+          --     },
+          --     kvpair[{
+            --       order_by = { asc = { "key" } },
+            --       limit = 2,
+            --     }]
+            --   )
+            -- end)
+          end)
+
+          -- vim.loop.fs_unlink(db_path)
+        end)
+
   clean()
 end)
