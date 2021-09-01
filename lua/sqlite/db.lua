@@ -7,6 +7,7 @@ local sqlite = {}
 ---@type sqlite_db
 sqlite.db = {}
 sqlite.db.__index = sqlite.db
+sqlite.db.__version = "v1.0.0"
 
 local clib = require "sqlite.defs"
 local s = require "sqlite.stmt"

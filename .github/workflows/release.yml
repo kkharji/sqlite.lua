@@ -62,7 +62,7 @@
 #       -
 #         name: Update version in files
 #         run: |
-#           sed -i '/sqlite\.version/s/".*"/"${{ steps.tag.outputs.TAG }}"/' ./lua/sqlite/init.lua
+#           sed -i '/sqlite\.db\.__version/s/".*"/"${{ steps.tag.outputs.TAG }}"/' ./lua/sqlite/db.lua
 #           git add ./lua/sqlite/init.lua
 #       -
 #         name: Upload to luarocks

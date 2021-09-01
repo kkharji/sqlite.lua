@@ -71,11 +71,4 @@
 ---| '"default"' : similar to "null", except that sets to the column's default value instead of NULL.
 ---| '"cascade"' : propagates the delete or update operation on the parent key to each dependent child key.
 
-local sqlite = {}
-
-sqlite.version = "v0.0.0"
-sqlite.db = require "sqlite.db"
-sqlite.tbl = require "sqlite.tbl"
-sqlite.lib = require "sqlite.strfun"
-
-return sqlite
+return require "sqlite.db"
