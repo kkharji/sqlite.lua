@@ -860,29 +860,30 @@ describe("sqlite.db", function()
           "More and more neovim plugins adopt sql.nvim as a data layer.",
         },
       }
-
-      eq(1, manager.projects.insert(sqlnvim), "should insert and return id.")
+      eq("function", type(manager.projects.insert), "should have added insert function.")
+      eq("function", type(manager.projects.where), "should have added with_open.")
+      eq(1, manager.projects:insert(sqlnvim), "should insert and return id.")
       eq("cdata", type(manager.conn), "should set connection object after first call to sql api")
-      eq("table", type(manager.projects.where({ id = 1 }).objectives), "should return as table.")
+      eq("table", type(manager.projects:where({ id = 1 }).objectives), "should return as table.")
       eq("table", type(sqlnvim.objectives), "It shouldn't have mutated objectives table.")
-      eq(true, manager.projects.remove(), "should remove after default insert.")
+      eq(true, manager.projects:remove(), "should remove after default insert.")
 
-      function manager.projects.insert()
-        return manager.projects._insert(sqlnvim)
+      function manager.projects:insert()
+        return self:__insert(sqlnvim)
       end
-      function manager.projects.get()
-        return manager.projects._get({ where = { title = sqlnvim.title } })[1]
+      function manager.projects:get()
+        return manager.projects:__get({ where = { title = sqlnvim.title } })[1]
       end
-      function manager.projects.remove_objectives()
-        return manager.projects.update { where = { id = 1 }, set = { objectives = {} } }
+      function manager.projects:remove_objectives()
+        return self:update { where = { id = 1 }, set = { objectives = {} } }
       end
 
-      eq(1, manager.projects.insert(), "should have inserted and returned id.")
+      eq(1, manager.projects:insert(), "should have inserted and returned id.")
 
-      eq(sqlnvim.title, manager.projects.get().title, "should have inserted sqlnvim project")
-      eq(true, manager.projects.get().objectives ~= "")
-      eq(true, manager.projects.remove_objectives(), "should succeed at updating")
-      eq({}, manager.projects.get().objectives, "should return empty table")
+      eq(sqlnvim.title, manager.projects:get().title, "should have inserted sqlnvim project")
+      eq(true, manager.projects:get().objectives ~= "")
+      eq(true, manager.projects:remove_objectives(), "should succeed at updating")
+      eq({}, manager.projects:get().objectives, "should return empty table")
     end)
 
     it("set a different name for sql db table, with access using extend field", function()
@@ -908,9 +909,9 @@ describe("sqlite.db", function()
 
       eq("table", type(db.st), "should use that key to access t")
 
-      db.st.insert { { name = "a" }, { name = "b" }, { name = "c" } }
+      db.st:insert { { name = "a" }, { name = "b" }, { name = "c" } }
 
-      eq(3, db.st.count(), "should have inserted.")
+      eq(3, db.st:count(), "should have inserted.")
     end)
 
     luv.fs_unlink(testrui)

@@ -10,7 +10,7 @@ local errors = {
   eval_fail = "eval has failed to execute statement, ERRMSG: %s",
   failed_ops = "operation failed, ERRMSG: %s",
   missing_req_key = "(insert) missing a required key: %s",
-  missing_db_object = "'%s' db object is not set. please set it with `tbl.set_db(db)` and try again.",
+  missing_db_object = "%s's db object is not set. set it with `%s:set_db(db)` and try again.",
   outdated_schema = "`%s` does not exists in {`%s`}, schema is outdateset `self.db.tbl_schemas[table_name]` or reload",
   auto_alter_more_less_keys = "schema defined ~= db schema. Please drop `%s` table first or set ensure to false.",
 }
@@ -70,7 +70,7 @@ M.should_have_column_def = function(column_def, k, schema)
 end
 
 M.should_have_db_object = function(db, name)
-  assert(db ~= nil, errors.missing_db_object:format(name))
+  assert(db ~= nil, errors.missing_db_object:format(name, name))
   return true
 end
 
