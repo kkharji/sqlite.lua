@@ -1,9 +1,17 @@
 
 <a name="unreleased"></a>
 
-## unreleased
+## [unreleased](https://github.com/tami5/sql.nvim/compare/v1.0.0...unreleased)
 
-> 2021-08-29
+### :sparkles: Features
+
+- <a href="https://github.com/tami5/sql.nvim/commit/5b395267bb1938c165099991a59497a9cc4ca8a1"><tt>5b39526</tt></a> activate release workflow
+
+
+
+<a name="v1.0.0"></a>
+
+## v1.0.0
 
 ### :art: Structure/Formating
 
