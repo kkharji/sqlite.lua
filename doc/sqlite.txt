@@ -125,27 +125,6 @@ sqlite.db.new({uri}, {opts})                                 *sqlite.db.new()*
         sqlite_db
 
 
-sqlite.db:open({uri}, {opts})                               *sqlite.db:open()*
-    Creates and connect to new sqlite db object, either in memory or via a
-    {uri}. If it is called on pre-made |sqlite_db| object, than it should open
-    it. otherwise ignore.
-
-    ```lua
-    -- Open db file at path or environment variable, otherwise open in memory.
-    local db = sqlite.db:open("./pathto/dbfile" or "$ENV_VARABLE" or nil, {...})
-    -- reopen connection if closed.
-    db:open()
-    ```
-
-
-    Parameters: ~
-        {uri}  (string)           (optional) {uri} == {nil} then in-memory db.
-        {opts} (sqlite_opts|nil)  see |sqlite_opts|
-
-    Return: ~
-        sqlite_db
-
-
 sqlite.db:extend({opts})                                  *sqlite.db:extend()*
     Extend |sqlite_db| object with extra sugar syntax and api. This is
     recommended for all sqlite use case as it provide convenience. This method
@@ -182,6 +161,27 @@ sqlite.db:extend({opts})                                  *sqlite.db:extend()*
 
     See: ~
         |sqlite_tbl:extend()|
+
+
+sqlite.db:open({uri}, {opts})                               *sqlite.db:open()*
+    Creates and connect to new sqlite db object, either in memory or via a
+    {uri}. If it is called on pre-made |sqlite_db| object, than it should open
+    it. otherwise ignore.
+
+    ```lua
+    -- Open db file at path or environment variable, otherwise open in memory.
+    local db = sqlite.db:open("./pathto/dbfile" or "$ENV_VARABLE" or nil, {...})
+    -- reopen connection if closed.
+    db:open()
+    ```
+
+
+    Parameters: ~
+        {uri}  (string)           (optional) {uri} == {nil} then in-memory db.
+        {opts} (sqlite_opts|nil)  see |sqlite_opts|
+
+    Return: ~
+        sqlite_db
 
 
 sqlite.db:close()                                          *sqlite.db:close()*
