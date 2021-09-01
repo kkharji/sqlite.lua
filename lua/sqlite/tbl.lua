@@ -68,21 +68,6 @@ function sqlite.tbl.new(name, schema, db)
   })
 end
 
----<pre>
----```lua
---- local t = tbl("entries", { ... } })
---- t.insert {...} -- insert rows NOTICE: dot notation
---- --- get all entries
---- t.get()
---- --- Overwrite method name and access original via t._get
----```
----</pre>
----@param db sqlite_db
----@param name string
----@param schema sqlite_schema_dict
----@return sqlite_etbl
-function sqlite.tbl:extend(db, name, schema) end
-
 ---Create or change table schema. If no {schema} is given,
 ---then it return current the used schema if it exists or empty table otherwise.
 ---On change schema it returns boolean indecting success.
