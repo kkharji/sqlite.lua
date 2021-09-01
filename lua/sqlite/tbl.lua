@@ -1,6 +1,10 @@
 ---@brief [[
 ---Abstraction to produce more readable code.
+---<pre>
+--- ```lua
 --- local tbl = require'sqlite.tbl'
+--- ```
+---</pre>
 ---@brief ]]
 ---@tag sqlite.tbl.lua
 
@@ -15,8 +19,8 @@ sqlite.tbl.__index = sqlite.tbl
 
 ---Create new |sqlite_tbl| object. This object encouraged to be extend and
 ---modified by the user. overwritten method can be still accessed via
----pre-appending "\_\_"  e.g. redefining |sqlite_tbl:get|, result in
----'sqlite_tbl:\_\_get' available as a backup. This object can be instantiated
+---pre-appending `__`  e.g. redefining |sqlite_tbl:get|, result in
+---`sqlite_tbl:__get` available as a backup. This object can be instantiated
 ---without a {db}, in which case, it requires 'sqlite.tbl:set_db' is called.
 ---
 ---Common use case might be to define tables in separate files and then require them in
