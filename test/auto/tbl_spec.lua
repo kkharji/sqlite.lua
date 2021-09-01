@@ -974,72 +974,74 @@ describe("sqlite.tbl", function()
   end)
 
   describe(":index access", function()
-    -- local db_path = "/tmp/idx_db"
+    local db_path = ":memory:" or "/tmp/idx_db"
     -- vim.loop.fs_unlink(db_path)
-    db = sql:open()
+    db = sql:open(db_path)
 
     describe("string_index:", function()
-      local kvpair = tbl("kvpair", {
+      local kv = tbl("kvpair", {
         key = { "text", primary = true, required = true, unique = true },
-        value = "integer",
+        len = "integer",
       }, db)
 
       it("access/insert-to table using primary key", function()
-        kvpair.a = { value = 1 }
-        eq({ key = "a", value = 1 }, kvpair.a)
+        kv.a = { len = 1 }
+        eq({ key = "a", len = 1 }, kv.a)
       end)
 
-      it("access/update a row field value", function()
-        kvpair.a.value = 2
-        eq(2, kvpair.where({ value = 2 }).value, "should have been set")
-        eq(2, kvpair.a.value, "should have been set")
-        kvpair.a.value = 3
-        eq({ key = "a", value = 3 }, kvpair.a, "should return values")
+      it("access/update a row field len", function()
+        -- eq({}, kv.a)
+        kv.a = { len = 1 }
+        kv.a.len = 2
+        eq(2, kv:where({ len = 2 }).len, "should have been set")
+        eq(2, kv.a.len, "should have been set")
+        kv.a.len = 3
+        eq({ key = "a", len = 3 }, kv.a, "should return values")
       end)
 
       it("remove a row using primary key", function()
-        kvpair.a = nil
-        eq(nil, kvpair.where { key = "a" }, "should be empty")
-        eq({}, kvpair.a, "should be empty")
+        kv.a = nil
+        eq(nil, kv:where { key = "a" }, "should be empty")
+        eq({}, kv.a, "should be empty")
       end)
 
-      it("sets a row field value without creating the row first", function()
-        kvpair["some key with spaces :D"].value = 4
-        eq(kvpair["some key with spaces :D"], { key = "some key with spaces :D", value = 4 })
-        kvpair["some key with spaces :D"] = nil
+      it("sets a row field len without creating the row first", function()
+        kv["some key with spaces :D"].len = 4
+        eq(kv["some key with spaces :D"], { key = "some key with spaces :D", len = 4 })
+        kv["some key with spaces :D"] = nil
       end)
 
       it("query using index", function()
-        kvpair.a.value, kvpair.b.value, kvpair.c.value = 1, 2, 3
+        kv.a.len, kv.b.len, kv.c.len = 1, 2, 3
         eq(
-        {
-          { key = "a", value = 1 },
-          { key = "b", value = 2 },
-        },
-        kvpair[{
-          where = { value = { 1, 2, 3 } },
-          order_by = { asc = { "key", "value" } },
-          limit = 2,
-        }]
+          {
+            { key = "a", len = 1 },
+            { key = "b", len = 2 },
+          },
+          kv[{
+            where = { len = { 1, 2, 3 } },
+            order_by = { asc = { "key", "len" } },
+            limit = 2,
+          }]
         )
       end)
-      -- it("bulk update", function()
-        --   kvpair[{ value = { 1, 2, 3 } }] = { value = 10 }
-        --   eq(
-        --     {
-          --       { key = "a", value = 10 },
-          --       { key = "b", value = 10 },
-          --     },
-          --     kvpair[{
-            --       order_by = { asc = { "key" } },
-            --       limit = 2,
-            --     }]
-            --   )
-            -- end)
-          end)
+      it("bulk update", function()
+        kv[{ len = { 1, 2, 3 } }] = { len = 10 }
+        eq(
+          {
+            { key = "a", len = 10 },
+            { key = "b", len = 10 },
+          },
+          kv[{
+            order_by = { asc = { "key" } },
+            limit = 2,
+          }]
+        )
+      end)
+    end)
 
-          -- vim.loop.fs_unlink(db_path)
-        end)
+    -- vim.loop.fs_unlink(db_path)
+  end)
 
   clean()
 end)

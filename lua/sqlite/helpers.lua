@@ -66,6 +66,7 @@ end
 ---@param o sqlite_tbl
 ---@return any
 M.run = function(func, o)
+  func = func or function() end
   a.should_have_db_object(o.db, o.name)
   local exec = function()
     local valid_schema = o.tbl_schema and next(o.tbl_schema) ~= nil
