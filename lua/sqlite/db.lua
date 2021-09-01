@@ -9,14 +9,13 @@ sqlite.db = {}
 sqlite.db.__index = sqlite.db
 
 local clib = require "sqlite.defs"
-local stmt = require "sqlite.stmt"
+local s = require "sqlite.stmt"
 local u = require "sqlite.utils"
 local h = require "sqlite.helpers"
 local a = require "sqlite.assert"
 local t = require "sqlite.tbl"
 local P = require "sqlite.parser"
 local flags = clib.flags
-
 
 ---Creates a new sqlite.lua object, without creating a connection to uri.
 ---|sqlite.new| is identical to |sqlite.db:open| but it without opening sqlite db
@@ -88,8 +87,6 @@ end
 ---   category = { title = { "text", unique = true, primary = true}  },
 ---   opts = {} or nil -- custom sqlite3 options, see |sqlite_opts|
 --- }
---- -- unlike |sqlite_tbl|, |sqlite_etbl| is accessed by dot notation.
---- db.entries.insert { {..}, {..} }
 ---```
 ---</pre>
 ---@param opts table: see 'Fields'
@@ -105,9 +102,9 @@ function sqlite.db:extend(opts)
   for tbl_name, schema in pairs(opts) do
     if tbl_name ~= "uri" and tbl_name ~= "opts" and u.is_tbl(schema) then
       local name = schema._name and schema._name or tbl_name
-      cls[tbl_name] = schema.set_db and schema or t:extend(name, schema)
+      cls[tbl_name] = schema.set_db and schema or require("sqlite.tbl").new(name, schema)
       if not cls[tbl_name].db then
-        cls[tbl_name].set_db(cls.db)
+        (cls[tbl_name]):set_db(cls.db)
       end
     end
   end
@@ -231,39 +228,39 @@ end
 ---@return boolean|table
 function sqlite.db:eval(statement, params)
   local res = {}
-  local s = stmt:parse(self.conn, statement)
+  local stmt = s:parse(self.conn, statement)
 
   -- when the user provide simple sql statements
   if not params then
-    s:each(function()
-      table.insert(res, s:kv())
+    stmt:each(function()
+      table.insert(res, stmt:kv())
     end)
-    s:reset()
+    stmt:reset()
 
     -- when the user run eval("select * from ?", "tbl_name")
   elseif type(params) ~= "table" and statement:match "%?" then
     local value = P.sqlvalue(params)
-    s:bind { value }
-    s:each(function(stm)
+    stmt:bind { value }
+    stmt:each(function(stm)
       table.insert(res, stm:kv())
     end)
-    s:reset()
-    s:bind_clear()
+    stmt:reset()
+    stmt:bind_clear()
 
     -- when the user provided named keys
   elseif params and type(params) == "table" then
     params = type(params[1]) == "table" and params or { params }
     for _, v in ipairs(params) do
-      s:bind(v)
-      s:each(function(stm)
+      stmt:bind(v)
+      stmt:each(function(stm)
         table.insert(res, stm:kv())
       end)
-      s:reset()
-      s:bind_clear()
+      stmt:reset()
+      stmt:bind_clear()
     end
   end
   -- clear out the parsed statement.
-  s:finalize()
+  stmt:finalize()
 
   -- if no rows is returned, then check return the result of errcode == flags.ok
   res = rawequal(next(res), nil) and clib.last_errcode(self.conn) == flags.ok or res
@@ -400,11 +397,11 @@ function sqlite.db:insert(tbl_name, rows, schema)
   local last_rowid
   clib.wrap_stmts(self.conn, function()
     for _, v in ipairs(items) do
-      local s = stmt:parse(self.conn, P.insert(tbl_name, { values = v }))
-      s:bind(v)
-      s:step()
-      s:bind_clear()
-      table.insert(ret_vals, s:finalize())
+      local stmt = s:parse(self.conn, P.insert(tbl_name, { values = v }))
+      stmt:bind(v)
+      stmt:step()
+      stmt:bind_clear()
+      table.insert(ret_vals, stmt:finalize())
     end
     last_rowid = tonumber(clib.last_insert_rowid(self.conn))
   end)
@@ -453,12 +450,12 @@ function sqlite.db:update(tbl_name, specs, schema)
     for _, v in ipairs(specs) do
       v.set = v.set and v.set or v.values
       if self:select(tbl_name, { where = v.where })[1] then
-        local s = stmt:parse(self.conn, P.update(tbl_name, { set = v.set, where = v.where }))
-        s:bind(P.pre_insert(v.set, schema)[1])
-        s:step()
-        s:reset()
-        s:bind_clear()
-        s:finalize()
+        local stmt = s:parse(self.conn, P.update(tbl_name, { set = v.set, where = v.where }))
+        stmt:bind(P.pre_insert(v.set, schema)[1])
+        stmt:step()
+        stmt:reset()
+        stmt:bind_clear()
+        stmt:finalize()
         a.should_modify(self:status())
         ret_val = true
       else
@@ -501,10 +498,10 @@ function sqlite.db:delete(tbl_name, where)
   clib.wrap_stmts(self.conn, function()
     for _, spec in ipairs(where) do
       local _where = spec.where and spec.where or spec
-      local s = stmt:parse(self.conn, P.delete(tbl_name, { where = _where }))
-      s:step()
-      s:reset()
-      s:finalize()
+      local stmt = s:parse(self.conn, P.delete(tbl_name, { where = _where }))
+      stmt:step()
+      stmt:reset()
+      stmt:finalize()
       a.should_modify(self:status())
     end
   end)
@@ -548,28 +545,28 @@ function sqlite.db:select(tbl_name, spec, schema)
     spec = spec or {}
     spec.select = spec.keys and spec.keys or spec.select
 
-    local s = stmt:parse(self.conn, P.select(tbl_name, spec))
-    stmt.each(s, function()
-      table.insert(ret, stmt.kv(s))
+    local stmt = s:parse(self.conn, P.select(tbl_name, spec))
+    s.each(stmt, function()
+      table.insert(ret, s.kv(stmt))
     end)
-    stmt.reset(s)
-    if stmt.finalize(s) then
+    s.reset(stmt)
+    if s.finalize(stmt) then
       self.modified = false
     end
     return P.post_select(ret, schema)
   end)
 end
 
----Create new sql-table object. WARNING: deprecated use |sqlite.tbl:extend| instead.
----If {opts}.ensure = false, on each run it will drop the table and recreate it.
+---Create new sqlite_tbl object.
+---If {opts}.ensure = false, then on each run it will drop the table and recreate it.
+---NOTE: this might change someday to alter the table instead. For now
+---alteration is auto and limited to field schema edits and renames
+---
 ---<pre>
 ---```lua
---- local tbl = db:table("todos", {
----   id = true, -- { type = "integer", required = true, primary = true }
+--- local tbl = db:tbl("todos", {
+---   id = true, -- same as { type = "integer", required = true, primary = true }
 ---   title = "text",
----   since = { "date", default = strftime("%s", "now") },
----   count = { "number", default = 0 },
----   type = { "text", required = true },
 ---   category = {
 ---     type = "text",
 ---     reference = "category.id",
@@ -580,10 +577,17 @@ end
 ---```
 ---</pre>
 ---@param tbl_name string: the name of the table. can be new or existing one.
----@param opts table: {schema, ensure (defalut true)}
+---@param opts sqlite_schema_dict: {schema, ensure (defalut true)}
+---@see |sqlite.tbl.new|
 ---@return sqlite_tbl
+function sqlite.db:tbl(tbl_name, schema)
+  return require("sqlite.tbl").new(tbl_name, schema, self)
+end
+
+---DEPRECATED
 function sqlite.db:table(tbl_name, opts)
-  return t:new(self, tbl_name, opts)
+  print "sqlite.lua sqlite:table is deprecated use sqlite:tbl instead"
+  return self:tbl(tbl_name, opts)
 end
 
 ---Sqlite functions sugar wrappers. See `sql/strfun`

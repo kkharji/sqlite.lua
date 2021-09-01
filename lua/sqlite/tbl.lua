@@ -1,5 +1,6 @@
 ---@brief [[
 ---Abstraction to produce more readable code.
+--- local tbl = require'sqlite.tbl'
 ---@brief ]]
 ---@tag sqlite.tbl.lua
 
@@ -15,48 +16,61 @@ local sqlite = {}
 sqlite.tbl = {}
 sqlite.tbl.__index = sqlite.tbl
 
----Create new sql table object
----WARNING: deprecated use |sqlite.tbl:extend| instead.
+---Create new |sqlite_tbl| object. This object encouraged to be extend and
+---modified by the user. overwritten method can be still accessed via
+---pre-appending "\_\_"  e.g. redefining |sqlite_tbl:get|, result in
+---'sqlite_tbl:\_\_get' available as a backup. This object can be instantiated
+---without a {db}, in which case, it requires 'sqlite.tbl:set_db' is called.
+---
+---Common use case might be to define tables in separate files and then require them in
+--file that export db object (TODO: support tbl reuse in different dbs).
+---
 ---<pre>
 ---```lua
---- local tbl = sqlite.tbl:new(db, "todos", {
----   id = true, -- { type = "integer", required = true, primary = true }
+--- local t = tbl("todos", { --- or tbl.new
+---   id = true, -- same as { "integer", required = true, primary = true }
 ---   title = "text",
----   since = { "date", default = strftime("%s", "now") },
----   count = { "number", default = 0 },
----   type = { "text", required = true },
+---   since = { "date", default = sqlite.lib.strftime("%s", "now") },
 ---   category = {
 ---     type = "text",
 ---     reference = "category.id",
 ---     on_update = "cascade", -- means when category get updated update
 ---     on_delete = "null", -- means when category get deleted, set to null
 ---   },
---- })
+--- }, db)
+--- --- overwrite
+--- t.get = function() return t:__get({ where = {...}, select = {...} })[1] end
 ---```
 ---</pre>
----@param db sqlite_db
 ---@param name string: table name
 ---@param schema sqlite_schema_dict
+---@param db sqlite_db|nil : if nil, then for it to work, it needs setting with sqlite.tbl:set_db().
 ---@return sqlite_tbl
-function sqlite.tbl:new(db, name, schema)
+function sqlite.tbl.new(name, schema, db)
   schema = schema or {}
-  local o = setmetatable({ db = db, name = name, tbl_schema = u.if_nil(schema.schema, schema) }, self)
+
+  local t = setmetatable({
+    db = db,
+    name = name,
+    tbl_schema = u.if_nil(schema.schema, schema),
+  }, sqlite.tbl)
+
   if db then
     h.run(function() end, t)
   end
-  return o
+
+  return setmetatable({}, {
+    __index = function(_, key, ...)
+      if type(key) == "string" then
+        key = key:sub(1, 2) == "__" and key:sub(3, -1) or key
+        if t[key] then
+          return t[key]
+        end
+      end
+    end,
+  })
 end
 
----Same as |sqlite.tbl:new()| but used to extend user defined object. This is the
----recommended way of constructing and using sqlite tables. The only difference
----between this and |sqlite.tbl:new()| or |sqlite.db:table()| is the fact that all
----resulting methods are access using the dot notation '.', and when the user
----overwrites a tbl methods, it gets renamed to `_method_name`.
----
----if first argument is {name} then second should be {schema}. If no {db} is
----provided, the sqlite.tbl object won't be initialized until 'sqlite.tbl.set_db' is
----called, thus it can't be defined in different files.
----
 ---<pre>
 ---```lua
 --- local t = tbl("entries", { ... } })
@@ -64,38 +78,13 @@ end
 --- --- get all entries
 --- t.get()
 --- --- Overwrite method name and access original via t._get
---- t.get = function() return t._get({ where = {...}, select = {...} })[1] end
 ---```
 ---</pre>
 ---@param db sqlite_db
 ---@param name string
 ---@param schema sqlite_schema_dict
 ---@return sqlite_etbl
-function sqlite.tbl:extend(db, name, schema)
-  if not schema and type(db) == "string" then
-    name, db, schema = db, nil, name
-  end
-
-  local t = self:new(db, name, { schema = schema })
-  return setmetatable({
-    set_db = function(o)
-      t.db = o
-    end,
-  }, {
-    __index = function(o, key, ...)
-      if type(key) == "string" then
-        key = key:sub(1, 1) == "_" and key:sub(2, -1) or key
-        if type(t[key]) == "function" then
-          return function(...)
-            return t[key](t, ...)
-          end
-        else
-          return t[key]
-        end
-      end
-    end,
-  })
-end
+function sqlite.tbl:extend(db, name, schema) end
 
 ---Create or change table schema. If no {schema} is given,
 ---then it return current the used schema if it exists or empty table otherwise.
@@ -105,9 +94,9 @@ end
 ---```lua
 --- local projects = sqlite.tbl:new("", {...})
 --- --- get project table schema.
---- projects:schema() -- or 'project.schema()' dot notation with |sqlite.tbl:extend|
+--- projects:schema()
 --- --- mutate project table schema with droping content if not schema.ensure
---- projects:schema {...} -- or 'project.schema {...}' dot notation with |sqlite.tbl:extend|
+--- projects:schema {...}
 ---```
 ---</pre>
 ---@param schema sqlite_schema_dict
@@ -136,7 +125,7 @@ end
 ---<pre>
 ---```lua
 --- --- drop todos table content.
---- todos:drop() or 'todos.drop()' -- dot notation for |sqlite.tbl:extend|
+--- todos:drop()
 ---```
 ---</pre>
 ---@see sqlite.db:drop
@@ -160,21 +149,25 @@ end
 ---
 ---<pre>
 ---```lua
---- if todos:empty() then -- or 'todos.emtpy()' for |sqlite.tbl:extend|
+--- if todos:empty() then
 ---   print "no more todos, we are free :D"
 --- end
 ---```
 ---</pre>
 ---@return boolean
 function sqlite.tbl:empty()
-  return self:exists() and self:count() == 0 or false
+  return h.run(function()
+    if self.db:exists(self.name) then
+      return self.db:eval("select count(*) from " .. self.name)[1]["count(*)"] == 0
+    end
+  end, self)
 end
 
 ---Predicate that returns true if the table exists.
 ---
 ---<pre>
 ---```lua
---- if goals:exists() then -- or 'goals.exists()' for |sqlite.tbl:extend|
+--- if goals:exists() then
 ---   error("I'm disappointed in you :D")
 --- end
 ---```
@@ -190,7 +183,7 @@ end
 ---
 ---<pre>
 ---```lua
---- if notes:count() == 0 then -- or 'notes.counts()' for |sqlite.tbl:extend|
+--- if notes:count() == 0 then
 ---   print("no more notes")
 --- end
 ---```
@@ -210,11 +203,11 @@ end
 ---<pre>
 ---```lua
 --- --- get everything
---- todos:get() -- or 'todos.get()' with |sqlite.tbl:extend|
+--- todos:get()
 --- --- get row with id of 1
---- todos:get { where = { id = 1 } } -- or 'todos.get { ... }' with |sqlite.tbl:extend|
+--- todos:get { where = { id = 1 } }
 --- --- select a set of keys with computed one
---- timestamps:get { -- or 'timestamps.get {... }'  with |sqlite.tbl:extend|
+--- timestamps:get {
 ---   select = {
 ---     age = (strftime("%s", "now") - strftime("%s", "timestamp")) * 24 * 60,
 ---     "id",
@@ -241,7 +234,7 @@ end
 ---<pre>
 ---```lua
 --- --- get single entry. notice that we don't pass where key.
---- tbl:where{ id = 1 } -- or tbl.where()  with |sqlite.tbl:extend|
+--- tbl:where{ id = 1 }
 --- --- get row with id of 1 or 'todos.where { id = 1 }'
 ---```
 ---</pre>
@@ -265,7 +258,7 @@ end
 ---   where = { status = "pending" },
 ---   contains = { title = "fix*" }
 --- })
---- --- This works too. use 'todos.each(..)' with |sqlite.tbl:extend|
+---
 --- todos:each({ where = { ... }}, function(row)
 ---   print(row.title)
 --- end)
@@ -297,7 +290,7 @@ end
 ---
 ---<pre>
 ---```lua
---- --- transform rows. use todos.map(..) with |sqlite.tbl:extend|
+--- --- transform rows.
 --- local rows = todos:map(function(row)
 ---   row.somekey = ""
 ---   row.f = callfunction(row)
@@ -345,7 +338,7 @@ end
 ---
 ---<pre>
 ---```lua
---- --- return rows sort by id. t1.sort() with |sqlite.tbl:extend|
+--- --- return rows sort by id.
 --- local res = t1:sort({ where = {id = {32,12,35}}})
 --- --- return rows sort by age
 --- local res = t1:sort({ where = {id = {32,12,35}}}, "age")`
@@ -386,8 +379,6 @@ end
 --- todos:insert { title = "new todo" }
 --- --- insert multiple items, using todos table as first param
 --- tbl.insert(todos, "items", {  { name = "a"}, { name = "b" }, { name = "c" } })
---- --- insert with the result of |sqlite.tbl:extend|
---- todos.insert { ... }
 ---```
 ---</pre>
 ---@param rows table: a row or a group of rows
@@ -418,8 +409,6 @@ end
 --- todos:remove { id = {1,2,3} }
 --- --- matching ids or greater than 5
 --- todos:remove { id = {"<", 5} } -- or {id = "<5"}
---- --- with |sqtbl:extend|
---- todos.remove {...}
 ---```
 ---</pre>
 ---@param where sqlite_query_delete
@@ -437,12 +426,12 @@ end
 ---<pre>
 ---```lua
 --- --- update todos status linked to project "lua-hello-world" or "rewrite-neoivm-in-rust"
---- todos:update { -- or 'todos.update { .. }' with the result of |sqlite.tbl:extend|
+--- todos:update {
 ---   where = { project = {"lua-hello-world", "rewrite-neoivm-in-rust"} },
 ---   set = { status = "later" }
 --- }
 --- --- pass custom statement and boolean
---- ts:update { -- or 'ts.update { .. }' with the result of |sqlite.tbl:extend|
+--- ts:update {
 ---   where = { id = "<" .. 4 }, -- mimcs WHERE id < 4
 ---   set = { seen = true } -- will be converted to 0.
 --- }
@@ -464,13 +453,13 @@ end
 ---<pre>
 ---```lua
 --- --- replace project table content with a single call
---- todos:replace { -- or 'todos.replace { ... }' with the result |sqlite.tbl:extend|
+--- todos:replace {
 ---   { ... },
 ---   { ... },
 ---   { ... },
 --- }
 --- --- replace everything with a single row
---- ts:replace { -- or 'ts.replace { .. }' with the result |sqlite.tbl:extend|
+--- ts:replace {
 ---   key = "val"
 --- }
 ---```
@@ -487,6 +476,19 @@ function sqlite.tbl:replace(rows)
   end, self)
 end
 
-sqlite.tbl = setmetatable(sqlite.tbl, { __call = sqlite.tbl.extend })
+---Changes the db object to which the sqlite_tbl correspond to. If the object is
+---going to be passed to |sqlite.new|, then it will be set automatically at
+---definition.
+---@param db sqlite_db
+function sqlite.tbl:set_db(db)
+  print "I've been called"
+  self.db = db
+end
+
+sqlite.tbl = setmetatable(sqlite.tbl, {
+  __call = function(_, ...)
+    return sqlite.tbl.new(...)
+  end,
+})
 
 return sqlite.tbl
