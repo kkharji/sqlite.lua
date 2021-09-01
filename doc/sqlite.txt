@@ -499,6 +499,8 @@ sqlite.db:tbl({tbl_name}, {opts})                            *sqlite.db:tbl()*
       },
     })
     --- or without db injected and use as wrapper for |sqlite.tbl.new|
+    local tbl = db.tbl("name", ...)
+    ```
 
 
     Parameters: ~
