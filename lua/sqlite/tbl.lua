@@ -20,7 +20,7 @@ sqlite.tbl.__index = sqlite.tbl
 ---without a {db}, in which case, it requires 'sqlite.tbl:set_db' is called.
 ---
 ---Common use case might be to define tables in separate files and then require them in
---file that export db object (TODO: support tbl reuse in different dbs).
+---file that export db object (TODO: support tbl reuse in different dbs).
 ---
 ---<pre>
 ---```lua

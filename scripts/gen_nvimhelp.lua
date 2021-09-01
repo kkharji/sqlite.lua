@@ -14,7 +14,7 @@ local function gen()
     docgen.write(input_file, output_file_handle)
   end
 
-  output_file_handle:write " vim:tw=78:ts=8:ft=help:norl:\n"
+  output_file_handle:write " vim:tw=78:sw=2:ts=2:ft=help:norl:et:listchars=\n"
   output_file_handle:close()
   vim.cmd [[checktime]]
 end
