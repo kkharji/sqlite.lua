@@ -3,7 +3,7 @@ local bit = require "bit"
 local luv = require "luv"
 local M = {}
 
-local path = vim and vim.g.sql_clib_path or nil
+local path = vim and (vim.g.sqlte_clib_path or vim.g.sql_clib_path) or nil
 
 local clib_path = path
   or (function()
