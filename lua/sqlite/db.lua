@@ -11,22 +11,12 @@ sqlite.db.__index = sqlite.db
 local clib = require "sqlite.defs"
 local stmt = require "sqlite.stmt"
 local u = require "sqlite.utils"
+local h = require "sqlite.helpers"
 local a = require "sqlite.assert"
 local t = require "sqlite.tbl"
 local P = require "sqlite.parser"
 local flags = clib.flags
 
----Get a table schema, or execute a given function to get it
----@param tbl_name string
----@param self sqlite_db
-local get_schema = function(tbl_name, self)
-  local schema = self.tbl_schemas[tbl_name]
-  if schema then
-    return schema
-  end
-  self.tbl_schemas[tbl_name] = self:schema(tbl_name)
-  return self.tbl_schemas[tbl_name]
-end
 
 ---Creates a new sqlite.lua object, without creating a connection to uri.
 ---|sqlite.new| is identical to |sqlite.db:open| but it without opening sqlite db
@@ -405,7 +395,7 @@ end
 function sqlite.db:insert(tbl_name, rows, schema)
   a.is_sqltbl(self, tbl_name, "insert")
   local ret_vals = {}
-  schema = schema and schema or get_schema(tbl_name, self)
+  schema = schema and schema or h.get_schema(tbl_name, self)
   local items = P.pre_insert(rows, schema)
   local last_rowid
   clib.wrap_stmts(self.conn, function()
@@ -457,7 +447,7 @@ function sqlite.db:update(tbl_name, specs, schema)
 
   return clib.wrap_stmts(self.conn, function()
     specs = u.is_nested(specs) and specs or { specs }
-    schema = schema and schema or get_schema(tbl_name, self)
+    schema = schema and schema or h.get_schema(tbl_name, self)
 
     local ret_val = nil
     for _, v in ipairs(specs) do
@@ -553,7 +543,7 @@ function sqlite.db:select(tbl_name, spec, schema)
   a.is_sqltbl(self, tbl_name, "select")
   return clib.wrap_stmts(self.conn, function()
     local ret = {}
-    schema = schema and schema or get_schema(tbl_name, self)
+    schema = schema and schema or h.get_schema(tbl_name, self)
 
     spec = spec or {}
     spec.select = spec.keys and spec.keys or spec.select

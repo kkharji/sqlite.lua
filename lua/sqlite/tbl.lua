@@ -5,8 +5,8 @@
 
 local u = require "sqlite.utils"
 local a = require "sqlite.assert"
+local h = require "sqlite.helpers"
 local fmt = string.format
-local P = require "sqlite.parser"
 local luv = require "luv"
 
 local sqlite = {}
@@ -14,86 +14,6 @@ local sqlite = {}
 ---@type sqlite_tbl
 sqlite.tbl = {}
 sqlite.tbl.__index = sqlite.tbl
-
-local check_for_auto_alter = function(o, valid_schema)
-  local with_foregin_key = false
-
-  if not valid_schema then
-    return
-  end
-
-  for _, def in pairs(o.tbl_schema) do
-    if type(def) == "table" and def.reference then
-      with_foregin_key = true
-      break
-    end
-  end
-
-  local get = fmt("select * from sqlite_master where name = '%s'", o.name)
-
-  local stmt = o.tbl_exists and o.db:eval(get) or nil
-  if type(stmt) ~= "table" then
-    return
-  end
-
-  local origin, parsed = stmt[1].sql, P.create(o.name, o.tbl_schema, true)
-  if origin == parsed then
-    return
-  end
-
-  local ok, cmd = pcall(P.table_alter_key_defs, o.name, o.tbl_schema, o.db:schema(o.name))
-  if not ok then
-    print(cmd)
-    return
-  end
-
-  o.db:execute(cmd)
-  o.db_schema = o.db:schema(o.name)
-
-  if with_foregin_key then
-    o.db:execute "PRAGMA foreign_keys = ON;"
-    o.db.opts.foreign_keys = true
-  end
-end
-
----Run tbl functions
----@param func function: wrapped function to run
----@param o sqlite_tbl
----@return any
-local run = function(func, o)
-  a.should_have_db_object(o.db, o.name)
-  local exec = function()
-    local valid_schema = o.tbl_schema and next(o.tbl_schema) ~= nil
-
-    --- Run once pre-init
-    if o.tbl_exists == nil then
-      o.tbl_exists = o.db:exists(o.name)
-      o.mtime = o.db.uri and (luv.fs_stat(o.db.uri) or { mtime = {} }).mtime.sec or nil
-      o.has_content = o.tbl_exists and o.db:eval(fmt("select count(*) from %s", o.name))[1]["count(*)"] ~= 0 or 0
-      check_for_auto_alter(o, valid_schema)
-    end
-
-    --- Run when tbl doesn't exists anymore
-    if o.tbl_exists == false and valid_schema then
-      o.tbl_schema.ensure = u.if_nil(o.tbl_schema.ensure, true)
-      o.db:create(o.name, o.tbl_schema)
-      o.db_schema = o.db:schema(o.name)
-    end
-
-    --- Run once when we don't have schema
-    if not o.db_schema then
-      o.db_schema = o.db:schema(o.name)
-    end
-
-    --- Run wrapped function
-    return func()
-  end
-
-  if o.db.closed then
-    return o.db:with_open(exec)
-  end
-  return exec()
-end
 
 ---Create new sql table object
 ---WARNING: deprecated use |sqlite.tbl:extend| instead.
@@ -122,7 +42,7 @@ function sqlite.tbl:new(db, name, schema)
   schema = schema or {}
   local o = setmetatable({ db = db, name = name, tbl_schema = u.if_nil(schema.schema, schema) }, self)
   if db then
-    run(function() end, o)
+    h.run(function() end, t)
   end
   return o
 end
@@ -193,7 +113,7 @@ end
 ---@param schema sqlite_schema_dict
 ---@return sqlite_schema_dict | boolean
 function sqlite.tbl:schema(schema)
-  return run(function()
+  return h.run(function()
     local exists = self.db:exists(self.name)
     if not schema then -- TODO: or table is empty
       return exists and self.db:schema(self.name) or {}
@@ -222,7 +142,7 @@ end
 ---@see sqlite.db:drop
 ---@return boolean
 function sqlite.tbl:drop()
-  return run(function()
+  return h.run(function()
     if not self.db:exists(self.name) then
       return false
     end
@@ -261,7 +181,7 @@ end
 ---</pre>
 ---@return boolean
 function sqlite.tbl:exists()
-  return run(function()
+  return h.run(function()
     return self.db:exists(self.name)
   end, self)
 end
@@ -276,7 +196,7 @@ end
 ---```
 ---@return number
 function sqlite.tbl:count()
-  return run(function()
+  return h.run(function()
     if not self.db:exists(self.name) then
       return 0
     end
@@ -310,7 +230,7 @@ end
 function sqlite.tbl:get(query)
   -- query = query or { query = { all = 1 } }
 
-  return run(function()
+  return h.run(function()
     local res = self.db:select(self.name, query or { query = { all = 1 } }, self.db_schema)
     return res
   end, self)
@@ -359,7 +279,7 @@ function sqlite.tbl:each(func, query)
     func, query = query, func
   end
 
-  return run(function()
+  return h.run(function()
     local rows = self.db:select(self.name, query or {}, self.db_schema)
     if not rows then
       return false
@@ -402,7 +322,7 @@ function sqlite.tbl:map(func, query)
     func, query = query, func
   end
 
-  return run(function()
+  return h.run(function()
     local res = {}
     local rows = self.db:select(self.name, query or {}, self.db_schema)
     if not rows then
@@ -438,7 +358,7 @@ end
 ---@param comp function: a comparison function, defaults to the `<` operator
 ---@return table[]
 function sqlite.tbl:sort(query, transform, comp)
-  return run(function()
+  return h.run(function()
     local res = self.db:select(self.name, query or { query = { all = 1 } }, self.db_schema)
     local f = transform or function(r)
       return r[u.keys(query.where)[1]]
@@ -476,7 +396,7 @@ end
 ---@usage `todos:insert { { ... }, { ... } }` insert multiple items
 ---@return integer: last inserted id
 function sqlite.tbl:insert(rows)
-  return run(function()
+  return h.run(function()
     local succ, last_rowid = self.db:insert(self.name, rows, self.db_schema)
     if succ then
       self.has_content = self:count() ~= 0 or false
@@ -506,7 +426,7 @@ end
 ---@see sqlite.db:delete
 ---@return boolean
 function sqlite.tbl:remove(where)
-  return run(function()
+  return h.run(function()
     return self.db:delete(self.name, where)
   end, self)
 end
@@ -533,7 +453,7 @@ end
 ---@see sqlite_query_update
 ---@return boolean
 function sqlite.tbl:update(specs)
-  return run(function()
+  return h.run(function()
     local succ = self.db:update(self.name, specs, self.db_schema)
     return succ
   end, self)
@@ -560,7 +480,7 @@ end
 ---@see sqlite.db:insert
 ---@return boolean
 function sqlite.tbl:replace(rows)
-  return run(function()
+  return h.run(function()
     self.db:delete(self.name)
     local succ = self.db:insert(self.name, rows, self.db_schema)
     return succ
