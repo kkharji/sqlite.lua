@@ -74,7 +74,7 @@ end
 ---@return sqlite_db
 function sqlite.db:extend(opts)
   local db = self.new(opts.uri, opts.opts)
-  local cls = setmetatable({}, {
+  local cls = setmetatable({ db = db }, {
     __index = function(_, key, ...)
       if type(key) == "string" then
         key = key:sub(1, 2) == "__" and key:sub(3, -1) or key
