@@ -38,16 +38,6 @@ sqlite_tbl                                                        *sqlite_tbl*
         {mtime} (number)     db last modified time.
 
 
-sqlite_tblext                                                  *sqlite_tblext*
-    Extended version of sql table class. This class is generated through
-    |sqlite_tbl:extend|
-
-    Fields: ~
-        {db}    (sqlite_db)  sqlite.lua database object.
-        {name}  (string)     table name
-        {mtime} (number)     db last modified time
-
-
 sqlite_schema_key                                          *sqlite_schema_key*
     Sqlite schema key fileds. {name} is the only required field.
 
