@@ -1,7 +1,4 @@
----@class SQLTableExt
----@field db SQLDatabase
----@field name string: table name
----@field mtime number: db last modified time
+---@type sqlite_tblext
 local tbl = {}
 
 ---Create or change table schema. If no {schema} is given,
@@ -31,7 +28,7 @@ tbl.empty = function() end
 tbl.exists = function() end
 
 ---Query the table and return results.
----@param query table: query.where, query.keys, query.join
+---@param query sqlite_query_select
 ---@return table
 ---@usage `tbl.get()` get a list of all rows in project table.
 ---@usage `tbl.get({ where = { status = "pending", client = "neovim" }})`
@@ -53,7 +50,7 @@ tbl.where = function(where) end
 ---Iterate over table rows and execute {func}.
 ---Returns true only when rows is not emtpy.
 ---@param func function: func(row)
----@param query table: query.where, query.keys, query.join
+---@param query sqlite_query_select
 ---@usage `let query = { where = { status = "pending"}, contains = { title = "fix*" } }`
 ---@usage `tbl.each(function(row) print(row.title) end, query)`
 ---@return boolean
@@ -61,7 +58,7 @@ tbl.each = function(func, query) end
 
 ---Create a new table from iterating over {self.name} rows with {func}.
 ---@param func function: func(row)
----@param query table: query.where, query.keys, query.join
+---@param query sqlite_query_select
 ---@usage `let query = { where = { status = "pending"}, contains = { title = "fix*" } }`
 ---@usage `local t = todos.map(function(row) return row.title end, query)`
 ---@return table[]
@@ -70,7 +67,7 @@ tbl.map = function(func, query) end
 ---Sorts a table in-place using a transform. Values are ranked in a custom order of the results of
 ---running `transform (v)` on all values. `transform` may also be a string name property  sort by.
 ---`comp` is a comparison function. Adopted from Moses.lua
----@param query table: query.where, query.keys, query.join
+---@param query sqlite_query_select
 ---@param transform function: a `transform` function to sort elements. Defaults to @{identity}
 ---@param comp function: a comparison function, defaults to the `<` operator
 ---@return table[]
@@ -88,7 +85,7 @@ tbl.sort = function(query, transform, comp) end
 tbl.insert = function(rows) end
 
 ---Same functionalities as |DB:delete()|
----@param where table: query
+---@param where sqlite_query_delete: key value pairs to filter rows to delete
 ---@see DB:delete
 ---@return boolean
 ---@usage `todos.remove()` remove todos table content.
@@ -97,7 +94,7 @@ tbl.insert = function(rows) end
 tbl.remove = function(where) end
 
 ---Same functionalities as |DB:update()|
----@param specs table: a table or a list of tables with where and values keys.
+---@param specs sqlite_query_update
 ---@see DB:update
 ---@return boolean
 tbl.update = function(specs) end
@@ -110,7 +107,7 @@ tbl.update = function(specs) end
 tbl.replace = function(rows) end
 
 ---Set db object for the table.
----@param db SQLDatabase
+---@param db sqlite_db
 tbl.set_db = function(db) end
 
 return tbl

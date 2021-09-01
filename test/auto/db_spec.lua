@@ -1,11 +1,11 @@
 local P = require "plenary.path"
 local curl = require "plenary.curl"
 local eq = assert.are.same
-local sql = require "sql"
-local u = require "sql.utils"
+local sql = require "sqlite.db"
+local u = require "sqlite.utils"
 local luv = require "luv"
 
-describe("sql", function()
+describe("sqlite.db", function()
   local path = "/tmp/db.sqlite3"
   luv.fs_unlink(path)
 
@@ -805,9 +805,9 @@ describe("sql", function()
     local ok, manager
 
     it("Initialize manager", function()
-      ---@class Manager:SQLDatabaseExt
-      ---@field projects SQLTableExt
-      ---@field todos SQLTableExt
+      ---@class Manager:sqldb
+      ---@field projects sqltable
+      ---@field todos sqltable
       ok, manager = pcall(sql, {
         uri = testrui,
         projects = {
@@ -846,9 +846,9 @@ describe("sql", function()
       eq("function", type(manager.insert), "should have added insert function.")
       eq("function", type(manager.open), "should have added open function.")
       eq("function", type(manager.close), "should have added close function.")
-      eq("function", type(manager.db.insert), "should have added insert function.")
-      eq("function", type(manager.db.with_open), "should have added with_open.")
-      eq("function", type(manager.db.table), "should have added table.")
+      eq("function", type(manager.__insert), "should have added insert function.")
+      eq("function", type(manager.__with_open), "should have added with_open.")
+      eq("function", type(manager.__table), "should have added table.")
     end)
 
     it("extending new object should work wihout issues", function()
@@ -860,29 +860,30 @@ describe("sql", function()
           "More and more neovim plugins adopt sql.nvim as a data layer.",
         },
       }
-
-      eq(1, manager.projects.insert(sqlnvim), "should insert and return id.")
+      eq("function", type(manager.projects.insert), "should have added insert function.")
+      eq("function", type(manager.projects.where), "should have added with_open.")
+      eq(1, manager.projects:insert(sqlnvim), "should insert and return id.")
       eq("cdata", type(manager.conn), "should set connection object after first call to sql api")
-      eq("table", type(manager.projects.where({ id = 1 }).objectives), "should return as table.")
+      eq("table", type(manager.projects:where({ id = 1 }).objectives), "should return as table.")
       eq("table", type(sqlnvim.objectives), "It shouldn't have mutated objectives table.")
-      eq(true, manager.projects.remove(), "should remove after default insert.")
+      eq(true, manager.projects:remove(), "should remove after default insert.")
 
-      function manager.projects.insert()
-        return manager.projects._insert(sqlnvim)
+      function manager.projects:insert()
+        return self:__insert(sqlnvim)
       end
-      function manager.projects.get()
-        return manager.projects._get({ where = { title = sqlnvim.title } })[1]
+      function manager.projects:get()
+        return manager.projects:__get({ where = { title = sqlnvim.title } })[1]
       end
-      function manager.projects.remove_objectives()
-        return manager.projects.update { where = { id = 1 }, set = { objectives = {} } }
+      function manager.projects:remove_objectives()
+        return self:update { where = { id = 1 }, set = { objectives = {} } }
       end
 
-      eq(1, manager.projects.insert(), "should have inserted and returned id.")
+      eq(1, manager.projects:insert(), "should have inserted and returned id.")
 
-      eq(sqlnvim.title, manager.projects.get().title, "should have inserted sqlnvim project")
-      eq(true, manager.projects.get().objectives ~= "")
-      eq(true, manager.projects.remove_objectives(), "should succeed at updating")
-      eq({}, manager.projects.get().objectives, "should return empty table")
+      eq(sqlnvim.title, manager.projects:get().title, "should have inserted sqlnvim project")
+      eq(true, manager.projects:get().objectives ~= "")
+      eq(true, manager.projects:remove_objectives(), "should succeed at updating")
+      eq({}, manager.projects:get().objectives, "should return empty table")
     end)
 
     it("set a different name for sql db table, with access using extend field", function()
@@ -896,7 +897,7 @@ describe("sql", function()
     end)
 
     it("use pre-defined sql-table", function()
-      local t = require "sql.table"("sometbl", { id = true, name = "string" })
+      local t = require "sqlite.tbl"("sometbl", { id = true, name = "string" })
       local db
 
       local ok, db = pcall(sql, {
@@ -908,9 +909,9 @@ describe("sql", function()
 
       eq("table", type(db.st), "should use that key to access t")
 
-      db.st.insert { { name = "a" }, { name = "b" }, { name = "c" } }
+      db.st:insert { { name = "a" }, { name = "b" }, { name = "c" } }
 
-      eq(3, db.st.count(), "should have inserted.")
+      eq(3, db.st:count(), "should have inserted.")
     end)
 
     luv.fs_unlink(testrui)

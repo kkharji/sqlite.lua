@@ -1,8 +1,8 @@
-local sql = require "sql"
-local tbl = require "sql.table"
+local sql = require "sqlite.db"
+local tbl = require "sqlite.tbl"
 local luv = require "luv"
 local eq = assert.are.same
-local P = require "sql.parser"
+local P = require "sqlite.parser"
 local demo = {
   { a = 1, b = "lsf", c = "de" },
   { a = 99, b = "sdj", c = "in" },
@@ -21,7 +21,7 @@ local seed = function()
   db:open()
   db:create("T", { a = "integer", b = "text", c = "text", ensure = true })
   db:insert("T", demo)
-  return db:table "T", db:table "N"
+  return db:tbl "T", db:tbl "N"
 end
 
 local clean = function()
@@ -30,7 +30,7 @@ local clean = function()
 end
 
 clean()
-describe("table", function()
+describe("sqlite.tbl", function()
   local t1, t2 = seed()
 
   describe(":new", function()
@@ -70,16 +70,16 @@ describe("table", function()
         type = "text",
       },
     }
-    local new = db:table("newtbl", opts)
+    local new = db:tbl("newtbl", opts)
 
     it("initalizes db with schema", function()
       eq(detailed_schema, new:schema(), "should be identical")
     end)
     it("should not rewrite schema.", function()
-      local new2 = db:table "newtbl"
+      local new2 = db:tbl "newtbl"
       eq(detailed_schema, new2:schema(), "should be identical")
       -- eq(detailed_schema, new2.tbl_schema, "should be identical")
-      -- local new3 = db:table("newtbl", { schema = { id = "string" } })
+      -- local new3 = db:tbl("newtbl", { schema = { id = "string" } })
       -- eq(detailed_schema, new3:schema(), "should be identical")
       -- eq(detailed_schema, new3.tbl_schema, "should be identical")
     end)
@@ -443,11 +443,11 @@ describe("table", function()
     local db = sql:open(nil)
     local artists, tracks
     it("create demo", function()
-      artists = db:table("artists", {
+      artists = db:tbl("artists", {
         id = { type = "integer", pk = true },
         name = "text",
       })
-      tracks = db:table("tracks", {
+      tracks = db:tbl("tracks", {
         id = "integer",
         name = "text",
         artist = {
@@ -587,36 +587,35 @@ describe("table", function()
   describe(":extend", function()
     local t
     it("missing db object", function()
-      ---@type SQLTableExt
       t = tbl("tbl_name", { id = true, name = "text" })
-      eq(false, pcall(t.insert, { name = "tami" }), "should fail early.")
-      t.set_db(db)
-      eq(true, pcall(t.insert, { name = "conni" }), "should work now we have a db object to operate against.")
-      eq({ { id = 1, name = "conni" } }, t.get(), "only insert conni")
+      eq(false, pcall(t.insert, t, { name = "tami" }), "should fail early.")
+      t:set_db(db)
+      eq(true, pcall(t.insert, t, { name = "conni" }), "should work now we have a db object to operate against.")
+      eq({ { id = 1, name = "conni" } }, t:get(), "only insert conni")
     end)
 
     it("with db object", function()
-      t = tbl(db, "tansactions", { id = true, amount = "real" })
-      eq(1, t.insert { amount = 20.2 })
+      t = tbl("tansactions", { id = true, amount = "real" }, db)
+      eq(1, t:insert { amount = 20.2 })
       eq(
         "20.2",
-        t.map(function(row)
+        t:map(function(row)
           return tostring(row.amount)
         end)[1]
       )
     end)
 
     it("overwrite functions and fallback to t.db", function()
-      t.get = function()
-        return math.floor(t._get({ where = { id = 1 } })[1].amount)
+      t.get = function(_)
+        return math.floor(t:__get({ where = { id = 1 } })[1].amount)
       end
-      eq(20, t.get())
+      eq(20, t:get())
     end)
 
     local some
 
     it("create a new table", function()
-      some = tbl:extend(db, "somename", {
+      some = tbl.new("somename", {
         name = "text",
         id = true,
         count = {
@@ -624,24 +623,24 @@ describe("table", function()
           required = true,
           default = 0,
         },
-      })
+      }, db)
     end)
 
     it("access function", function()
       eq("function", type(some.get), "should we still have access for")
-      eq("function", type(some._get), "should be hard coded.")
+      eq("function", type(some.__get), "should be accessible.")
       eq("cdata", type(some.db.conn))
     end)
 
     it("custom function", function()
-      function some.insert_or_update(name)
+      function some:insert_or_update(name)
         eq("string", type(name), "name should be a string")
-        local entry = some.where { name = name }
+        local entry = self:where { name = name }
         if not entry then
-          some.insert { name = name }
+          self:insert { name = name }
         else
           eq("function", type(some.update))
-          some.update {
+          self:update {
             where = { id = entry.id },
             values = { count = entry.count + 2 },
           }
@@ -649,10 +648,10 @@ describe("table", function()
       end
 
       eq("function", type(some.insert_or_update), "should be registered as function")
-      some.insert_or_update "ff"
-      eq("ff", some.where({ name = "ff" }).name)
-      some.insert_or_update "ff"
-      eq(2, some.where({ name = "ff" }).count)
+      some:insert_or_update "ff"
+      eq("ff", some:where({ name = "ff" }).name)
+      some:insert_or_update "ff"
+      eq(2, some:where({ name = "ff" }).count)
     end)
   end)
 
@@ -665,11 +664,11 @@ describe("table", function()
 
       local new_table_cmd = P.table_alter_key_defs(tname, schema.after, schema.before, true)
 
-      local tbefore = db:table(tname, schema.before)
+      local tbefore = db:tbl(tname, schema.before)
 
       eq("number", type(tbefore:insert(data.before)), "should insert without issues.")
 
-      local ok, tafter = pcall(db.table, db, tname, schema.after)
+      local ok, tafter = pcall(db.tbl, db, tname, schema.after)
 
       eq(true, ok, fmt('\n\n\n%s:\n\n   "%s"\n\n', tafter, new_table_cmd))
 
@@ -821,7 +820,7 @@ describe("table", function()
 
     clean()
     describe("case: foreign key:", function()
-      local artists = db:table("artists", {
+      local artists = db:tbl("artists", {
         id = true,
         name = "text",
       })
@@ -931,7 +930,7 @@ describe("table", function()
           "passes, thus enabling the artist id above to be updated"
         )
 
-        tracks = db:table("tracks", {
+        tracks = db:tbl("tracks", {
           id = "integer",
           name = "text",
           artist = {

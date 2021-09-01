@@ -1,11 +1,7 @@
 {{- $repourl := $.Info.RepositoryURL -}}
-{{ range .Versions }}
-<a name="{{ .Tag.Name }}"></a>
-
-## {{ if .Tag.Previous }}[{{ .Tag.Name }}]({{ $repourl }}/compare/{{ .Tag.Previous.Name }}...{{ .Tag.Name }}){{ else }}{{ .Tag.Name }}{{ end }}
 
 {{ range .CommitGroups -}}
-### {{ .Title }}
+## {{ .Title }}
 
 {{ range .Commits -}}
   {{- /** Remove markdown urls when there's a pull request linked and replace it with a tag **/ -}}

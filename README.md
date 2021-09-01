@@ -1,25 +1,21 @@
-sql.nvim 💫 
+sqlite.lua 💫
 =================
 
 
 [SQLite]/[LuaJIT] binding and a highly opinionated wrapper for storing, retrieving, caching, and persisting [SQLite] databases.
-[sql.nvim] present new possibilities for plugin development and while it's primarily created for [neovim], it support all luajit environments.
+[sqlite.lua] present new possibilities for plugin development and while it's primarily created for [neovim], it support all luajit environments.
 
-- [Changelog](https://github.com/tami5/sql.nvim/blob/master/CHANGELOG.md)
-- [Docs](https://github.com/tami5/sql.nvim/blob/master/doc/sql.txt)
+- [Changelog](https://github.com/tami5/sqlite.lua/blob/master/CHANGELOG.md)
+- [Docs](https://github.com/tami5/sqlite.lua/blob/master/doc/sql.txt)
 
-⏲️ Status
-------------------
-Under heavy development. Low level API is stable for usage, however, top level API and new features are subject to change. 
-Please wait for 0.1 relaese or watch the repo for changes.
-
+<p align="center"> <img src="./doc/preview.svg"> </p>
 
 ✨ Features:
 ------------------
-- Connect, reconnect, close sql db connections `sql:open/sql:close`
-- Evaluate any sqlite statement and return result if any `sql:eval`
-- Helper function over `sql:eval` to do all sort of operation.
-- High level API with `sql:table` for better experience
+- Connect, reconnect, close sql db connections `sqlite:open/sql:close`
+- Evaluate any sqlite statement and return result if any `sqlite:eval`
+- Helper function over `sqlite:eval` to do all sort of operation.
+- High level API with `sqlite.tbl` for better experience.
 - lua tables deserialization/serialization (in helper functions and high level api)
 - 90% test coverage.
 - Up-to-date docs and changelog
@@ -28,14 +24,23 @@ Please wait for 0.1 relaese or watch the repo for changes.
 🚧 Installation
 -----------------
 
-Add `sql.nvim` to your lua `package.path`, neovim `/**/start/` or use your
-favorite vim package manager, and ensure you have `sqlite3` installed locally. 
-If you are using macos, then sqlite3 should be installed already, otherwise install using brew.
+### [Packer.nvim](https://github.com/wbthomason/packer.nvim)
 
+```lua
+use { "tami5/sqlite.lua" }
+```
+
+### [luarocks](https://luarocks.org/)
+
+```bash
+luarocks install sqlite
+```
+
+**Ensure you have `sqlite3` installed locally.**
 
 #### Windows
 
-[Download precompiled](https://www.sqlite.org/download.html) and set `let g:sql_clib_path = path/to/sqlite3.dll` (note: `/`)
+[Download precompiled](https://www.sqlite.org/download.html) and set `let g:sqlite_clib_path = path/to/sqlite3.dll` (note: `/`)
 
 #### Linux
 ```bash
@@ -48,14 +53,13 @@ sudo apt-get install sqlite3 libsqlite3-dev # Ubuntu
 programs.neovim.plugins = [
     {
       plugin = pkgs.vimPlugins.sql-nvim;
-      config = "let g:sql_clib_path = '${pkgs.sqlite.out}/lib/libsqlite3.so'";
+      config = "let g:sqlite_clib_path = '${pkgs.sqlite.out}/lib/libsqlite3.so'";
     }
 ];
 ```
 
 [Installation]: #🚧_installation
-[Status]: #status
 [SQLite]: https://www.sqlite.org/index.html
 [LuaJIT]: https://luajit.org
-[sql.nvim]: https://github.com/tami5/sql.nvim
+[sqlite.lua]: https://github.com/tami5/sqlite.lua
 [neovim]: https://github.com/neovim/neovim

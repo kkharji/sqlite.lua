@@ -1,6 +1,6 @@
 local M = {}
-local u = require "sql.utils"
-local clib = require "sql.defs"
+local u = require "sqlite.utils"
+local clib = require "sqlite.defs"
 
 --- Functions for asseting and erroring out :D
 
@@ -10,13 +10,13 @@ local errors = {
   eval_fail = "eval has failed to execute statement, ERRMSG: %s",
   failed_ops = "operation failed, ERRMSG: %s",
   missing_req_key = "(insert) missing a required key: %s",
-  missing_db_object = "'%s' db object is not set. please set it with `tbl.set_db(db)` and try again.",
+  missing_db_object = "%s's db object is not set. set it with `%s:set_db(db)` and try again.",
   outdated_schema = "`%s` does not exists in {`%s`}, schema is outdateset `self.db.tbl_schemas[table_name]` or reload",
   auto_alter_more_less_keys = "schema defined ~= db schema. Please drop `%s` table first or set ensure to false.",
 }
 
 for key, value in pairs(errors) do
-  errors[key] = "sql.nvim: " .. value
+  errors[key] = "sqlite.lua: " .. value
 end
 
 ---Error out if sql table doesn't exists.
@@ -31,7 +31,7 @@ end
 
 ---Error out if connection didn't get closed.
 ---This should never happen but is used just in case
----@param conn_ptr sqlite3_blob*
+---@param conn_ptr sqlite_blob*
 ---@return boolean
 M.should_close = function(conn_ptr, did_close)
   assert(did_close, errors.close_fail:format(clib.last_errmsg(conn_ptr)))
@@ -40,7 +40,7 @@ end
 
 ---Error out if statement evaluation/executation result in
 ---last_errorcode ~= flags.ok
----@param conn_ptr sqlite3_blob*
+---@param conn_ptr sqlite_blob*
 ---@return boolean
 M.should_eval = function(conn_ptr)
   local no_err = clib.last_errcode(conn_ptr) == clib.flags.ok
@@ -51,7 +51,7 @@ end
 ---This because in update we insert and expect some value
 ---returned 'let me id or 'boolean.
 ---When the ret values < 0 then the function didn't do anything.
----@param status SQLDatabaseStatus
+---@param status sqlite_db_status
 ---@return boolean
 M.should_modify = function(status)
   assert(status.code == 0, errors.failed_ops:format(status.msg))
@@ -70,7 +70,7 @@ M.should_have_column_def = function(column_def, k, schema)
 end
 
 M.should_have_db_object = function(db, name)
-  assert(db ~= nil, errors.missing_db_object:format(name))
+  assert(db ~= nil, errors.missing_db_object:format(name, name))
   return true
 end
 

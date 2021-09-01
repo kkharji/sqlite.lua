@@ -3,7 +3,7 @@ local bit = require "bit"
 local luv = require "luv"
 local M = {}
 
-local path = vim and vim.g.sql_clib_path or nil
+local path = vim and (vim.g.sqlte_clib_path or vim.g.sql_clib_path) or nil
 
 local clib_path = path
   or (function()
@@ -19,7 +19,7 @@ local clib_path = path
 
 local clib = ffi.load(clib_path)
 
--- Constants
+---@type sqlite_flags
 M.flags = {
   -- Result codes
   ["ok"] = 0,
@@ -55,7 +55,7 @@ M.flags = {
   ["done"] = 101,
 }
 
----@class SQLOpts
+---@type sqlite_db.opts
 M.valid_pargma = {
   ["analysis_limit"] = true,
   ["application_id"] = true,
@@ -579,8 +579,7 @@ ffi.cdef [[
 ]]
 
 ---@class sqlite3 @sqlite3 db object
----@class sqlite3_blob @sqlite3 blob object
----@class sqlite3_flag @sqlite3 error flag
+---@class sqlite_blob @sqlite3 blob object
 
 M.to_str = function(ptr, len)
   if ptr == nil then
@@ -623,7 +622,6 @@ end
 
 --- Execute a manipulation sql statement within begin and commit block
 ---@param conn_ptr sqlite connction ptr
----@param sqldb table
 ---@param fn func()
 M.wrap_stmts = function(conn_ptr, fn)
   M.exec_stmt(conn_ptr, "BEGIN")
@@ -646,10 +644,10 @@ M.last_errcode = function(conn_ptr)
   return clib.sqlite3_errcode(conn_ptr)
 end
 
----Create new connection and modify `sqldb` object
+---Create new connection and modify `sqlite_db` object
 ---@param uri string
----@param sqldb table
----@return sqlite3_blob*
+---@param opts sqlite_db.opts
+---@return sqlite_blob*
 ---@TODO: support open_v2 to enable control over how the database file is opened.
 M.connect = function(uri, opts)
   opts = opts or {}
@@ -657,12 +655,12 @@ M.connect = function(uri, opts)
   local code = clib.sqlite3_open(uri, conn)
 
   if code ~= M.flags.ok then
-    error(("sql.nvim: couldn't connect to sql database, ERR:"):format(code))
+    error(("sqlite.lua: couldn't connect to sql database, ERR:"):format(code))
   end
 
   for k, v in pairs(opts) do
     if not M.valid_pargma[k] then
-      error("sql.nvim: " .. k .. " is not a valid pragma")
+      error("sqlite.lua: " .. k .. " is not a valid pragma")
     end
     if type(k) == "boolean" then
       k = "ON"

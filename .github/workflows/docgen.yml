@@ -1,7 +1,5 @@
 name: Generate docs
-
 on: push
-
 jobs:
   build-sources:
     name: Generate docs
@@ -41,13 +39,13 @@ jobs:
       - name: Generating docs
         run: |
           export PATH="${PWD}/build/:${PATH}"
-          make docgen
+          make gen_nvimhelp
       # inspired by nvim-lspconfigs
       - name: Update documentation
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMIT_MSG: |
-            :card_file_box: Update doc/sql.txt
+            :card_file_box: update doc/sqlite.txt
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"

@@ -40,7 +40,7 @@ end)()
 -- print(vim.inspect(parse_query { keys = { "b", "c" }, where = { a = 1 } }))
 -- "keys=bc,select=bc,where=a=1"
 ---Insert to cache using query definition.
----@param query SQLQuerySpec
+---@param query table
 ---@param result table
 function Cache:insert(query, result)
   self.store[parse_query(query)] = result
@@ -59,7 +59,7 @@ function Cache:is_empty()
 end
 
 ---Get results from cache.
----@param query SQLQuerySpec
+---@param query sqlite_query_select
 ---@return table
 function Cache:get(query)
   local stat = luv.fs_stat(self.db.uri)
