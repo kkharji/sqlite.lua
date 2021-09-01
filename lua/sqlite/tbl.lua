@@ -481,7 +481,6 @@ end
 ---definition.
 ---@param db sqlite_db
 function sqlite.tbl:set_db(db)
-  print "I've been called"
   self.db = db
 end
 
