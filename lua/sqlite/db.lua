@@ -591,7 +591,7 @@ end
 ---   },
 --- })
 --- --- or without db injected and use as wrapper for |sqlite.tbl.new|
--- local tbl = db.tbl("name", ...)
+--- local tbl = db.tbl("name", ...)
 ---```
 ---</pre>
 ---@param tbl_name string: the name of the table. can be new or existing one.
