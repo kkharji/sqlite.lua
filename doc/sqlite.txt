@@ -498,7 +498,7 @@ sqlite.db:tbl({tbl_name}, {opts})                            *sqlite.db:tbl()*
         on_delete = "null", -- means when category get deleted, set to null
       },
     })
-    ```
+    --- or without db injected and use as wrapper for |sqlite.tbl.new|
 
 
     Parameters: ~
