@@ -133,15 +133,19 @@ sqlite.db:extend({opts})                                  *sqlite.db:extend()*
 
     In the case you want to keep db connection open and not on invocation
     bases. Run |sqlite.db:open()| right after creating the object or when you
-    intend,
+    intend to use it.
 
+    Like |sqlite_tbl| original methods can be access through pre-appending "__"
+    when user overwrites it.
     ```lua
     local db = sqlite { -- or sqlite_db:extend
       uri = "path/to/db", -- path to db file
-      entries = entries,  -- pre-made |etbl| with |tbl:extend()| without db
+      entries = require'entries',  -- a pre-made |sqlite_tbl| object.
       category = { title = { "text", unique = true, primary = true}  },
       opts = {} or nil -- custom sqlite3 options, see |sqlite_opts|
     }
+    --- Overwrite method and access it using through pre-appending "__"
+    db.select = function(...) db:__select(...) end
     ```
 
 
