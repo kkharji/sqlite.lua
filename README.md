@@ -1,13 +1,14 @@
 sqlite.lua 💫
 =================
 
-![](./doc/preview.png)
 
 [SQLite]/[LuaJIT] binding and a highly opinionated wrapper for storing, retrieving, caching, and persisting [SQLite] databases.
 [sqlite.lua] present new possibilities for plugin development and while it's primarily created for [neovim], it support all luajit environments.
 
 - [Changelog](https://github.com/tami5/sqlite.lua/blob/master/CHANGELOG.md)
 - [Docs](https://github.com/tami5/sqlite.lua/blob/master/doc/sql.txt)
+
+![](./doc/preview.png)
 
 ✨ Features:
 ------------------
