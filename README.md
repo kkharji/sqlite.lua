@@ -24,19 +24,19 @@ sqlite.lua 💫
 🚧 Installation
 -----------------
 
-### [Packer.nvim](https://github.com/wbthomason/packer.nvim)
+### [Packer.nvim](https://github.com/wbthomason/packer.nvim) (Neovim)
 
 ```lua
 use { "tami5/sqlite.lua" }
 ```
 
-### [luarocks](https://luarocks.org/)
+### [luarocks](https://luarocks.org/) (LuaJIT)
 
 ```bash
-luarocks install sqlite
+luarocks install sqlite luv
 ```
 
-**Ensure you have `sqlite3` installed locally.**
+**Ensure you have `sqlite3` installed locally.** (if you are on mac it might be installed already)
 
 #### Windows
 
