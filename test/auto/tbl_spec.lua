@@ -1040,6 +1040,48 @@ describe("sqlite.tbl", function()
       end)
     end)
 
+    describe("number_index", function()
+      local t = tbl("number_idx", { id = true, name = "integer" }, db)
+
+      it("passes string_index tests", function()
+        t[1] = { name = "sam" }
+        eq({ id = 1, name = "sam" }, t[1])
+        eq("sam", t:where({ id = 1 }).name, "should have been set")
+
+        t[2].name = "John"
+        eq({ id = 2, name = "John" }, t[2])
+        eq("John", t:where({ id = 2 }).name, "should have been set")
+        eq("John", t[2].name, "should have been set")
+
+        t[2] = nil
+        eq(nil, t:where { id = 2 }, "should be empty")
+        eq({}, t[2], "should be empty")
+
+        t[1].name, t[2].name, t[2].name = "sam", "tami", "ram"
+        eq(
+          {
+            { id = 1, name = "sam" },
+            { id = 2, name = "tami" },
+          },
+          t[{
+            where = { name = { "sam", "tami", "ram" } },
+            order_by = { asc = { "id" } },
+            limit = 2,
+          }]
+        )
+        t[{ id = { 1, 2, 3 } }] = { name = "none" }
+        eq(
+          {
+            { id = 1, name = "none" },
+            { id = 2, name = "none" },
+          },
+          t[{
+            order_by = { asc = { "id" } },
+            limit = 2,
+          }]
+        )
+      end)
+    end)
     -- vim.loop.fs_unlink(db_path)
   end)
 

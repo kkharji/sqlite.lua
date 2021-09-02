@@ -46,7 +46,6 @@ end
 ---@param pk sqlite_schema_key
 ---@return function(row, altkey):table
 local tbl_row_extender = function(tbl, pk)
-  -- print(vim.inspect(pk))
   return function(row, reqkey)
     row = row or {}
     local mt = {
@@ -129,7 +128,7 @@ return function(tbl)
       return
     end
 
-    if vt == "nil" and kt == "string" then
+    if vt == "nil" and kt == "string" or kt == "number" then
       tbl:remove { [pk.name] = arg }
     end
 
@@ -146,5 +145,5 @@ return function(tbl)
     end
   end
 
-  return setmetatable({ config = {} }, mt)
+  return setmetatable({ _config = {}, _state = {} }, mt)
 end
