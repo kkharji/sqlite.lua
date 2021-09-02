@@ -35,11 +35,13 @@ function sqlstmt:__parse()
   assert(
     code == flags.ok,
     string.format(
-      "sqlite.lua: sql statement parse, , stmt: `%s`, err: `(`%s`)`",
-      self.str,
-      clib.to_str(clib.errmsg(self.conn))
+      "sqlite.lua\n(parse error): `%s` code == %d\nstatement == '%s'",
+      clib.to_str(clib.errmsg(self.conn)),
+      code,
+      self.str
     )
   )
+
   self.pstmt = pstmt[0]
 end
 

@@ -91,6 +91,7 @@ M.run = function(func, o)
       o.db_schema = o.db:schema(o.name)
     end
 
+    rawset(o, "last_id", o.db:last_insert_rowid())
     --- Run wrapped function
     return func()
   end

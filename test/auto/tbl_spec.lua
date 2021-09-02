@@ -980,7 +980,7 @@ describe("sqlite.tbl", function()
 
     describe("string_index:", function()
       local kv = tbl("kvpair", {
-        key = { "text", primary = true, required = true, unique = true },
+        key = { "text", primary = true, required = true, default = "none" },
         len = "integer",
       }, db)
 
@@ -1038,6 +1038,13 @@ describe("sqlite.tbl", function()
           }]
         )
       end)
+
+      it("insert with 0 or true to skip the primary key value.", function()
+        kv[true] = { len = 5 }
+        eq(5, kv.none.len)
+        kv[""] = { len = 6 }
+        eq({ key = "none", len = 6 }, kv:where { len = 6 })
+      end)
     end)
 
     describe("number_index", function()
@@ -1082,6 +1089,41 @@ describe("sqlite.tbl", function()
         )
       end)
     end)
+
+    describe("Relationships", function()
+      local todos = tbl("todos_indexer", {
+        id = true,
+        title = "text",
+        project = {
+          reference = "projects.title",
+          required = true,
+          on_delete = "cascade",
+          on_update = "cascade",
+        },
+      }, db)
+
+      local projects = tbl("projects", {
+        title = { type = "text", primary = true, required = true, unique = true },
+        deadline = { "date", default = db.lib.date "now" },
+      }, db)
+
+      it("create new table with default values", function()
+        projects.neovim = {}
+        eq(true, projects.neovim.deadline == os.date "!%Y-%m-%d")
+        projects["sqlite"] = {}
+        --- TODO: if you have sqilte.lua todos[2] return empty table
+      end)
+
+      it("fails if foregin key doesn't exists", function()
+        eq(
+          false,
+          pcall(function()
+            todos[2].project = "ram"
+          end)
+        )
+      end)
+    end)
+
     -- vim.loop.fs_unlink(db_path)
   end)
 

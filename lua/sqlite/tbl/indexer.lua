@@ -89,6 +89,16 @@ local sep_query_and_where = function(q, keys)
   end
   return kv
 end
+
+---Print errors to the user
+---@param func function
+-- local sc = function(func)
+--   local ok, val = xpcall(func, function(msg)
+--     print(msg)
+--   end)
+--   return ok and val
+-- end
+
 return function(tbl)
   local pk = get_primary_key(tbl.tbl_schema)
   local extend = tbl_row_extender(tbl, pk)
@@ -109,7 +119,12 @@ return function(tbl)
 
     if kt == "string" or kt == "number" and pk then
       a.should_match_pk_type(tbl.name, kt, pk, arg)
-      return extend(tbl:where { [pk.name] = arg }, arg)
+      return extend(
+        tbl:where {
+          [pk.name] = arg,
+        },
+        arg
+      )
     end
 
     return kt == "table" and tbl:get(sep_query_and_where(arg, tbl_keys))
@@ -141,7 +156,11 @@ return function(tbl)
 
     if vt == "table" and pk then
       a.should_match_pk_type(tbl.name, kt, pk, arg)
-      return tbl:update { where = { [pk.name] = arg }, set = val }
+      if arg == 0 or arg == true or arg == "" then
+        return tbl:insert(val)
+      else
+        return tbl:update { where = { [pk.name] = arg }, set = val }
+      end
     end
   end
 

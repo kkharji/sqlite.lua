@@ -90,7 +90,10 @@ M.should_match_pk_type = function(name, kt, pk, key)
     return error(errors.no_primary_key:format(name))
   end
 
-  if knotstr and (pt == "string" or pt == "text") or knotnum and (pt == "number" or pt == "integer") then
+  if
+    kt ~= "boolean"
+    and (knotstr and (pt == "string" or pt == "text") or knotnum and (pt == "number" or pt == "integer"))
+  then
     return error(errors.miss_match_pk_type:format(pk.name, pk.type, kt, name, key))
   end
 

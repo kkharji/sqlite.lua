@@ -460,6 +460,12 @@ function sqlite.tbl:set_db(db)
   self.db = db
 end
 
+function sqlite.tbl:last_id()
+  h.run(function()
+    rawset(self, "last_id", self.db:last_insert_rowid())
+  end, self)
+end
+
 sqlite.tbl = setmetatable(sqlite.tbl, {
   __call = function(_, ...)
     return sqlite.tbl.new(...)
