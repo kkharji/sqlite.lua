@@ -481,7 +481,7 @@ sqlite.db:select({tbl_name}, {spec})                      *sqlite.db:select()*
         table[]
 
 
-sqlite.db:tbl({tbl_name}, {opts})                            *sqlite.db:tbl()*
+sqlite.db:tbl({tbl_name}, {schema})                          *sqlite.db:tbl()*
     Create new sqlite_tbl object. If {opts}.ensure = false, then on each run it
     will drop the table and recreate it. NOTE: this might change someday to
     alter the table instead. For now alteration is auto and limited to field
@@ -506,7 +506,7 @@ sqlite.db:tbl({tbl_name}, {opts})                            *sqlite.db:tbl()*
     Parameters: ~
         {tbl_name} (string)              the name of the table. can be new or
                                          existing one.
-        {opts}     (sqlite_schema_dict)  {schema, ensure (defalut true)}
+        {schema}   (sqlite_schema_dict)  {schema, ensure (defalut true)}
 
     Return: ~
         sqlite_tbl
