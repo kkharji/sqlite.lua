@@ -3,6 +3,9 @@
 ---@brief ]]
 ---@tag sqlite.db.lua
 
+local u = require "sqlite.utils"
+local require = u.require_on_exported_call
+
 local sqlite = {}
 ---@type sqlite_db
 sqlite.db = {}
@@ -11,11 +14,11 @@ sqlite.db.__version = "v1.0.0"
 
 local clib = require "sqlite.defs"
 local s = require "sqlite.stmt"
-local u = require "sqlite.utils"
 local h = require "sqlite.helpers"
 local a = require "sqlite.assert"
 local p = require "sqlite.parser"
 local flags = clib.flags
+local tbl = require "sqlite.tbl"
 
 ---Creates a new sqlite.lua object, without creating a connection to uri.
 ---|sqlite.new| is identical to |sqlite.db:open| but it without opening sqlite db
@@ -595,14 +598,14 @@ end
 ---```
 ---</pre>
 ---@param tbl_name string: the name of the table. can be new or existing one.
----@param opts sqlite_schema_dict: {schema, ensure (defalut true)}
+---@param schema sqlite_schema_dict: {schema, ensure (defalut true)}
 ---@see |sqlite.tbl.new|
 ---@return sqlite_tbl
 function sqlite.db:tbl(tbl_name, schema)
   if type(self) == "string" then
-    return require("sqlite.tbl").new(self, schema)
+    return tbl.new(self, schema)
   end
-  return require("sqlite.tbl").new(tbl_name, schema, self)
+  return tbl.new(tbl_name, schema, self)
 end
 
 ---DEPRECATED

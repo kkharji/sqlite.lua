@@ -72,4 +72,4 @@
 ---| '"cascade"' : propagates the delete or update operation on the parent key to each dependent child key.
 
 ---@type sqlite_db
-return require "sqlite.db"
+return require("sqlite.utils").require_on_index "sqlite.db"

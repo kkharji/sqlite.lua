@@ -18,29 +18,21 @@ sqlstmt.__index = sqlstmt
 function sqlstmt:parse(conn, str)
   assert(clib.type_of(conn) == clib.type_of_db_ptr, "Invalid connection passed to sqlstmt:parse")
   assert(type(str) == "string", "Invalid second argument passed to sqlstmt:parse")
-  local o = {
+  local o = setmetatable({
     str = str,
     conn = conn,
     finalized = false,
-  }
-  setmetatable(o, self)
-  o:__parse()
-  return o
-end
+  }, sqlstmt)
 
----Parse self.str into an sqlite representation and set it to self.pstmt.
-function sqlstmt:__parse()
   local pstmt = clib.get_new_stmt_ptr()
-  local code = clib.prepare_v2(self.conn, self.str, #self.str, pstmt, nil)
+  local code = clib.prepare_v2(o.conn, o.str, #o.str, pstmt, nil)
+
   assert(
     code == flags.ok,
-    string.format(
-      "sqlite.lua: sql statement parse, , stmt: `%s`, err: `(`%s`)`",
-      self.str,
-      clib.to_str(clib.errmsg(self.conn))
-    )
+    ("sqlite.lua: sql statement parse, , stmt: `%s`, err: `(`%s`)`"):format(o.str, clib.last_errmsg(o.conn))
   )
-  self.pstmt = pstmt[0]
+  o.pstmt = pstmt[0]
+  return o
 end
 
 ---Resets the parsed statement. required for parsed statements to be re-executed.
