@@ -4,7 +4,7 @@
 ---@tag sqlite.db.lua
 
 local u = require "sqlite.utils"
-local require = u.require_on_exported_call
+local require = u.require_on_index
 
 local sqlite = {}
 ---@type sqlite_db
@@ -17,7 +17,6 @@ local s = require "sqlite.stmt"
 local h = require "sqlite.helpers"
 local a = require "sqlite.assert"
 local p = require "sqlite.parser"
-local flags = clib.flags
 local tbl = require "sqlite.tbl"
 
 ---Creates a new sqlite.lua object, without creating a connection to uri.
@@ -282,7 +281,7 @@ function sqlite.db:eval(statement, params)
   stmt:finalize()
 
   -- if no rows is returned, then check return the result of errcode == flags.ok
-  res = rawequal(next(res), nil) and clib.last_errcode(self.conn) == flags.ok or res
+  res = rawequal(next(res), nil) and clib.last_errcode(self.conn) == clib.flags.ok or res
 
   -- fix res of its table, so that select all doesn't return { [1] = {[1] = { row }} }
   if type(res) == "table" and res[2] == nil and u.is_nested(res[1]) then
