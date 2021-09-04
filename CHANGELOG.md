@@ -8,6 +8,15 @@
 - <a href="https://github.com/tami5/sql.nvim/commit/5b395267bb1938c165099991a59497a9cc4ca8a1"><tt>5b39526</tt></a> activate release workflow
 
 
+### :zap: Performance Improvements
+
+<dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/f9a10606806142a521e971437b4a2e41d688c85b"><tt>f9a1060</tt></a> improve require time (<a href="https://github.com/tami5/sql.nvim/pull/11">#111</a>)</summary>
+
+decrease require time (cost on startup) from `0.791636 ms` to `4.140682` (423% faster)
+
+</details></dd></dl>
+
+
 
 <a name="v1.0.0"></a>
 
