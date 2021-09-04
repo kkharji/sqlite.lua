@@ -72,4 +72,14 @@
 ---| '"cascade"' : propagates the delete or update operation on the parent key to each dependent child key.
 
 ---@type sqlite_db
-return require "sqlite.db"
+return setmetatable({}, {
+  __index = function(_, key)
+    return require("sqlite.db")[key]
+  end,
+  __newindex = function(_)
+    error "sqlite.lua: this shouldn't happen. Mutating sqlite base object is prohibited."
+  end,
+  __call = function(_, ...)
+    return require "sqlite.db"(...)
+  end,
+})
