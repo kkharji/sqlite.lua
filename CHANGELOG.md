@@ -1,7 +1,21 @@
 
 <a name="unreleased"></a>
 
-## [unreleased](https://github.com/tami5/sql.nvim/compare/v1.0.0...unreleased)
+## [unreleased](https://github.com/tami5/sql.nvim/compare/v1.1.0...unreleased)
+
+
+<a name="v1.1.0"></a>
+
+## [v1.1.0](https://github.com/tami5/sql.nvim/compare/v1.0.0...v1.1.0)
+
+### :bug: Bug Fixes
+
+<dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/43f5e0c80a93f588d788fbb3e3a3d4daaa43b85f"><tt>43f5e0c</tt></a> luarocks auto-generate script (closes <a href="https://github.com/tami5/sql.nvim/issues/115"> #115</a>)</summary>
+
+Having "/" in the start of path breaks luarocks installation.
+
+</details></dd></dl>
+
 
 ### :sparkles: Features
 
@@ -9,6 +23,8 @@
 
 
 ### :zap: Performance Improvements
+
+- <a href="https://github.com/tami5/sql.nvim/commit/ca8233f8cb09b9adc7ea11f81ab903154ce07e86"><tt>ca8233f</tt></a> improve handling of sqlite builtin functions (closes <a href="https://github.com/tami5/sql.nvim/issues/114"> #114</a>)
 
 <dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/f9a10606806142a521e971437b4a2e41d688c85b"><tt>f9a1060</tt></a> improve require time (<a href="https://github.com/tami5/sql.nvim/pull/11">#111</a>)</summary>
 
