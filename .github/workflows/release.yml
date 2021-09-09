@@ -29,9 +29,17 @@ jobs:
       -
         name: Install required utils
         run: |
-          apt-get update
-          apt-get -y install luarocks
           go get github.com/git-chglog/git-chglog/cmd/git-chglog
+          apt-get update -y lua sudo unzip
+          apt-get -y install build-essential libreadline-dev
+          wget https://luarocks.org/releases/luarocks-3.7.0.tar.gz
+          wget https://luarocks.org/releases/luarocks-3.3.1.tar.gz
+          tar zxpf luarocks-3.3.1.tar.gz
+          cd luarocks-3.3.1
+          ./configure --with-lua-include=/usr/local/include
+          make; make install
+          cd -
+          echo $(luarocks --version)
       -
         name: Setup  Environment
         run: |
@@ -49,6 +57,8 @@ jobs:
       -
         name: Generate changelog
         run: |
+          sed -i "s/CIGTAG/${{ steps.tag.outputs.TAG }}/g" .github/chglog/CHANGELOG.release.md
+
           $(go env GOPATH)/bin/git-chglog \
             -c .github/chglog/config.yml \
             -t .github/chglog/CHANGELOG.release.md \
@@ -59,7 +69,7 @@ jobs:
         run: |
           export GTAG=${{ steps.tag.outputs.TAG }}
           export PATH="${PWD}/build/:${PATH}"
-          make genluarock
+          make gen_luarock
       -
         name: Update version in files
         run: |
