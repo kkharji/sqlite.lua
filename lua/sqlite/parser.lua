@@ -120,7 +120,7 @@ local pvalues = function(defs, kv)
 
   local keys = {}
   for k, v in u.opairs(defs) do
-    if type(v) == "string" and v:match "%a+%(.+%)" then
+    if type(v) == "string" and v:match "^[%S]+%(.*%)$" then
       tinsert(keys, v)
     else
       tinsert(keys, ":" .. k)
@@ -341,7 +341,7 @@ local opts_to_str = function(tbl)
       end
     end,
     default = function(v)
-      v = (type(v) == "string" and v:match "^%a+%(.+%)$") and "(" .. tostring(v) .. ")" or v
+      v = (type(v) == "string" and v:match "^[%S]+%(.*%)$") and "(" .. tostring(v) .. ")" or v
       local str = "default "
       if tbl["required"] then
         return "on conflict replace " .. str .. v
