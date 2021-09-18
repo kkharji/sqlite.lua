@@ -7,7 +7,12 @@ local u = require "sqlite.utils"
 local require = u.require_on_index
 
 local sqlite = {}
----@type sqlite_db
+
+---@class sqlite_db @Main sqlite.lua object.
+---@field uri string: database uri. it can be an environment variable or an absolute path. default ":memory:"
+---@field opts sqlite_opts: see https://www.sqlite.org/pragma.html |sqlite_opts|
+---@field conn sqlite_blob: sqlite connection c object.
+---@field db sqlite_db: reference to fallback to when overwriting |sqlite_db| methods (extended only).
 sqlite.db = {}
 sqlite.db.__index = sqlite.db
 sqlite.db.__version = "v1.1.0"
