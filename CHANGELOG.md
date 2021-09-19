@@ -3,6 +3,16 @@
 
 ## [unreleased](https://github.com/tami5/sql.nvim/compare/v1.1.0...unreleased)
 
+### :bug: Bug Fixes
+
+<dl><dd><details><summary><a href="https://github.com/tami5/sql.nvim/commit/edf642e2f2088a7a4bafa5a3850fd2b338566c2c"><tt>edf642e</tt></a> fix Emmylua completion</summary>
+
+This used to work, but maybe with new versions of sumneko_lua. It
+stopped working.
+
+</details></dd></dl>
+
+
 
 <a name="v1.1.0"></a>
 
