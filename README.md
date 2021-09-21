@@ -7,6 +7,8 @@ sqlite.lua 💫
 
 - [Changelog](https://github.com/tami5/sqlite.lua/blob/master/CHANGELOG.md)
 - [Docs](https://github.com/tami5/sqlite.lua/blob/master/doc/sqlite.txt)
+- [Examples](https://github.com/tami5/sqlite.lua/blob/master/examples)
+- [Powered By sqlite.lua](https://github.com/tami5/sqlite.lua#-powered-by-sqlitelua)
 
 <p align="center"> <img src="./doc/preview.svg"> </p>
 
