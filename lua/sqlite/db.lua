@@ -15,7 +15,7 @@ local sqlite = {}
 ---@field db sqlite_db: reference to fallback to when overwriting |sqlite_db| methods (extended only).
 sqlite.db = {}
 sqlite.db.__index = sqlite.db
-sqlite.db.__version = "v1.1.0"
+sqlite.db.__version = "v1.2.0"
 
 local clib = require "sqlite.defs"
 local s = require "sqlite.stmt"

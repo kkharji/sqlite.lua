@@ -283,7 +283,7 @@ assert(entries:where({ title = "none" }).id == 3)
 vim.inspect(entries:get { where = { type = "web" } })
 
 --- Delete all file or dir type bookmarks
-assert(entries:remove { type = {"file", "dir"} })
+assert(entries:remove { type = { "file", "dir" } })
 
 --- Should be delete
 assert(next(entries:get { where = { type = "file" } }) == nil)
