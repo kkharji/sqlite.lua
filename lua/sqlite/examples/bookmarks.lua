@@ -220,9 +220,9 @@ function entries:get(q)
       return entry
     end
 
-    for _, ts in pairs(ts:get(entry.id)) do
+    for _, _ts in pairs(ts:get(entry.id)) do
       for _, rank in ipairs(ages) do
-        if ts.age <= rank.age then
+        if _ts.age <= rank.age then
           recency_score = recency_score + rank.value
           goto continue
         end
