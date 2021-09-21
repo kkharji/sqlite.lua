@@ -58,6 +58,15 @@ programs.neovim.plugins = [
 ];
 ```
 
+🔥 Powered by sqlite.lua
+-----------------
+
+- https://github.com/tami5/impatient.nvim
+- https://github.com/nvim-telescope/telescope-smart-history.nvim
+- https://github.com/nvim-telescope/telescope-frecency.nvim
+- https://github.com/tami5/lispdocs.nvim
+- https://github.com/nvim-telescope/telescope-cheat.nvim
+
 [Installation]: #🚧_installation
 [SQLite]: https://www.sqlite.org/index.html
 [LuaJIT]: https://luajit.org
