@@ -16,28 +16,6 @@ Help usage in neovim: ignore ||
 
 sqlite.lua types:
 
-sqlite_db                                                          *sqlite_db*
-    Main sqlite.lua object.
-
-    Fields: ~
-        {uri}  (string)       database uri. it can be an environment variable
-                              or an absolute path. default ":memory:"
-        {opts} (sqlite_opts)  see https://www.sqlite.org/pragma.html
-                              |sqlite_opts|
-        {conn} (sqlite_blob)  sqlite connection c object.
-        {db}   (sqlite_db)    reference to fallback to when overwriting
-                              |sqlite_db| methods (extended only).
-
-
-sqlite_tbl                                                        *sqlite_tbl*
-    Main sql table class
-
-    Fields: ~
-        {db}    (sqlite_db)  sqlite.lua database object.
-        {name}  (string)     table name.
-        {mtime} (number)     db last modified time.
-
-
 sqlite_schema_key                                          *sqlite_schema_key*
     Sqlite schema key fileds. {name} is the only required field.
 
@@ -95,12 +73,25 @@ sqlite_db_status                                            *sqlite_db_status*
 
 Main sqlite.lua object and methods.
 
+sqlite_db                                                          *sqlite_db*
+    Main sqlite.lua object.
+
+    Fields: ~
+        {uri}  (string)       database uri. it can be an environment variable
+                              or an absolute path. default ":memory:"
+        {opts} (sqlite_opts)  see https://www.sqlite.org/pragma.html
+                              |sqlite_opts|
+        {conn} (sqlite_blob)  sqlite connection c object.
+        {db}   (sqlite_db)    reference to fallback to when overwriting
+                              |sqlite_db| methods (extended only).
+
+
 sqlite.db.new({uri}, {opts})                                 *sqlite.db.new()*
     Creates a new sqlite.lua object, without creating a connection to uri.
     |sqlite.new| is identical to |sqlite.db:open| but it without opening sqlite
-    db connection. Thus its most suited for cases where the database might be
-    acccess from multiple places. For neovim use cases, this mean from
-    different neovim instances.
+    db connection (unless opts.keep_open). Its most suited for cases where the
+    database might be -acccess from multiple places. For neovim use cases, this
+    mean from different -neovim instances.
 
     ```lua
     local db = sqlite.new("path/to/db" or "$env_var", { ... } or nil)
@@ -115,36 +106,27 @@ sqlite.db.new({uri}, {opts})                                 *sqlite.db.new()*
         sqlite_db
 
 
-sqlite.db:extend({opts})                                  *sqlite.db:extend()*
-    Extend |sqlite_db| object with extra sugar syntax and api. This is
-    recommended for all sqlite use case as it provide convenience. This method
-    is super lazy. it try its best to doing any ffi calls until the first
-    operation done on a table.
-
-    In the case you want to keep db connection open and not on invocation
-    bases. Run |sqlite.db:open()| right after creating the object or when you
-    intend to use it.
-
-    Like |sqlite_tbl| original methods can be access through pre-appending "__"
-    when user overwrites it.
+sqlite.db:extend({conf})                                  *sqlite.db:extend()*
     ```lua
     local db = sqlite { -- or sqlite_db:extend
       uri = "path/to/db", -- path to db file
       entries = require'entries',  -- a pre-made |sqlite_tbl| object.
       category = { title = { "text", unique = true, primary = true}  },
       opts = {} or nil -- custom sqlite3 options, see |sqlite_opts|
+      --- if opts.keep_open, make connection and keep it open.
+      --- if opts.lazy, then just provide logical object
     }
     --- Overwrite method and access it using through pre-appending "__"
     db.select = function(...) db:__select(...) end
     ```
 
-
     Parameters: ~
-        {opts} (table)  see 'Fields'
+        {conf} (table)  see 'Fields'
 
     Fields: ~
         {uri}    (string)       path to db file.
-        {opts}   (sqlite_opts)  (optional) see |sqlite_opts|
+        {opts}   (sqlite_opts)  (optional) see |sqlite_opts| + lazy (default
+                                false), open (default false)
         {tname1} (string)       pointing to |sqlite_etbl| or
                                 |sqlite_schema_dict|
         {tnameN} (string)       pointing to |sqlite_etbl| or
@@ -533,6 +515,15 @@ Abstraction to produce more readable code.
 ```lua
 local tbl = require'sqlite.tbl'
 ```
+
+sqlite_tbl                                                        *sqlite_tbl*
+    Main sql table class
+
+    Fields: ~
+        {db}    (sqlite_db)  sqlite.lua database object.
+        {name}  (string)     table name.
+        {mtime} (number)     db last modified time.
+
 
 sqlite.tbl.new({name}, {schema}, {db})                      *sqlite.tbl.new()*
     Create new |sqlite_tbl| object. This object encouraged to be extend and
