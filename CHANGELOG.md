@@ -1,7 +1,12 @@
 
 <a name="unreleased"></a>
 
-## [unreleased](https://github.com/tami5/sql.nvim/compare/v1.1.0...unreleased)
+## [unreleased](https://github.com/tami5/sql.nvim/compare/v1.2.0...unreleased)
+
+
+<a name="v1.2.0"></a>
+
+## [v1.2.0](https://github.com/tami5/sql.nvim/compare/v1.1.0...v1.2.0)
 
 ### :bug: Bug Fixes
 
@@ -11,6 +16,11 @@ This used to work, but maybe with new versions of sumneko_lua. It
 stopped working.
 
 </details></dd></dl>
+
+
+### :sparkles: Features
+
+- <a href="https://github.com/tami5/sql.nvim/commit/3d89dc149b10ab72c0ba78d89b92ebeb83e921b9"><tt>3d89dc1</tt></a> add Bookmark Manager Example
 
 
 
