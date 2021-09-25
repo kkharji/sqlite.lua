@@ -2,7 +2,7 @@ style: "github"
 template: CHANGELOG.tpl.md
 info:
   title: CHANGELOG
-  repository_url: https://github.com/tami5/sql.nvim
+  repository_url: https://github.com/tami5/sqlite.lua
 options:
   refs:
     actions:
