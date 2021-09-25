@@ -631,6 +631,7 @@ end
 ---@return sqlite_tbl
 function sqlite.db:tbl(tbl_name, schema)
   if type(self) == "string" then
+    schema = tbl_name
     return tbl.new(self, schema)
   end
   return tbl.new(tbl_name, schema, self)
