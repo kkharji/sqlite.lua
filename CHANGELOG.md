@@ -17,7 +17,7 @@ Refs: https://github.com/AckslD/nvim-neoclip.lua/pull/20
 
 ### :construction_worker: CI Updates
 
-- <a href="https://github.com/tami5/sqlite.lua/commit/22c0dd980340c78d5be5415c522319aa44b718fe"><tt>22c0dd9</tt></a> fix changelog links
+- <a href="https://github.com/tami5/sqlite.lua/commit/99e4058704fab2109add2febf36784945cc40ecc"><tt>99e4058</tt></a> fix changelog links
 
 
 
@@ -77,24 +77,12 @@ decrease require time (cost on startup) from `0.791636 ms` to `4.140682` (423% f
 
 ### :art: Structure/Formating
 
-- <a href="https://github.com/tami5/sqlite.lua/commit/2751ecefbec06efd369ff1311719727c2347d8a2"><tt>2751ece</tt></a> lint
-
-- <a href="https://github.com/tami5/sqlite.lua/commit/fad57dbf98cefd04d7b994aa810a22c50331b552"><tt>fad57db</tt></a> update emmyclass, avoid camel_casing
-
 - <a href="https://github.com/tami5/sqlite.lua/commit/9be469a1e3480cb0a90865de313289986f8a5044"><tt>9be469a</tt></a> update changelog item format
 
 - <a href="https://github.com/tami5/sqlite.lua/commit/2d24f865daf5ec9931ceff84a0c5e5a8da87eb39"><tt>2d24f86</tt></a> update changelog item format (closes <a href="https://github.com/tami5/sqlite.lua/issues/81"> #81</a>)
 
 
 ### :boom: Breaking Changes
-
-- <a href="https://github.com/tami5/sqlite.lua/commit/810bf471ddee03e8c93bf8db575aa80a30bc53b7"><tt>810bf47</tt></a> change what sqlite module export
-
-<dl><dd><details><summary><a href="https://github.com/tami5/sqlite.lua/commit/3eedee687717a2569a6de9e46794d3fb5544b208"><tt>3eedee6</tt></a> change namespace to sqlite</summary>
-
-TODO: Add deprecation warning later
-
-</details></dd></dl>
 
 <dl><dd><details><summary><a href="https://github.com/tami5/sqlite.lua/commit/a6bd3d1cae9d3a075bd3cf1d059a1b47e0fb5ecf"><tt>a6bd3d1</tt></a> sql.schema return detailed description of table.</summary>
 
@@ -117,18 +105,6 @@ changes access to sugar functions and store it in lib. It was weird typing out `
 
 
 ### :bug: Bug Fixes
-
-- <a href="https://github.com/tami5/sqlite.lua/commit/90689d9d44d46f70e35a6a5ae246c18e332e2781"><tt>90689d9</tt></a> remove left over renames
-
-- <a href="https://github.com/tami5/sqlite.lua/commit/c5de50fa6a127fbdc30fa754e076aa92b1b02da4"><tt>c5de50f</tt></a> oh docgen I'm asking to much of you :sob:
-
-- <a href="https://github.com/tami5/sqlite.lua/commit/9fd0662097454e01b03ce948841f2a64d03d4967"><tt>9fd0662</tt></a> thats what happen with bulk rename
-
-- <a href="https://github.com/tami5/sqlite.lua/commit/704e3294331b807dd02a0cdc22d2727bfe3609ab"><tt>704e329</tt></a> docgen?
-
-- <a href="https://github.com/tami5/sqlite.lua/commit/2ef2189acc5cb189e2f5c8827469557617996ed3"><tt>2ef2189</tt></a> docgen
-
-- <a href="https://github.com/tami5/sqlite.lua/commit/548a2b06e911d1b2f62f2c8c4057022c4cc6ec2a"><tt>548a2b0</tt></a> docgen
 
 - <a href="https://github.com/tami5/sqlite.lua/commit/1778aa857367c17c1468cc85a64fcda542b5c252"><tt>1778aa8</tt></a> (parser) only check when type is table (closes <a href="https://github.com/tami5/sqlite.lua/issues/103"> #103</a>)
 
@@ -156,8 +132,6 @@ make map, sort, each, support executing sqlite queries regardless of connection 
 
 ### :construction_worker: CI Updates
 
-- <a href="https://github.com/tami5/sqlite.lua/commit/581bcc7ed3af34ed2448402dab7a130985fd6cf7"><tt>581bcc7</tt></a> update docgen job name
-
 - <a href="https://github.com/tami5/sqlite.lua/commit/9173664fecfc8e13d9deffe54f1eba640f4d2481"><tt>9173664</tt></a> changelog run once every two days take 2
 
 - <a href="https://github.com/tami5/sqlite.lua/commit/3447223239ce2e0ab322db756ee1aa0374e20551"><tt>3447223</tt></a> update changelog template (<a href="https://github.com/tami5/sqlite.lua/pull/90">#90</a>) (closes <a href="https://github.com/tami5/sqlite.lua/issues/82"> #82</a>)
@@ -166,20 +140,6 @@ make map, sort, each, support executing sqlite queries regardless of connection 
 
 
 ### :recycle: Code Refactoring
-
-- <a href="https://github.com/tami5/sqlite.lua/commit/efb29a7274094a8105366abad178a1f64d9a4720"><tt>efb29a7</tt></a> change release version to contain v
-
-- <a href="https://github.com/tami5/sqlite.lua/commit/0f4f1b4a7c592cb7ca6eddb3143c05b1b5fa0f17"><tt>0f4f1b4</tt></a> prepare for renaming to sqlite.lua
-
-- <a href="https://github.com/tami5/sqlite.lua/commit/d794d463bb28bff62f9c59b2029e6ab22f429239"><tt>d794d46</tt></a> make name reflect classes names
-
-- <a href="https://github.com/tami5/sqlite.lua/commit/eb8ff7b962c996585b80ed82eb3fc0e81aa74252"><tt>eb8ff7b</tt></a> move class definition to emmy.lua
-
-- <a href="https://github.com/tami5/sqlite.lua/commit/1c941396cac17f1e72389c1a7da9fd21178e9996"><tt>1c94139</tt></a> avoid dot notation
-
-- <a href="https://github.com/tami5/sqlite.lua/commit/9ac01063c4615b2f8956c34a3efa55f31f6e308d"><tt>9ac0106</tt></a> edit emmyclass, bring back extend.lua
-
-- <a href="https://github.com/tami5/sqlite.lua/commit/57a15d6d5c3ed11fc283eca44571f374694ffc00"><tt>57a15d6</tt></a> (strfun): use "now" instead of nil
 
 <dl><dd><details><summary><a href="https://github.com/tami5/sqlite.lua/commit/4d0302f8ccb3ab647f3d5709d3adf4d3c8810060"><tt>4d0302f</tt></a> favor delete/remove accepting where key</summary>
 
