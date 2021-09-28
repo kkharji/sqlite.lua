@@ -937,17 +937,40 @@ describe("sqlite.db", function()
         },
         opts = {
           foreign_keys = true,
-          keep_open = true
-        }
+          keep_open = true,
+        },
       })
       eq(true, ok, manager)
     end)
     it("should exists", function()
-      eq(true, manager:exists("projects"))
+      eq(true, manager:exists "projects")
     end)
 
     luv.fs_unlink(testrui)
     luv.fs_unlink(testrui2)
     luv.fs_unlink(testrui3)
+  end)
+  describe("misc/issues", function()
+    it("false isn't treated as nil #123", function()
+      ---@type sqlite_db
+      local db = sql {
+        uri = "/tmp/test_db",
+        tbl = {
+          ok_key = "text",
+          problem_key = { "boolean", required = true },
+        },
+        opts = { keep_open = true },
+      }
+
+      local ok, err = pcall(function()
+        return db:insert("tbl", { ok_key = "this works", problem_key = false })
+      end)
+
+      eq(true, ok, err)
+      eq({ ok_key = "this works", problem_key = false }, db.tbl:get()[1])
+      eq({ ok_key = "this works", problem_key = false }, db:select("tbl")[1])
+      db:close()
+      luv.fs_unlink "/tmp/test_db"
+    end)
   end)
 end)

@@ -59,7 +59,7 @@ M.should_modify = function(status)
 end
 
 M.missing_req_key = function(val, key)
-  assert(val, errors.missing_req_key:format(key))
+  assert(val ~= nil, errors.missing_req_key:format(key))
   return false
 end
 
