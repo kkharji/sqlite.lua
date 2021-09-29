@@ -5,6 +5,8 @@
 
 ### :bug: Bug Fixes
 
+- <a href="https://github.com/tami5/sqlite.lua/commit/74b3844949738999aa76b5f709673629f0888703"><tt>74b3844</tt></a> false is treat as nil when inserting (closes <a href="https://github.com/tami5/sqlite.lua/issues/123"> #123</a>)
+
 <dl><dd><details><summary><a href="https://github.com/tami5/sqlite.lua/commit/f9326aa0443592968a24970fc55c5ee609a5dba8"><tt>f9326aa</tt></a> sqlite:tbl(...) doesn't pass schema</summary>
 
 This what happens with dealing with function that can take self or
