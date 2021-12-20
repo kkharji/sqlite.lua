@@ -54,11 +54,15 @@ sudo apt-get install sqlite3 libsqlite3-dev # Ubuntu
 ```nix
 programs.neovim.plugins = [
     {
-      plugin = pkgs.vimPlugins.sql-nvim;
+      plugin = pkgs.vimPlugins.sqlite-lua;
       config = "let g:sqlite_clib_path = '${pkgs.sqlite.out}/lib/libsqlite3.so'";
     }
 ];
 ```
+
+*Notes:*
+  - Ensure you install `pkgs.sqlite`
+  - If you are using home-manager on OSX, you must replace `libsqlite3.so` with `libsqlite3.dylib`
 
 🔥 Powered by sqlite.lua
 -----------------
