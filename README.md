@@ -60,6 +60,10 @@ programs.neovim.plugins = [
 ];
 ```
 
+*Notes:*
+  - Ensure you install `pkgs.sqlite`
+  - If you are using home-manager on OSX, you must replace `libsqlite3.so` with `libsqlite3.dylib`
+
 🔥 Powered by sqlite.lua
 -----------------
 
