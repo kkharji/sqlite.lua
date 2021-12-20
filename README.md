@@ -54,7 +54,7 @@ sudo apt-get install sqlite3 libsqlite3-dev # Ubuntu
 ```nix
 programs.neovim.plugins = [
     {
-      plugin = pkgs.vimPlugins.sql-nvim;
+      plugin = pkgs.vimPlugins.sqlite-lua;
       config = "let g:sqlite_clib_path = '${pkgs.sqlite.out}/lib/libsqlite3.so'";
     }
 ];
