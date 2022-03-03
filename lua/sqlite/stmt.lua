@@ -126,12 +126,12 @@ local sqlite_datatypes = {
 ---@TODO should accept 1-index
 function sqlstmt:convert_type(idx)
   local convert_dt = {
-    ["integer"] = "number",
-    ["float"] = "number",
-    ["double"] = "number",
-    ["text"] = "string",
-    ["blob"] = "binary",
-    ["null"] = nil,
+    ["INTEGER"] = "number",
+    ["FLOAT"] = "number",
+    ["DOUBLE"] = "number",
+    ["TEXT"] = "string",
+    ["BLOB"] = "binary",
+    ["NULL"] = nil,
   }
   return convert_dt[clib.to_str(clib.column_decltype(self.pstmt, idx))]
 end

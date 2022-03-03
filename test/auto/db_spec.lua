@@ -687,26 +687,26 @@ describe("sqlite.db", function()
           cid = 0,
           primary = false,
           required = false,
-          type = "text",
+          type = "TEXT",
         },
         b = {
           cid = 1,
           primary = false,
           required = false,
-          type = "int",
+          type = "INT",
         },
         c = {
           cid = 2,
           primary = false,
           required = true,
-          type = "int",
+          type = "INT",
         },
         d = {
           cid = 3,
           default = "def",
           primary = false,
           required = false,
-          type = "text",
+          type = "TEXT",
         },
       }, sch)
     end)
@@ -718,25 +718,25 @@ describe("sqlite.db", function()
           cid = 0,
           primary = false,
           required = false,
-          type = "text",
+          type = "TEXT",
         },
         b = {
           cid = 1,
           primary = false,
           required = false,
-          type = "int",
+          type = "INT",
         },
         c = {
           cid = 2,
           primary = false,
           required = true,
-          type = "int",
+          type = "INT",
         },
         d = {
           cid = 3,
           primary = false,
           required = false,
-          type = "text",
+          type = "TEXT",
           default = "def",
         },
       }, sch)
@@ -763,7 +763,7 @@ describe("sqlite.db", function()
     it("skip overriding the table schema if it exists", function()
       db:create("test", { id = "not_a_type", ensure = true })
       local sch = db:schema "test"
-      eq("text", sch.title.type, "should exists and should be still text not be nil")
+      eq("TEXT", sch.title.type, "should exists and should be still text not be nil")
     end)
     it("auto enable foreign_keys on usage", function()
       db:create("test_keys", {

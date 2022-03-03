@@ -61,13 +61,13 @@ describe("sqlite.tbl", function()
         cid = 0,
         primary = false,
         required = false,
-        type = "int",
+        type = "INT",
       },
       name = {
         cid = 1,
         primary = false,
         required = false,
-        type = "text",
+        type = "TEXT",
       },
     }
     local new = db:tbl("newtbl", opts)
@@ -92,19 +92,19 @@ describe("sqlite.tbl", function()
           cid = 0,
           primary = false,
           required = false,
-          type = "integer",
+          type = "INTEGER",
         },
         b = {
           cid = 1,
           primary = false,
           required = false,
-          type = "text",
+          type = "TEXT",
         },
         c = {
           cid = 2,
           primary = false,
           required = false,
-          type = "text",
+          type = "TEXT",
         },
       }, t1:schema())
     end)
@@ -117,19 +117,19 @@ describe("sqlite.tbl", function()
           cid = 0,
           primary = false,
           required = false,
-          type = "text",
+          type = "TEXT",
         },
         d = {
           cid = 1,
           primary = false,
           required = false,
-          type = "text",
+          type = "TEXT",
         },
         id = {
           cid = 2,
           primary = false,
           required = false,
-          type = "int",
+          type = "INT",
         },
       }
       eq(true, t2:schema(schema), "Should return true")
@@ -142,19 +142,19 @@ describe("sqlite.tbl", function()
           cid = 0,
           primary = false,
           required = false,
-          type = "text",
+          type = "TEXT",
         },
         f = {
           cid = 1,
           primary = false,
           required = false,
-          type = "text",
+          type = "TEXT",
         },
         id = {
           cid = 2,
           primary = false,
           required = false,
-          type = "int",
+          type = "INT",
         },
       }
       eq(true, t2:schema(new), "Should return true")
@@ -302,26 +302,17 @@ describe("sqlite.tbl", function()
         { a = 12, b = "srd", c = "fn" },
         { a = 32, b = "sbs", c = "en" },
         { a = 35, b = "cba", c = "qa" },
-      }, t1:sort(
-        { where = { a = { 32, 12, 35 } } },
-        "a"
-      ))
+      }, t1:sort({ where = { a = { 32, 12, 35 } } }, "a"))
       eq({
         { a = 32, b = "sbs", c = "en" },
         { a = 12, b = "srd", c = "fn" },
         { a = 35, b = "cba", c = "qa" },
-      }, t1:sort(
-        { where = { a = { 32, 12, 35 } } },
-        "c"
-      ))
+      }, t1:sort({ where = { a = { 32, 12, 35 } } }, "c"))
       eq({
         { a = 35, b = "cba", c = "qa" },
         { a = 32, b = "sbs", c = "en" },
         { a = 12, b = "srd", c = "fn" },
-      }, t1:sort(
-        { where = { a = { 32, 12, 35 } } },
-        "b"
-      ))
+      }, t1:sort({ where = { a = { 32, 12, 35 } } }, "b"))
     end)
 
     it("can use a custom comparison function", function()
@@ -332,11 +323,7 @@ describe("sqlite.tbl", function()
         { a = 12, b = "srd", c = "fn" },
         { a = 32, b = "sbs", c = "en" },
         { a = 35, b = "cba", c = "qa" },
-      }, t1:sort(
-        { where = { a = { 32, 12, 35 } } },
-        "b",
-        comp
-      ))
+      }, t1:sort({ where = { a = { 32, 12, 35 } } }, "b", comp))
     end)
   end)
 

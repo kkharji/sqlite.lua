@@ -51,11 +51,13 @@ describe("stmt", function()
 
   local db, expectedlist, expectedkv, s
   db = conn() -- start of first suit test.
-  for _, v in pairs {
-    [[create table todos(id integer primary key, title text, desc text, deadline integer);]],
-    [[insert into todos (title,desc,deadline) values("Create something", "Don't you dare to tell conni", 2021);]],
-    [[insert into todos (title,desc,deadline) values("Don't work on something else", 'keep conni close by :P', 2021);]],
-  } do
+  for _, v in
+    pairs {
+      [[create table todos(id integer primary key, title text, desc text, deadline integer);]],
+      [[insert into todos (title,desc,deadline) values("Create something", "Don't you dare to tell conni", 2021);]],
+      [[insert into todos (title,desc,deadline) values("Don't work on something else", 'keep conni close by :P', 2021);]],
+    }
+  do
     eval(db, v)
   end
 
