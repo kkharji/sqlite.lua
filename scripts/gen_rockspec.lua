@@ -29,7 +29,7 @@ dependencies = c(dependencies)
 
 --- Format modules ----------------------------------------
 for _, v in ipairs(scandir(cwd, { search_pattern = "/lua/sqlite/[^examples]" })) do
-  local path = v:gsub(cwd, "")
+  local path = v:gsub(cwd .. "/", "")
   local module = path:gsub("/", "%."):gsub(".lua.(.-).lua", "%1")
   modules[module] = path
 end

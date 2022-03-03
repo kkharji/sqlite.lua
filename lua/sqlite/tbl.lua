@@ -14,7 +14,10 @@ local h = require "sqlite.helpers"
 local indexer = require "sqlite.tbl.indexer"
 local sqlite = {}
 
----@type sqlite_tbl
+---@class sqlite_tbl @Main sql table class
+---@field db sqlite_db: sqlite.lua database object.
+---@field name string: table name.
+---@field mtime number: db last modified time.
 sqlite.tbl = {}
 sqlite.tbl.__index = sqlite.tbl
 

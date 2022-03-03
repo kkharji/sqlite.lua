@@ -75,7 +75,12 @@ M.run = function(func, o)
     if o.tbl_exists == nil then
       o.tbl_exists = o.db:exists(o.name)
       o.mtime = o.db.uri and (luv.fs_stat(o.db.uri) or { mtime = {} }).mtime.sec or nil
-      o.has_content = o.tbl_exists and o.db:eval(fmt("select count(*) from %s", o.name))[1]["count(*)"] ~= 0 or 0
+      rawset(
+        o,
+        "has_content",
+        o.tbl_exists and o.db:eval(fmt("select count(*) from %s", o.name))[1]["count(*)"] ~= 0 or 0
+      )
+      -- o.has_content =
       M.check_for_auto_alter(o, valid_schema)
     end
 

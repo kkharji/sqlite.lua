@@ -3,25 +3,32 @@
 ---@brief ]]
 ---@tag sqlite.db.lua
 
+local u = require "sqlite.utils"
+local require = u.require_on_index
+
 local sqlite = {}
----@type sqlite_db
+
+---@class sqlite_db @Main sqlite.lua object.
+---@field uri string: database uri. it can be an environment variable or an absolute path. default ":memory:"
+---@field opts sqlite_opts: see https://www.sqlite.org/pragma.html |sqlite_opts|
+---@field conn sqlite_blob: sqlite connection c object.
+---@field db sqlite_db: reference to fallback to when overwriting |sqlite_db| methods (extended only).
 sqlite.db = {}
 sqlite.db.__index = sqlite.db
-sqlite.db.__version = "v1.0.0"
+sqlite.db.__version = "v1.2.0"
 
 local clib = require "sqlite.defs"
 local s = require "sqlite.stmt"
-local u = require "sqlite.utils"
 local h = require "sqlite.helpers"
 local a = require "sqlite.assert"
 local p = require "sqlite.parser"
-local flags = clib.flags
+local tbl = require "sqlite.tbl"
 
 ---Creates a new sqlite.lua object, without creating a connection to uri.
 ---|sqlite.new| is identical to |sqlite.db:open| but it without opening sqlite db
----connection. Thus its most suited for cases where the database might be
----acccess from multiple places. For neovim use cases, this mean from different
----neovim instances.
+---connection (unless opts.keep_open). Its most suited for cases where the
+---database might be -acccess from multiple places. For neovim use cases, this
+---mean from different -neovim instances.
 ---
 ---<pre>
 ---```lua
@@ -32,16 +39,26 @@ local flags = clib.flags
 ---@param opts sqlite_opts: (optional) see |sqlite_opts|
 ---@return sqlite_db
 function sqlite.db.new(uri, opts)
+  opts = opts or {}
+  local keep_open = opts.keep_open
+  opts.keep_open = nil
   uri = type(uri) == "string" and u.expand(uri) or ":memory:"
-  return setmetatable({
+
+  local o = setmetatable({
     uri = uri,
     conn = nil,
     closed = true,
-    opts = opts or {},
+    opts = opts,
     modified = false,
     created = nil,
     tbl_schemas = {},
   }, sqlite.db)
+
+  if keep_open then
+    o:open()
+  end
+
+  return o
 end
 
 ---Extend |sqlite_db| object with extra sugar syntax and api. This is recommended
@@ -54,6 +71,13 @@ end
 ---
 ---Like |sqlite_tbl| original methods can be access through pre-appending "__"
 ---when user overwrites it.
+---
+---if { conf.opts.lazy } then only return a logical object with self-dependent
+--tables, e.g. a table exists and other not because the one that
+---exists, it's method was called. (default false).
+---if { conf.opts.keep_open } then the sqlite extend db object will be returned
+---with an open connection (default false)
+
 ---<pre>
 ---```lua
 --- local db = sqlite { -- or sqlite_db:extend
@@ -61,20 +85,26 @@ end
 ---   entries = require'entries',  -- a pre-made |sqlite_tbl| object.
 ---   category = { title = { "text", unique = true, primary = true}  },
 ---   opts = {} or nil -- custom sqlite3 options, see |sqlite_opts|
+---   --- if opts.keep_open, make connection and keep it open.
+---   --- if opts.lazy, then just provide logical object
 --- }
 --- --- Overwrite method and access it using through pre-appending "__"
 --- db.select = function(...) db:__select(...) end
 ---```
 ---</pre>
----@param opts table: see 'Fields'
+---@param conf table: see 'Fields'
 ---@field uri string: path to db file.
----@field opts sqlite_opts: (optional) see |sqlite_opts|
+---@field opts sqlite_opts: (optional) see |sqlite_opts| + lazy (default false), open (default false)
 ---@field tname1 string: pointing to |sqlite_etbl| or |sqlite_schema_dict|
 ---@field tnameN string: pointing to |sqlite_etbl| or |sqlite_schema_dict|
 ---@see sqlite_tbl:extend
 ---@return sqlite_db
-function sqlite.db:extend(opts)
-  local db = self.new(opts.uri, opts.opts)
+function sqlite.db:extend(conf)
+  conf.opts = conf.opts or {}
+  local lazy = conf.opts.lazy
+  conf.opts.lazy = nil
+
+  local db = self.new(conf.uri, conf.opts)
   local cls = setmetatable({ db = db }, {
     __index = function(_, key, ...)
       if type(key) == "string" then
@@ -86,15 +116,16 @@ function sqlite.db:extend(opts)
     end,
   })
 
-  for tbl_name, schema in pairs(opts) do
-    if tbl_name ~= "uri" and tbl_name ~= "opts" and u.is_tbl(schema) then
+  for tbl_name, schema in pairs(conf) do
+    if tbl_name ~= "uri" and tbl_name ~= "opts" and tbl_name ~= "lazy" and u.is_tbl(schema) then
       local name = schema._name and schema._name or tbl_name
-      cls[tbl_name] = schema.set_db and schema or require("sqlite.tbl").new(name, schema)
+      cls[tbl_name] = schema.set_db and schema or require("sqlite.tbl").new(name, schema, not lazy and db or nil)
       if not cls[tbl_name].db then
         (cls[tbl_name]):set_db(db)
       end
     end
   end
+
   return cls
 end
 
@@ -279,7 +310,7 @@ function sqlite.db:eval(statement, params)
   stmt:finalize()
 
   -- if no rows is returned, then check return the result of errcode == flags.ok
-  res = rawequal(next(res), nil) and clib.last_errcode(self.conn) == flags.ok or res
+  res = rawequal(next(res), nil) and clib.last_errcode(self.conn) == clib.flags.ok or res
 
   -- fix res of its table, so that select all doesn't return { [1] = {[1] = { row }} }
   if type(res) == "table" and res[2] == nil and u.is_nested(res[1]) then
@@ -605,14 +636,15 @@ end
 ---```
 ---</pre>
 ---@param tbl_name string: the name of the table. can be new or existing one.
----@param opts sqlite_schema_dict: {schema, ensure (defalut true)}
+---@param schema sqlite_schema_dict: {schema, ensure (defalut true)}
 ---@see |sqlite.tbl.new|
 ---@return sqlite_tbl
 function sqlite.db:tbl(tbl_name, schema)
   if type(self) == "string" then
-    return require("sqlite.tbl").new(self, schema)
+    schema = tbl_name
+    return tbl.new(self, schema)
   end
-  return require("sqlite.tbl").new(tbl_name, schema, self)
+  return tbl.new(tbl_name, schema, self)
 end
 
 ---DEPRECATED

@@ -802,12 +802,13 @@ describe("sqlite.db", function()
   describe(":extend", function()
     local testrui = "/tmp/extend_db_new"
     local testrui2 = "/tmp/extend_db_new5"
+    local testrui3 = "/tmp/extend_db_new5"
     local ok, manager
 
     it("Initialize manager", function()
-      ---@class Manager:sqldb
-      ---@field projects sqltable
-      ---@field todos sqltable
+      ---@class ManagerLazy:sqlite_db
+      ---@field projects sqlite_tbl
+      ---@field todos sqlite_tbl
       ok, manager = pcall(sql, {
         uri = testrui,
         projects = {
@@ -825,6 +826,7 @@ describe("sqlite.db", function()
         },
         opts = {
           foreign_keys = true,
+          lazy = true,
         },
       })
       eq(true, ok, manager)
@@ -914,7 +916,61 @@ describe("sqlite.db", function()
       eq(3, db.st:count(), "should have inserted.")
     end)
 
+    it("Initialize manager", function()
+      ---@class ManagerFull:sqlite_db
+      ---@field projects sqlite_tbl
+      ---@field todos sqlite_tbl
+      ok, manager = pcall(sql, {
+        uri = testrui,
+        projects = {
+          id = true,
+          title = "text",
+          objectives = "luatable",
+        },
+        todos = {
+          id = true,
+          title = "text",
+          client = "integer",
+          status = "text",
+          completed = "boolean",
+          details = "text",
+        },
+        opts = {
+          foreign_keys = true,
+          keep_open = true,
+        },
+      })
+      eq(true, ok, manager)
+    end)
+    it("should exists", function()
+      eq(true, manager:exists "projects")
+    end)
+
     luv.fs_unlink(testrui)
     luv.fs_unlink(testrui2)
+    luv.fs_unlink(testrui3)
+  end)
+  describe("misc/issues", function()
+    it("false isn't treated as nil #123", function()
+      ---@type sqlite_db
+      local db = sql {
+        uri = "/tmp/test_db",
+        tbl = {
+          ok_key = "text",
+          problem_key = { "boolean", required = true },
+        },
+        opts = { keep_open = true },
+      }
+
+      local ok, err = pcall(function()
+        return db:insert("tbl", { ok_key = "this works", problem_key = false })
+      end)
+
+      eq(true, ok, err)
+      eq({ ok_key = "this works", problem_key = false }, db.tbl:get()[1])
+      eq({ ok_key = "this works", problem_key = false }, db:select("tbl")[1])
+      db:close()
+      luv.fs_unlink "/tmp/test_db"
+    end)
   end)
 end)

@@ -3,21 +3,30 @@ local bit = require "bit"
 local luv = require "luv"
 local M = {}
 
-local path = vim and (vim.g.sqlte_clib_path or vim.g.sql_clib_path) or nil
+--- Load clib
+local clib = (function()
+  local path, _
 
-local clib_path = path
-  or (function()
-    if luv.os_uname().sysname == "Darwin" then
-      if luv.os_uname().machine == "arm64" then
-        return "/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib"
-      else
-        return "/usr/local/opt/sqlite3/lib/libsqlite3.dylib"
-      end
+  if vim then
+    if vim.g.sql_clib_path then
+      error [[ sqlite.lua: vim.g.sql_clib_path is deprecated. Use vim.g.sqlite_clib_path instead. ]]
     end
-    return "libsqlite3"
-  end)()
+    path = vim.g.sqlite_clib_path
+  else
+    path, _ = luv.os_getenv "LIBSQLITE"
+  end
 
-local clib = ffi.load(clib_path)
+  local clib_path = path
+    or (function() --- try to find libsqlite. Macos support only.
+      local os = luv.os_uname()
+      if os.sysname == "Darwin" then
+        return os.machine == "arm64" and "/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib"
+          or "/usr/local/opt/sqlite3/lib/libsqlite3.dylib"
+      end
+    end)()
+
+  return ffi.load(clib_path or "libsqlite3")
+end)()
 
 ---@type sqlite_flags
 M.flags = {

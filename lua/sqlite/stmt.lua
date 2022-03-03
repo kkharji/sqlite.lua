@@ -6,8 +6,13 @@ local clib = require "sqlite.defs"
 local flags = clib.flags
 
 ---@class sqlstmt @Object to deal with sqlite statements
+---@field pstmt sqlite_blob sqlite_pstmt
+---@field conn sqlite_blob sqlite3 object
+---@field str string original statement
 local sqlstmt = {}
 sqlstmt.__index = sqlstmt
+
+--- TODO: refactor and make parser.lua required here only.
 
 ---Parse a statement
 ---@param conn sqlite3: the database connection.
@@ -18,20 +23,15 @@ sqlstmt.__index = sqlstmt
 function sqlstmt:parse(conn, str)
   assert(clib.type_of(conn) == clib.type_of_db_ptr, "Invalid connection passed to sqlstmt:parse")
   assert(type(str) == "string", "Invalid second argument passed to sqlstmt:parse")
-  local o = {
+  local o = setmetatable({
     str = str,
     conn = conn,
     finalized = false,
-  }
-  setmetatable(o, self)
-  o:__parse()
-  return o
-end
+  }, sqlstmt)
 
----Parse self.str into an sqlite representation and set it to self.pstmt.
-function sqlstmt:__parse()
   local pstmt = clib.get_new_stmt_ptr()
-  local code = clib.prepare_v2(self.conn, self.str, #self.str, pstmt, nil)
+  local code = clib.prepare_v2(o.conn, o.str, #o.str, pstmt, nil)
+
   assert(
     code == flags.ok,
     string.format(
@@ -42,7 +42,9 @@ function sqlstmt:__parse()
     )
   )
 
-  self.pstmt = pstmt[0]
+  o.pstmt = pstmt[0]
+  return o
+
 end
 
 ---Resets the parsed statement. required for parsed statements to be re-executed.
@@ -71,7 +73,7 @@ function sqlstmt:finalize()
 end
 
 ---Called before evaluating the (next iteration) of the prepared statement.
----@return sqlite_flag: Possible Flags: { flags.busy, flags.done, flags.row, flags.error, flags.misuse }
+---@return sqlite_flags: Possible Flags: { flags.busy, flags.done, flags.row, flags.error, flags.misuse }
 function sqlstmt:step()
   local step_code = clib.step(self.pstmt)
   assert(
@@ -285,7 +287,6 @@ local bind_type_to_func = {
 ---If {args[1]} is a number and {args[2]} is a value then it binds by index.
 ---Else first argument is a table, then it binds the table to indicies, and it
 ---works with named and unnamed.
----@param ...: Either a index value pair or a table
 ---@varargs if {args[1]} number and {args[2]} or {args[1]} table
 ---@see sqlstmt:nparam
 ---@see sqlstmt:param
@@ -308,7 +309,7 @@ function sqlstmt:bind(...)
 
     for k, v in pairs(names) do
       local index = parameter_index_cache[k] or table.remove(anon_indices, 1)
-      if ((type(v) == "string" and v:match "%a+%(.+%)") and flags.ok or self:bind(index, v)) ~= flags.ok then
+      if ((type(v) == "string" and v:match "^[%S]+%(.*%)$") and flags.ok or self:bind(index, v)) ~= flags.ok then
         error("sqlite.lua error at stmt:bind(), failed to bind a given value '%s'. Please report issue."):format(v)
       end
     end
@@ -344,7 +345,7 @@ end
 ---@param idx number: index starting at 1
 ---@param pointer sqlite_blob: blob to bind
 ---@param size number: pointer size
----@return sqlite_flag
+---@return sqlite_flags
 function sqlstmt:bind_blob(idx, pointer, size)
   return clib.bind_blob64(self.pstmt, idx, pointer, size, nil) -- Always 64? or two functions
 end
@@ -352,7 +353,7 @@ end
 ---Binds zeroblob at {idx} with {size}
 ---@param idx number: index starting at 1
 ---@param size number: zeroblob size
----@return sqlite_flag
+---@return sqlite_flags
 function sqlstmt:bind_zeroblob(idx, size)
   return clib.bind_zeroblob64(self.pstmt, idx, size)
 end
@@ -387,7 +388,7 @@ function sqlstmt:params()
 end
 
 ---Clear the current bindings.
----@return sqlite_flag
+---@return sqlite_flags
 function sqlstmt:bind_clear()
   self.current_bind_index = nil
   return clib.clear_bindings(self.pstmt)
@@ -395,7 +396,7 @@ end
 
 ---Bind the value at the next index until all values are bound
 ---@param value any: value to bind
----@return sqlite_flag
+---@return sqlite_flags
 ---@TODO does it return sqlite_flag in all cases? @conni
 function sqlstmt:bind_next(value)
   if not self.current_bind_index then

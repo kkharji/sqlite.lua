@@ -6,7 +6,9 @@ sqlite.lua 💫
 [sqlite.lua] present new possibilities for plugin development and while it's primarily created for [neovim], it support all luajit environments.
 
 - [Changelog](https://github.com/tami5/sqlite.lua/blob/master/CHANGELOG.md)
-- [Docs](https://github.com/tami5/sqlite.lua/blob/master/doc/sql.txt)
+- [Docs](https://github.com/tami5/sqlite.lua/blob/master/doc/sqlite.txt)
+- [Examples](https://github.com/tami5/sqlite.lua/blob/master/lua/sqlite/examples)
+- [Powered By sqlite.lua](https://github.com/tami5/sqlite.lua#-powered-by-sqlitelua)
 
 <p align="center"> <img src="./doc/preview.svg"> </p>
 
@@ -24,19 +26,19 @@ sqlite.lua 💫
 🚧 Installation
 -----------------
 
-### [Packer.nvim](https://github.com/wbthomason/packer.nvim)
+### [Packer.nvim](https://github.com/wbthomason/packer.nvim) (Neovim)
 
 ```lua
 use { "tami5/sqlite.lua" }
 ```
 
-### [luarocks](https://luarocks.org/)
+### [luarocks](https://luarocks.org/) (LuaJIT)
 
 ```bash
-luarocks install sqlite
+luarocks install sqlite luv
 ```
 
-**Ensure you have `sqlite3` installed locally.**
+**Ensure you have `sqlite3` installed locally.** (if you are on mac it might be installed already)
 
 #### Windows
 
@@ -52,11 +54,24 @@ sudo apt-get install sqlite3 libsqlite3-dev # Ubuntu
 ```nix
 programs.neovim.plugins = [
     {
-      plugin = pkgs.vimPlugins.sql-nvim;
+      plugin = pkgs.vimPlugins.sqlite-lua;
       config = "let g:sqlite_clib_path = '${pkgs.sqlite.out}/lib/libsqlite3.so'";
     }
 ];
 ```
+
+*Notes:*
+  - Ensure you install `pkgs.sqlite`
+  - If you are using home-manager on OSX, you must replace `libsqlite3.so` with `libsqlite3.dylib`
+
+🔥 Powered by sqlite.lua
+-----------------
+
+- https://github.com/tami5/impatient.nvim
+- https://github.com/nvim-telescope/telescope-smart-history.nvim
+- https://github.com/nvim-telescope/telescope-frecency.nvim
+- https://github.com/tami5/lispdocs.nvim
+- https://github.com/nvim-telescope/telescope-cheat.nvim
 
 [Installation]: #🚧_installation
 [SQLite]: https://www.sqlite.org/index.html

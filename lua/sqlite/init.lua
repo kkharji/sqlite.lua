@@ -19,17 +19,6 @@
 ---@brief ]]
 ---@tag sqlite.readme
 
----@class sqlite_db @Main sqlite.lua object.
----@field uri string: database uri. it can be an environment variable or an absolute path. default ":memory:"
----@field opts sqlite_opts: see https://www.sqlite.org/pragma.html |sqlite_opts|
----@field conn sqlite_blob: sqlite connection c object.
----@field db sqlite_db: reference to fallback to when overwriting |sqlite_db| methods (extended only).
-
----@class sqlite_tbl @Main sql table class
----@field db sqlite_db: sqlite.lua database object.
----@field name string: table name.
----@field mtime number: db last modified time.
-
 ---@class sqlite_schema_key @Sqlite schema key fileds. {name} is the only required field.
 ---@field cid number: column index.
 ---@field name string: column key.
@@ -72,4 +61,14 @@
 ---| '"cascade"' : propagates the delete or update operation on the parent key to each dependent child key.
 
 ---@type sqlite_db
-return require "sqlite.db"
+return setmetatable({}, {
+  __index = function(_, key)
+    return require("sqlite.db")[key]
+  end,
+  __newindex = function(_)
+    error "sqlite.lua: this shouldn't happen. Mutating sqlite base object is prohibited."
+  end,
+  __call = function(_, ...)
+    return require "sqlite.db"(...)
+  end,
+})

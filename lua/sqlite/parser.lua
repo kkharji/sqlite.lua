@@ -23,7 +23,12 @@ M.luavalue = function(v, key_type)
   if key_type == "luatable" or key_type == "json" then
     return json.decode(v)
   elseif key_type == "boolean" then
-    return v == 0 and false or true
+    if v == 0 then
+      return false
+    else
+      return true
+    end
+    -- return v == 0 and false or true
   end
 
   return v
@@ -120,7 +125,7 @@ local pvalues = function(defs, kv)
 
   local keys = {}
   for k, v in u.opairs(defs) do
-    if type(v) == "string" and v:match "%a+%(.+%)" then
+    if type(v) == "string" and v:match "^[%S]+%(.*%)$" then
       tinsert(keys, v)
     else
       tinsert(keys, ":" .. k)
@@ -341,7 +346,7 @@ local opts_to_str = function(tbl)
       end
     end,
     default = function(v)
-      v = (type(v) == "string" and v:match "^%a+%(.+%)$") and "(" .. tostring(v) .. ")" or v
+      v = (type(v) == "string" and v:match "^[%S]+%(.*%)$") and "(" .. tostring(v) .. ")" or v
       local str = "default "
       if tbl["required"] then
         return "on conflict replace " .. str .. v
@@ -551,7 +556,6 @@ end
 M.post_select = function(rows, schema)
   local is_nested = u.is_nested(rows)
   rows = is_nested and rows or { rows }
-
   for _, row in ipairs(rows) do
     for k, v in pairs(row) do
       local info = schema[k]
