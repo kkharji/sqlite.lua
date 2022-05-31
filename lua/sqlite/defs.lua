@@ -7,14 +7,17 @@ local M = {}
 local clib = (function()
   local path, _
 
-  if vim then
+  if vim  then
     if vim.g.sql_clib_path then
       error [[ sqlite.lua: vim.g.sql_clib_path is deprecated. Use vim.g.sqlite_clib_path instead. ]]
     end
     path = vim.g.sqlite_clib_path
-  else
+  end
+
+  if not path then
     path, _ = luv.os_getenv "LIBSQLITE"
   end
+
 
   local clib_path = path
     or (function() --- try to find libsqlite. Macos support only.
