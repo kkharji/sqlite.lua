@@ -50,7 +50,13 @@ build = {
   type = "builtin",
   modules = %s
 }
-
+test = {
+	type = "command",
+	command = "make test"
+}
+test_dependencies = {
+	"plenary.nvim"
+}
 ]]):format(version, ins(description), version, dependencies, ins(modules))
 
 local file_handle = io.open(("%s/sqlite-%s-0.rockspec"):format(cwd, version), "w")
