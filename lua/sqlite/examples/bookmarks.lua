@@ -160,7 +160,7 @@ function entries:inc(id)
   local row = entries:where { id = id }
   entries:update {
     where = { id = id },
-    set = { count = row.count + 1 }
+    set = { count = row.count + 1 },
   }
   ts:insert(id)
   ts:trim(id)

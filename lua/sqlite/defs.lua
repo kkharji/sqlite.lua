@@ -7,7 +7,7 @@ local M = {}
 local clib = (function()
   local path, _
 
-  if vim  then
+  if vim then
     if vim.g.sql_clib_path then
       error [[ sqlite.lua: vim.g.sql_clib_path is deprecated. Use vim.g.sqlite_clib_path instead. ]]
     end
