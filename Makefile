@@ -5,6 +5,9 @@ test:
 lint:
 	luacheck lua/
 
+stylua:
+	stylua --color always --check lua/
+
 gen_nvimhelp:
 	nvim --headless --noplugin -u test/minimal_init.vim -c "luafile ./scripts/gen_nvimhelp.lua" -c 'qa'
 
