@@ -16,6 +16,8 @@
 
           default = pkgs.mkShell {
 
+            # you will also need a neovim with plenary-nvim installed to run the
+            # tests
             buildInputs = with pkgs; [
               luarocks
               lua51Packages.luacheck

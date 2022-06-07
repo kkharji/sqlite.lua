@@ -1,6 +1,6 @@
 rockspec_format = "3.0"
-package = 'sqlite.lua'
-version = 'scm-1'
+package = 'sqlite'
+version = 'master-0'
 description = {
   detailed = "",
   homepage = "https://github.com/tami5/sqlite.lua",
@@ -13,7 +13,7 @@ source = {
   tag = "master"
 }
 dependencies = {
-  "plenary.nvim"
+  "luv"
 }
 build = {
   type = "builtin",
@@ -33,5 +33,6 @@ test = {
 	type = "command",
 	command = "make test"
 }
-
-
+test_dependencies = {
+	"plenary.nvim"
+}
