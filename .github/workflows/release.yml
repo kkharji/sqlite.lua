@@ -27,19 +27,15 @@ jobs:
         id: tag
         run: echo ::set-output name=TAG::${GITHUB_REF##*/}
       -
-        name: Install required utils
+        name: Setup Lua
+        uses: leafo/gh-actions-lua@v8.0.0
+      -
+        name: Setup Luarocks
+        uses: leafo/gh-actions-luarocks@v4
+      -
+        name: Setup Git-Chglog
         run: |
           go get github.com/git-chglog/git-chglog/cmd/git-chglog
-          apt-get update
-          apt-get -y install lua sudo unzip build-essential libreadline-dev
-          wget https://luarocks.org/releases/luarocks-3.7.0.tar.gz
-          wget https://luarocks.org/releases/luarocks-3.3.1.tar.gz
-          tar zxpf luarocks-3.3.1.tar.gz
-          cd luarocks-3.3.1
-          ./configure --with-lua-include=/usr/local/include
-          make; make install
-          cd -
-          echo $(luarocks --version)
       -
         name: Setup  Environment
         run: |
