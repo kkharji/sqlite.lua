@@ -5,7 +5,7 @@ on:
 
 jobs:
   release:
-    if: github.event.base_ref == 'refs/heads/master' # not sure, maybe not
+    # if: github.event.base_ref == 'refs/heads/master' # not sure, maybe not
     runs-on: ubuntu-20.04
     container:
       image: golang:1.16
@@ -31,7 +31,7 @@ jobs:
         run: |
           go get github.com/git-chglog/git-chglog/cmd/git-chglog
           apt-get update
-          apt-get -y install build-essential libreadline-dev
+          apt-get -y install lua sudo unzip build-essential libreadline-dev
           wget https://luarocks.org/releases/luarocks-3.7.0.tar.gz
           wget https://luarocks.org/releases/luarocks-3.3.1.tar.gz
           tar zxpf luarocks-3.3.1.tar.gz
