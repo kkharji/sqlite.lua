@@ -36,7 +36,7 @@ end
 
 ---string.format specifier based on value type
 ---@param v any: the value
----@param nonbind boolean: whether to return the specifier or just return the value.
+---@param nonbind boolean?: whether to return the specifier or just return the value.
 ---@return string
 local specifier = function(v, nonbind)
   local type = type(v)
@@ -80,8 +80,8 @@ local pcontains = function(defs)
     local head = "%s glob " .. specifier(k)
 
     if type(v) == "table" then
-      local val = u.map(v, function(_v)
-        return head:format(k, M.sqlvalue(_v))
+      local val = u.map(v, function(value)
+        return head:format(k, M.sqlvalue(value))
       end)
       tinsert(items, tconcat(val, " or "))
     else

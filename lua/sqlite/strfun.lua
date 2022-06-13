@@ -5,31 +5,31 @@ local customstr
 customstr = function(str)
   local mt = getmetatable(str)
 
-  local wrap = function(_a, _b, sign)
-    local _str = ("%s %s %s"):format(_a, sign, _b)
-    if u.is_str(_b) and _b:match "^%a+%(.+%)$" then
+  local wrap = function(a_, b_, sign)
+    local _str = ("%s %s %s"):format(a_, sign, b_)
+    if u.is_str(b_) and b_:match "^%a+%(.+%)$" then
       _str = "(" .. _str .. ")"
     end
     return _str
   end
 
-  mt.__add = function(_a, _b)
-    return wrap(_a, _b, "+")
+  mt._a_dd = function(a_, b_)
+    return wrap(a_, b_, "+")
   end
-  mt.__sub = function(_a, _b)
-    return wrap(_a, _b, "-")
+  mt.__sub = function(a_, b_)
+    return wrap(a_, b_, "-")
   end
-  mt.__mul = function(_a, _b)
-    return wrap(_a, _b, "*")
+  mt.__mul = function(a_, b_)
+    return wrap(a_, b_, "*")
   end
-  mt.__div = function(_a, _b)
-    return wrap(_a, _b, "/")
+  mt.__div = function(a_, b_)
+    return wrap(a_, b_, "/")
   end
-  mt.__pow = function(_a, _b)
-    return wrap(_a, _b, "^")
+  mt.__pow = function(a_, b_)
+    return wrap(a_, b_, "^")
   end
-  mt.__mod = function(_a, _b)
-    return wrap(_a, _b, "%")
+  mt.__mod = function(a_, b_)
+    return wrap(a_, b_, "%")
   end
 
   return str

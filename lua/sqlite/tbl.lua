@@ -350,11 +350,11 @@ function sqlite.tbl:sort(query, transform, comp)
         return r[transform]
       end
     end
-    comp = comp or function(_a, _b)
-      return _a < _b
+    comp = comp or function(a_, b_)
+      return a_ < b_
     end
-    table.sort(res, function(_a, _b)
-      return comp(f(_a), f(_b))
+    table.sort(res, function(a_, b_)
+      return comp(f(a_), f(b_))
     end)
     return res
   end, self)
