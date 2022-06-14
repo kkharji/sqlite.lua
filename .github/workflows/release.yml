@@ -27,15 +27,17 @@ jobs:
         id: tag
         run: echo ::set-output name=TAG::${GITHUB_REF##*/}
       -
+        name: Setup Git-Chglog and sudo
+        run: |
+          apt-get update -y
+          apt-get install sudo -y
+          go get github.com/git-chglog/git-chglog/cmd/git-chglog
+      -
         name: Setup Lua
         uses: leafo/gh-actions-lua@v8.0.0
       -
         name: Setup Luarocks
         uses: leafo/gh-actions-luarocks@v4
-      -
-        name: Setup Git-Chglog
-        run: |
-          go get github.com/git-chglog/git-chglog/cmd/git-chglog
       -
         name: Setup  Environment
         run: |
