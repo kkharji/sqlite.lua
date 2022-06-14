@@ -681,7 +681,13 @@ describe("sqlite.db", function()
     db:eval "create table test(a text, b int, c int not null, d text default def)"
 
     it("gets a sql table schema", function()
+      -- NOTE: Hack to ensure the casing of types always match!! due to github actions
       local sch = db:schema "test"
+      for k, v in pairs(sch) do
+        v.type = string.upper(v.type)
+        sch[k] = v
+      end
+
       eq({
         a = {
           cid = 0,
@@ -712,7 +718,12 @@ describe("sqlite.db", function()
     end)
 
     it("gets a sql table schema info", function()
+      -- NOTE: Hack to ensure the casing of types always match!! due to github actions
       local sch = db:schema "test"
+      for k, v in pairs(sch) do
+        v.type = string.upper(v.type)
+        sch[k] = v
+      end
       eq({
         a = {
           cid = 0,
@@ -763,7 +774,9 @@ describe("sqlite.db", function()
     it("skip overriding the table schema if it exists", function()
       db:create("test", { id = "not_a_type", ensure = true })
       local sch = db:schema "test"
-      eq("TEXT", sch.title.type, "should exists and should be still text not be nil")
+
+      -- NOTE: Hack to ensure the casing of types always match!! due to github actions
+      eq("TEXT", string.upper(sch.title.type), "should exists and should be still text not be nil")
     end)
     it("auto enable foreign_keys on usage", function()
       db:create("test_keys", {

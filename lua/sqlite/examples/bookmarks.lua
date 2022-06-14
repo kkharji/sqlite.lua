@@ -25,7 +25,6 @@ local julianday, strftime = sqlite.lib.julianday, sqlite.lib.strftime
 
 ---@alias BMType '"web"' | '"file"' | '"dir"'
 
-
 --[[ Datashapes ---------------------------------------------
 
 ---@class BMCollection
@@ -169,7 +168,6 @@ end
 ---Add a row
 ---@param row BMEntry
 function entries:add(row)
-
   if row.collection and not collection:where { title = row.collection } then
     collection:insert { title = row.collection }
   end
@@ -271,8 +269,6 @@ end
 if entries:count() == 0 then
   entries:seed()
 end
-
-
 ---Edit an entry --- simple abstraction over entries.update { where = {id = 3}, set = { title = "none" } }
 entries:edit(3, { title = "none" })
 

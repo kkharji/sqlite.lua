@@ -73,11 +73,26 @@ describe("sqlite.tbl", function()
     local new = db:tbl("newtbl", opts)
 
     it("initalizes db with schema", function()
-      eq(detailed_schema, new:schema(), "should be identical")
+      -- NOTE: Hack to ensure the casing of types always match!! due to github actions
+      local got_schema = new:schema()
+      for k, v in pairs(got_schema) do
+        v.type = string.upper(v.type)
+        got_schema[k] = v
+      end
+
+      eq(detailed_schema, got_schema, "should be identical")
     end)
     it("should not rewrite schema.", function()
       local new2 = db:tbl "newtbl"
-      eq(detailed_schema, new2:schema(), "should be identical")
+
+      -- NOTE: Hack to ensure the casing of types always match!! due to github actions
+      local got_schema = new2:schema()
+      for k, v in pairs(got_schema) do
+        v.type = string.upper(v.type)
+        got_schema[k] = v
+      end
+
+      eq(detailed_schema, got_schema, "should be identical")
       -- eq(detailed_schema, new2.tbl_schema, "should be identical")
       -- local new3 = db:tbl("newtbl", { schema = { id = "string" } })
       -- eq(detailed_schema, new3:schema(), "should be identical")
@@ -87,6 +102,13 @@ describe("sqlite.tbl", function()
 
   describe(":schema", function()
     it("returns schema if self.tbl exists", function()
+      -- NOTE: Hack to ensure the casing of types always match!! due to github actions
+      local got_schema = t1:schema()
+      for k, v in pairs(got_schema) do
+        v.type = string.upper(v.type)
+        got_schema[k] = v
+      end
+
       eq({
         a = {
           cid = 0,
@@ -106,7 +128,7 @@ describe("sqlite.tbl", function()
           required = false,
           type = "TEXT",
         },
-      }, t1:schema())
+      }, got_schema)
     end)
     it("returns empty table if schema doesn't exists", function()
       eq({}, t2:schema())

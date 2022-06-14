@@ -18,7 +18,6 @@ local clib = (function()
     path, _ = luv.os_getenv "LIBSQLITE"
   end
 
-
   local clib_path = path
     or (function() --- try to find libsqlite. Macos support only.
       local os = luv.os_uname()
