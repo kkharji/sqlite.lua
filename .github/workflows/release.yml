@@ -20,8 +20,8 @@ jobs:
         name: Restore cache for today's nightly.
         uses: actions/cache@v2
         with:
-          path: build
-          key: ${{ runner.os }}-appimage-${{ hashFiles('todays-date') }}
+          path: _neovim
+          key: ${{ runner.os }}-${{ matrix.url }}-${{ hashFiles('todays-date') }}
       -
         name: Show Tag
         id: tag
@@ -41,16 +41,12 @@ jobs:
       -
         name: Setup  Environment
         run: |
-          test -d build || {
-            mkdir -p build
-            wget https://github.com/neovim/neovim/releases/download/nightly/nvim.appimage
-            chmod +x nvim.appimage
-            ./nvim.appimage --appimage-extract
-            mv ./squashfs-root/usr/bin/nvim ./build/nvim
+          test -d _neovim || {
+            mkdir -p _neovim
+            curl -sL ${{ matrix.url }} | tar xzf - --strip-components=1 -C "${PWD}/_neovim"
           }
           mkdir -p ~/.local/share/nvim/site/pack/vendor/start
-          git clone --depth 1 https://github.com/nvim-lua/plenary.nvim \
-            ~/.local/share/nvim/site/pack/vendor/start/plenary.nvim
+          git clone --depth 1 https://github.com/nvim-lua/plenary.nvim ~/.local/share/nvim/site/pack/vendor/start/plenary.nvim
           ln -s $(pwd) ~/.local/share/nvim/site/pack/vendor/start
       -
         name: Generate changelog
@@ -66,8 +62,11 @@ jobs:
         name: Generate Luarocks
         run: |
           export GTAG=${{ steps.tag.outputs.TAG }}
-          export PATH="${PWD}/build/:${PATH}"
+          export PATH="${PWD}/_neovim/bin:${PATH}"
+          export VIM="${PWD}/_neovim/share/nvim/runtime"
+          nvim --version
           make gen_luarock
+          ls
       # -
       #   name: Update version in files
       #   run: |
