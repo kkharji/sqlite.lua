@@ -30,7 +30,7 @@ jobs:
         name: Setup Git-Chglog and sudo
         run: |
           apt-get update -y
-          apt-get install sudo -y
+          apt-get install sudo unzip build-essential libreadline-dev -y
           go get github.com/git-chglog/git-chglog/cmd/git-chglog
       -
         name: Setup Lua
