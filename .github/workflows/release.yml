@@ -5,7 +5,7 @@ on:
 
 jobs:
   release:
-    # if: github.event.base_ref == 'refs/heads/master' # not sure, maybe not
+    if: github.event.base_ref == 'refs/heads/master'
     runs-on: ubuntu-20.04
     container:
       image: golang:1.16
@@ -67,35 +67,35 @@ jobs:
           nvim --version
           make gen_luarock
           ls
-      # -
-      #   name: Update version in files
-      #   run: |
-      #     sed -i '/sqlite\.db\.__version/s/".*"/"${{ steps.tag.outputs.TAG }}"/' ./lua/sqlite/db.lua
-      #     git add ./lua/sqlite/db.lua
-      # -
-      #   name: Upload to luarocks
-      #   env:
-      #     LUAROCKS_TOKEN: ${{ secrets.LUAROCKS_TOKEN }}
-      #   run: |
-      #     luarocks upload \
-      #       sqlite-${{ steps.tag.outputs.TAG }}-0.rockspec \
-      #       --api-key=${LUAROCKS_TOKEN}
-      # -
-      #   name: Push Release Changes
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     COMMIT_MSG: |
-      #       :bookmark: release ${{ steps.tag.outputs.TAG }}
+      -
+        name: Update version in files
+        run: |
+          sed -i '/sqlite\.db\.__version/s/".*"/"${{ steps.tag.outputs.TAG }}"/' ./lua/sqlite/db.lua
+          git add ./lua/sqlite/db.lua
+      -
+        name: Upload to luarocks
+        env:
+          LUAROCKS_TOKEN: ${{ secrets.LUAROCKS_TOKEN }}
+        run: |
+          luarocks upload \
+            sqlite-${{ steps.tag.outputs.TAG }}-0.rockspec \
+            --api-key=${LUAROCKS_TOKEN}
+      -
+        name: Push Release Changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_MSG: |
+            :bookmark: release ${{ steps.tag.outputs.TAG }}
 
-      #       see https://github.com/${{ github.repository }}/releases/tag/${{ steps.tag.outputs.TAG }}
-      #   run: |
-      #     git config --global user.name 'github-actions[bot]'
-      #     git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-      #     git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
-      #     git commit -m "${COMMIT_MSG}"
-      #     git push origin HEAD:master
-      # -
-      #   name: Create GH Release
-      #   uses: softprops/action-gh-release@v1
-      #   with:
-      #     body_path: RELEASE_CHANGELOG.md
+            see https://github.com/${{ github.repository }}/releases/tag/${{ steps.tag.outputs.TAG }}
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+          git commit -m "${COMMIT_MSG}"
+          git push origin HEAD:master
+      -
+        name: Create GH Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: RELEASE_CHANGELOG.md
