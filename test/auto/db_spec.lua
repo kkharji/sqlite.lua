@@ -546,6 +546,10 @@ describe("sqlite.db", function()
   end)
 
   describe(":select", function()
+    if vim.fn.executable("curl") then
+        pending("'curl' program is not available")
+        return
+    end
     local db = sql:open(path)
     local posts, users
 
