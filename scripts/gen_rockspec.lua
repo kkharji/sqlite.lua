@@ -11,7 +11,7 @@ local version = uv.os_getenv "GTAG" or "master"
 local modules = {}
 local description = {
   summary = "SQLite/LuaJIT binding and a highly opinionated wrapper for storing, retrieving, caching, and persisting [SQLite] databases",
-  homepage = "https://github.com/tami5/sqlite.lua",
+  homepage = "https://github.com/kkharji/sqlite.lua",
   labels = { "sqlite3", "binding", "luajit", "database" },
   detailed = "",
   license = "MIT",
@@ -40,7 +40,7 @@ package = 'sqlite'
 version = '%s-0'
 description = %s
 source = {
-  url = 'git://github.com/tami5/sqlite.lua.git',
+  url = 'git://github.com/kkharji/sqlite.lua.git',
   tag = "%s"
 }
 dependencies = {

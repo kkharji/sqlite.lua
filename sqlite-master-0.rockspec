@@ -3,13 +3,13 @@ package = 'sqlite'
 version = 'master-0'
 description = {
   detailed = "",
-  homepage = "https://github.com/tami5/sqlite.lua",
+  homepage = "https://github.com/kkharji/sqlite.lua",
   labels = { "sqlite3", "binding", "luajit", "database" },
   license = "MIT",
   summary = "SQLite/LuaJIT binding and a highly opinionated wrapper for storing, retrieving, caching, and persisting [SQLite] databases"
 }
 source = {
-  url = 'git://github.com/tami5/sqlite.lua.git',
+  url = 'git://github.com/kkharji/sqlite.lua.git',
   tag = "master"
 }
 dependencies = {

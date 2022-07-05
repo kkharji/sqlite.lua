@@ -4,7 +4,7 @@
 SQLite/LuaJIT binding and highly opinionated wrapper for storing, retrieving,
 caching, persisting, querying, and connecting to SQLite databases.
 
-To find out more visit https://github.com/tami5/sqlite.lua
+To find out more visit https://github.com/kkharji/sqlite.lua
 
 Help usage in neovim: ignore ||
   :h |sqlite.readme|         | open help readme

@@ -3,7 +3,7 @@
 ---retrieving, caching, persisting, querying, and connecting to SQLite databases.
 ---
 --- To find out more
---- visit https://github.com/tami5/sqlite.lua
+--- visit https://github.com/kkharji/sqlite.lua
 ---<pre>
 ---
 --- Help usage in neovim: ignore ||

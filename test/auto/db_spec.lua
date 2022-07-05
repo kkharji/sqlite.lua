@@ -68,7 +68,7 @@ describe("sqlite.db", function()
     end)
   end)
 
-  describe(":open/:close", function() -- todo(tami5): change to open instead of connect.
+  describe(":open/:close", function() -- todo(kkharji): change to open instead of connect.
     it("creates in memory database.", function()
       local db = sql:open()
       eq("table", type(db), "returns new main interface object.")
