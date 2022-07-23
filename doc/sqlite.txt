@@ -1,5 +1,5 @@
 ================================================================================
-                                                                 *sqlite.readme*
+README                                                           *sqlite.readme*
 
 SQLite/LuaJIT binding and highly opinionated wrapper for storing, retrieving,
 caching, persisting, querying, and connecting to SQLite databases.
@@ -69,7 +69,7 @@ sqlite_db_status                                            *sqlite_db_status*
 
 
 ================================================================================
-                                                                 *sqlite.db.lua*
+LUA                                                              *sqlite.db.lua*
 
 Main sqlite.lua object and methods.
 
@@ -95,6 +95,9 @@ sqlite.db.new({uri}, {opts})                                 *sqlite.db.new()*
 
     ```lua
     local db = sqlite.new("path/to/db" or "$env_var", { ... } or nil)
+    -- configure open mode through opts.open_mode = "ro", "rw", "rwc", default "rwc"
+    -- for more customize behaviour, set opts.open_mode to a list of db.flags
+    -- see https://sqlite.org/c3ref/open.html#urifilenamesinsqlite3open
     ```
 
 
@@ -151,6 +154,9 @@ sqlite.db:open({uri}, {opts})                               *sqlite.db:open()*
     local db = sqlite.db:open("./pathto/dbfile" or "$ENV_VARABLE" or nil, {...})
     -- reopen connection if closed.
     db:open()
+    -- configure open mode through opts.open_mode = "ro", "rw", "rwc", default "rwc"
+    -- for more customize behaviour, set opts.open_mode to a list of db.flags
+    -- see https://sqlite.org/c3ref/open.html#urifilenamesinsqlite3open
     ```
 
 
@@ -511,7 +517,7 @@ sqlite.db.lib()                                              *sqlite.db.lib()*
 
 
 ================================================================================
-                                                                *sqlite.tbl.lua*
+LUA                                                             *sqlite.tbl.lua*
 
 Abstraction to produce more readable code.
 ```lua
