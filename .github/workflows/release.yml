@@ -1,11 +1,11 @@
 name: Create Release
 on:
   push:
-    tags: ["v*"]
+    tags: "v*"
 
 jobs:
   release:
-    if: github.event.base_ref == 'refs/heads/master' # not sure, maybe not
+    # if: github.event.base_ref == 'refs/heads/master'
     runs-on: ubuntu-20.04
     container:
       image: golang:1.16
@@ -20,40 +20,35 @@ jobs:
         name: Restore cache for today's nightly.
         uses: actions/cache@v2
         with:
-          path: build
-          key: ${{ runner.os }}-appimage-${{ hashFiles('todays-date') }}
+          path: _neovim
+          key: ${{ runner.os }}-${{ matrix.url }}-${{ hashFiles('todays-date') }}
       -
         name: Show Tag
         id: tag
         run: echo ::set-output name=TAG::${GITHUB_REF##*/}
       -
-        name: Install required utils
+        name: Setup Git-Chglog and sudo
         run: |
+          apt-get update -y
+          apt-get install sudo zip unzip build-essential libreadline-dev -y
           go get github.com/git-chglog/git-chglog/cmd/git-chglog
-          apt-get update -y lua sudo unzip
-          apt-get -y install build-essential libreadline-dev
-          wget https://luarocks.org/releases/luarocks-3.7.0.tar.gz
-          wget https://luarocks.org/releases/luarocks-3.3.1.tar.gz
-          tar zxpf luarocks-3.3.1.tar.gz
-          cd luarocks-3.3.1
-          ./configure --with-lua-include=/usr/local/include
-          make; make install
-          cd -
-          echo $(luarocks --version)
+      -
+        name: Setup Lua
+        uses: leafo/gh-actions-lua@v8.0.0
+      -
+        name: Setup Luarocks
+        uses: leafo/gh-actions-luarocks@v4
       -
         name: Setup  Environment
         run: |
-          test -d build || {
-            mkdir -p build
-            wget https://github.com/neovim/neovim/releases/download/nightly/nvim.appimage
-            chmod +x nvim.appimage
-            ./nvim.appimage --appimage-extract
-            mv ./squashfs-root/usr/bin/nvim ./build/nvim
+          test -d _neovim || {
+            mkdir -p _neovim
+            curl -sL https://github.com/neovim/neovim/releases/download/nightly/nvim-linux64.tar.gz | tar xzf - --strip-components=1 -C "${PWD}/_neovim"
           }
           mkdir -p ~/.local/share/nvim/site/pack/vendor/start
-          git clone --depth 1 https://github.com/nvim-lua/plenary.nvim \
-            ~/.local/share/nvim/site/pack/vendor/start/plenary.nvim
+          git clone --depth 1 https://github.com/nvim-lua/plenary.nvim ~/.local/share/nvim/site/pack/vendor/start/plenary.nvim
           ln -s $(pwd) ~/.local/share/nvim/site/pack/vendor/start
+          luarocks install dkjson
       -
         name: Generate changelog
         run: |
@@ -68,8 +63,11 @@ jobs:
         name: Generate Luarocks
         run: |
           export GTAG=${{ steps.tag.outputs.TAG }}
-          export PATH="${PWD}/build/:${PATH}"
+          export PATH="${PWD}/_neovim/bin:${PATH}"
+          export VIM="${PWD}/_neovim/share/nvim/runtime"
+          nvim --version
           make gen_luarock
+          ls
       -
         name: Update version in files
         run: |

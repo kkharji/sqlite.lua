@@ -11,7 +11,7 @@ local version = uv.os_getenv "GTAG" or "master"
 local modules = {}
 local description = {
   summary = "SQLite/LuaJIT binding and a highly opinionated wrapper for storing, retrieving, caching, and persisting [SQLite] databases",
-  homepage = "https://github.com/tami5/sqlite.lua",
+  homepage = "https://github.com/kkharji/sqlite.lua",
   labels = { "sqlite3", "binding", "luajit", "database" },
   detailed = "",
   license = "MIT",
@@ -40,7 +40,7 @@ package = 'sqlite'
 version = '%s-0'
 description = %s
 source = {
-  url = 'git://github.com/tami5/sqlite.lua.git',
+  url = 'git://github.com/kkharji/sqlite.lua.git',
   tag = "%s"
 }
 dependencies = {
@@ -50,7 +50,13 @@ build = {
   type = "builtin",
   modules = %s
 }
-
+test = {
+	type = "command",
+	command = "make test"
+}
+test_dependencies = {
+	"plenary.nvim"
+}
 ]]):format(version, ins(description), version, dependencies, ins(modules))
 
 local file_handle = io.open(("%s/sqlite-%s-0.rockspec"):format(cwd, version), "w")

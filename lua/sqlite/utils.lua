@@ -105,7 +105,7 @@ M.expand = function(path)
   elseif string.find(path, "^%.") then
     expanded = luv.fs_realpath(path)
     if expanded == nil then
-      error "Path not vaild"
+      error "Path not valid"
     end
   elseif string.find(path, "%$") then
     local rep = string.match(path, "([^%$][^/]*)")

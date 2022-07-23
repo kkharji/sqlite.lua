@@ -5,10 +5,10 @@ sqlite.lua 💫
 [SQLite]/[LuaJIT] binding and a highly opinionated wrapper for storing, retrieving, caching, and persisting [SQLite] databases.
 [sqlite.lua] present new possibilities for plugin development and while it's primarily created for [neovim], it support all luajit environments.
 
-- [Changelog](https://github.com/tami5/sqlite.lua/blob/master/CHANGELOG.md)
-- [Docs](https://github.com/tami5/sqlite.lua/blob/master/doc/sqlite.txt)
-- [Examples](https://github.com/tami5/sqlite.lua/blob/master/lua/sqlite/examples)
-- [Powered By sqlite.lua](https://github.com/tami5/sqlite.lua#-powered-by-sqlitelua)
+- [Changelog](https://github.com/kkharji/sqlite.lua/blob/master/CHANGELOG.md)
+- [Docs](https://github.com/kkharji/sqlite.lua/blob/master/doc/sqlite.txt)
+- [Examples](https://github.com/kkharji/sqlite.lua/blob/master/lua/sqlite/examples)
+- [Powered By sqlite.lua](https://github.com/kkharji/sqlite.lua#-powered-by-sqlitelua)
 
 <p align="center"> <img src="./doc/preview.svg"> </p>
 
@@ -29,7 +29,7 @@ sqlite.lua 💫
 ### [Packer.nvim](https://github.com/wbthomason/packer.nvim) (Neovim)
 
 ```lua
-use { "tami5/sqlite.lua" }
+use { "kkharji/sqlite.lua" }
 ```
 
 ### [luarocks](https://luarocks.org/) (LuaJIT)
@@ -67,14 +67,14 @@ programs.neovim.plugins = [
 🔥 Powered by sqlite.lua
 -----------------
 
-- https://github.com/tami5/impatient.nvim
+- https://github.com/kkharji/impatient.nvim
 - https://github.com/nvim-telescope/telescope-smart-history.nvim
 - https://github.com/nvim-telescope/telescope-frecency.nvim
-- https://github.com/tami5/lispdocs.nvim
+- https://github.com/kkharji/lispdocs.nvim
 - https://github.com/nvim-telescope/telescope-cheat.nvim
 
 [Installation]: #🚧_installation
 [SQLite]: https://www.sqlite.org/index.html
 [LuaJIT]: https://luajit.org
-[sqlite.lua]: https://github.com/tami5/sqlite.lua
+[sqlite.lua]: https://github.com/kkharji/sqlite.lua
 [neovim]: https://github.com/neovim/neovim
