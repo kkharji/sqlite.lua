@@ -655,18 +655,32 @@ M.last_errcode = function(conn_ptr)
   return clib.sqlite3_errcode(conn_ptr)
 end
 
+-- Open Modes
+M.open_modes = {
+  ["ro"] = bit.bor(M.flags.open_readonly, M.flags.open_uri),
+  ["rw"] = bit.bor(M.flags.open_readwrite, M.flags.open_uri),
+  ["rwc"] = bit.bor(M.flags.open_readwrite, M.flags.open_create, M.flags.open_uri),
+}
+
 ---Create new connection and modify `sqlite_db` object
 ---@param uri string
 ---@param opts sqlite_db.opts
 ---@return sqlite_blob*
----@TODO: support open_v2 to enable control over how the database file is opened.
 M.connect = function(uri, opts)
   opts = opts or {}
   local conn = M.get_new_db_ptr()
-  local code = clib.sqlite3_open(uri, conn)
+  local open_mode = opts.open_mode
+  opts.open_mode = nil
+  if type(open_mode) == "table" then
+    open_mode = bit.bor(unpack(open_mode))
+  else
+    open_mode = M.open_modes[open_mode or "rwc"]
+  end
+
+  local code = clib.sqlite3_open_v2(uri, conn, open_mode, nil)
 
   if code ~= M.flags.ok then
-    error(("sqlite.lua: couldn't connect to sql database, ERR:"):format(code))
+    error(("sqlite.lua: couldn't connect to sql database, ERR: %s"):format(M.last_errmsg(conn[0])))
   end
 
   for k, v in pairs(opts) do

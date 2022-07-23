@@ -33,6 +33,9 @@ local tbl = require "sqlite.tbl"
 ---<pre>
 ---```lua
 --- local db = sqlite.new("path/to/db" or "$env_var", { ... } or nil)
+--- -- configure open mode through opts.open_mode = "ro", "rw", "rwc", default "rwc"
+--- -- for more customize behaviour, set opts.open_mode to a list of db.flags
+--- -- see https://sqlite.org/c3ref/open.html#urifilenamesinsqlite3open
 ---```
 ---</pre>
 ---@param uri string: uri to db file.
@@ -87,6 +90,9 @@ end
 ---   opts = {} or nil -- custom sqlite3 options, see |sqlite_opts|
 ---   --- if opts.keep_open, make connection and keep it open.
 ---   --- if opts.lazy, then just provide logical object
+---   --- configure open mode through opts.open_mode = "ro", "rw", "rwc", default "rwc"
+---   --- for more customize behaviour, set opts.open_mode to a list of db.flags
+---   --- see https://sqlite.org/c3ref/open.html#urifilenamesinsqlite3open
 --- }
 --- --- Overwrite method and access it using through pre-appending "__"
 --- db.select = function(...) db:__select(...) end
@@ -138,6 +144,9 @@ end
 --- local db = sqlite.db:open("./pathto/dbfile" or "$ENV_VARABLE" or nil, {...})
 --- -- reopen connection if closed.
 --- db:open()
+--- -- configure open mode through opts.open_mode = "ro", "rw", "rwc", default "rwc"
+--- -- for more customize behaviour, set opts.open_mode to a list of db.flags
+--- -- see https://sqlite.org/c3ref/open.html#urifilenamesinsqlite3open
 ---```
 ---</pre>
 ---@param uri string: (optional) {uri} == {nil} then in-memory db.
@@ -649,5 +658,7 @@ sqlite.db.lib = require "sqlite.strfun"
 sqlite.db = setmetatable(sqlite.db, {
   __call = sqlite.db.extend,
 })
+
+sqlite.db.flags = clib.flags
 
 return sqlite.db

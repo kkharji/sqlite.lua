@@ -269,6 +269,7 @@ end
 if entries:count() == 0 then
   entries:seed()
 end
+
 ---Edit an entry --- simple abstraction over entries.update { where = {id = 3}, set = { title = "none" } }
 entries:edit(3, { title = "none" })
 
