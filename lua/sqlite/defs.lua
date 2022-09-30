@@ -21,8 +21,21 @@ local clib = (function()
   local clib_path = path
     or (function() --- try to find libsqlite.Linux and Macos support only.
       local os = luv.os_uname()
-      if os.sysname == "Linux" then
-        return "/usr/lib/x86_64-linux-gnu/libsqlite3.so"
+      local function file_exists(file_path)
+         local f=io.open(file_path,"r")
+         if f~=nil then io.close(f) return true else return false end
+      end
+
+      local linux_paths = {"/usr/lib/x86_64-linux-gnu/libsqlite3.so"
+      , "/usr/lib64/libsqlite3.so"
+      ,"/usr/lib/libsqlite3.so"}
+      if os.sysname == "Linux" and not os.machine == "arm64" then
+        for _,v in linux_paths
+          do
+            if file_exists(v) then
+              return v
+            end
+          end
       end
       if os.sysname == "Darwin" then
         return os.machine == "arm64" and "/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib"
