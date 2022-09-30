@@ -23,18 +23,26 @@ local clib = (function()
       local os = luv.os_uname()
 
       local file_exists = function(file_path)
-         local f=io.open(file_path,"r")
-         if f~=nil then io.close(f) return true else return false end
+        local f = io.open(file_path, "r")
+        if f ~= nil then
+          io.close(f)
+          return true
+        else
+          return false
+        end
       end
 
       if os.sysname == "Linux" then
-        local linux_paths = {"/usr/lib/x86_64-linux-gnu/libsqlite3.so",
-        "/usr/lib64/libsqlite3.so",
-        "/usr/lib/libsqlite3.so"}
-        for _,v in pairs(linux_paths)
-          do
-            if file_exists(v) then return v end
+        local linux_paths = {
+          "/usr/lib/x86_64-linux-gnu/libsqlite3.so",
+          "/usr/lib64/libsqlite3.so",
+          "/usr/lib/libsqlite3.so",
+        }
+        for _, v in pairs(linux_paths) do
+          if file_exists(v) then
+            return v
           end
+        end
       end
 
       if os.sysname == "Darwin" then
