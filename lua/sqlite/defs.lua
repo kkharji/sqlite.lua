@@ -30,7 +30,7 @@ local clib = (function()
       , "/usr/lib64/libsqlite3.so"
       ,"/usr/lib/libsqlite3.so"}
       if os.sysname == "Linux" and not os.machine == "arm64" then
-        for _,v in linux_paths
+        for _,v in pairs(linux_paths)
           do
             if file_exists(v) then
               return v
