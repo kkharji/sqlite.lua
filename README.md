@@ -10,7 +10,7 @@ sqlite.lua 💫
 - [Examples](https://github.com/kkharji/sqlite.lua/blob/master/lua/sqlite/examples)
 - [Powered By sqlite.lua](https://github.com/kkharji/sqlite.lua#-powered-by-sqlitelua)
 
-<p align="center"> <img src="./doc/preview.svg"> </p>
+![preview](https://user-images.githubusercontent.com/2361214/202757101-65735d52-2927-4de0-8d69-b078b66aaca6.svg)
 
 ✨ Features:
 ------------------
