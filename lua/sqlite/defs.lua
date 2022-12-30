@@ -35,6 +35,7 @@ local clib = (function()
       if os.sysname == "Linux" then
         local linux_paths = {
           "/usr/lib/x86_64-linux-gnu/libsqlite3.so",
+          "/usr/lib/x86_64-linux-gnu/libsqlite3.so.0",
           "/usr/lib64/libsqlite3.so",
           "/usr/lib/libsqlite3.so",
         }
