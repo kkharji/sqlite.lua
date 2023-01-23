@@ -10,7 +10,7 @@
 ---   :h |sqlite.readme|         | open help readme
 ---   :h |sqlite_schema_key|     | open a class or type
 ---   :h |sqlite.tbl|            | show help for sqlite_tbl.
----   :h |sqlite.db|             | show help for sqlite_tbl.
+---   :h |sqlite.db|             | show help for sqlite_db.
 ---   :h sqlite.db:...           | show help for a sqlite_db method.
 ---   :h sqlite.tbl:...          | show help for a sqlite_tbl method.
 ---
