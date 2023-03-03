@@ -215,9 +215,14 @@ function sqlite.db:with_open(...)
     self:open()
   end
 
-  local res = func(self)
+  local success, result = pcall(function()
+    return func(self)
+  end)
   self:close()
-  return res
+  if not success then
+    error(result)
+  end
+  return result
 end
 
 ---Predict returning true if db connection is active.
