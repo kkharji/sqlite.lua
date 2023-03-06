@@ -48,6 +48,7 @@ luarocks install sqlite luv
 ```bash
 sudo pacman -S sqlite # Arch
 sudo apt-get install sqlite3 libsqlite3-dev # Ubuntu
+sudo dnf install sqlite sqlite-devel # Fedora
 ```
 
 #### Nix (home-manager)
