@@ -47,9 +47,27 @@ local clib = (function()
       end
 
       if os.sysname == "Darwin" then
-        return os.machine == "arm64" and "/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib"
+        path = os.machine == "arm64" and "/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib"
           or "/usr/local/opt/sqlite3/lib/libsqlite3.dylib"
       end
+
+      if file_exists(path) then
+        return path
+      end
+
+      -- as a last resort, try using `which sqlite3`
+      local handle = io.popen "which sqlite3"
+      if not handle then
+        return path
+      end
+      local output = handle:read "*a"
+      local exit_code = handle:close()
+      if exit_code == true then
+        -- trim trailing newline
+        path = string.gsub(output, "\n$", "")
+      end
+
+      return path
     end)()
 
   return ffi.load(clib_path or "libsqlite3")
