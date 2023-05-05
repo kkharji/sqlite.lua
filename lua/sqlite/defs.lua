@@ -55,6 +55,12 @@ local clib = (function()
         return path
       end
 
+      -- check for nix installation
+      path = string.format("%s/.nix_profile/bin/sqlite3", luv.os_getenv "HOME")
+      if file_exists(path) then
+        return path
+      end
+
       -- as a last resort, try using `which sqlite3`
       local handle = io.popen "which sqlite3"
       if not handle then
