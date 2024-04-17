@@ -100,7 +100,7 @@ end)()
 
 M.expand = function(path)
   local expanded
-  if string.find(path, "~") then
+  if string.find(path, "^~") then
     expanded = string.gsub(path, "^~", os.getenv "HOME")
   elseif string.find(path, "^%.") then
     expanded = luv.fs_realpath(path)
