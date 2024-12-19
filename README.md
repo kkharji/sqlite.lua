@@ -73,6 +73,7 @@ programs.neovim.plugins = [
 - https://github.com/nvim-telescope/telescope-frecency.nvim
 - https://github.com/kkharji/lispdocs.nvim
 - https://github.com/nvim-telescope/telescope-cheat.nvim
+- https://github.com/LintaoAmons/bookmarks.nvim
 
 [Installation]: #🚧_installation
 [SQLite]: https://www.sqlite.org/index.html
