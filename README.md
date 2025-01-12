@@ -56,14 +56,13 @@ sudo dnf install sqlite sqlite-devel # Fedora
 programs.neovim.plugins = [
     {
       plugin = pkgs.vimPlugins.sqlite-lua;
-      config = "let g:sqlite_clib_path = '${pkgs.sqlite.out}/lib/libsqlite3.so'";
+      config = "let g:sqlite_clib_path = '${pkgs.sqlite.out}/lib/libsqlite3${stdenv.hostPlatform.extensions.sharedLibrary}'";
     }
 ];
 ```
 
 *Notes:*
   - Ensure you install `pkgs.sqlite`
-  - If you are using home-manager on OSX, you must replace `libsqlite3.so` with `libsqlite3.dylib`
 
 🔥 Powered by sqlite.lua
 -----------------
