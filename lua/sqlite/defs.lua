@@ -51,7 +51,6 @@ local clib = (function()
         local homebrew_prefix = luv.os_getenv "HOMEBREW_PREFIX" or "/opt/homebrew"
         return os.machine == "arm64" and homebrew_prefix .. "/opt/sqlite/lib/libsqlite3.dylib"
           or "/usr/local/opt/sqlite3/lib/libsqlite3.dylib"
-
       end
     end)()
 
